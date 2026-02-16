@@ -1,0 +1,109 @@
+@use '../../../styles/variables' as *;
+
+.aboutUs {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 2rem;
+
+    .aboutUsTitle, .usPillarsTitle {
+        font-size: clamp($font-size-xxlarge, 10vw, $font-size-xxxlarge);
+        margin-bottom: 1rem;
+
+        &::after {
+            content: '';
+            display: block;
+            width: 60px;
+            height: 4px;
+            background-color: $secondary-color;
+            margin: 0.5rem auto 0;
+            border-radius: 2px;
+        }
+    }
+
+    .aboutUsContent {
+        display: flex;
+        align-items: center;
+        justify-content: space-around;
+        width: 100%;
+        max-width: 1200px;
+        gap: 2rem;
+
+        @media screen and (max-width: 768px) {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .aboutUsText {
+            max-width: 500px;
+
+            h3 {
+                font-size: $font-size-xxlarge;
+                margin-bottom: 10px;
+            }
+
+            p {
+                font-size: $font-size-medium;
+                line-height: 1.5;
+                margin-bottom: 1rem;
+                text-align: left;
+            }
+
+            .especialText {
+                font-size: $font-size-medium-large;
+                font-weight: bold;
+                font-style: italic;
+                background-color: rgba($secondary-color, 0.2);
+                padding: 0.8rem 0.2rem;
+                border-radius: 1rem;
+                border-left: 4px solid $secondary-color;
+                text-align: center;
+                transition: background-color 0.3s ease;
+
+                &:hover {
+                    cursor: pointer;
+                    background-color: rgba($secondary-color, 0.3);
+                }
+            }
+        }
+
+        .aboutUsImage {
+            max-width: 600px;
+            border-radius: 1rem;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+
+            img {
+                width: 100%;
+                height: auto;
+                transition: transform 0.3s ease;
+
+                &:hover {
+                    transform: scale(1.05);
+                }
+            }
+
+            &:hover {
+                box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            }
+        }
+    }
+
+    .usPillars {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 2rem;
+        flex-wrap: wrap;
+        margin-top: 3rem;
+
+        .pillarsList {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 2rem;
+            width: 100%;
+        }
+    }
+}

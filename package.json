@@ -9,14 +9,27 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@prisma/client": "^6.19.2",
+    "@tanstack/react-query": "^5.90.21",
+    "axios": "^1.13.5",
+    "formik": "^2.4.9",
+    "gsap": "^3.14.2",
     "next": "16.1.6",
+    "prisma": "^7.4.0",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "react-icons": "^5.5.0",
+    "react-toastify": "^11.0.5",
+    "sass": "^1.97.3",
+    "yup": "^1.7.1"
   },
   "devDependencies": {
+    "@tanstack/eslint-plugin-query": "^5.91.4",
+    "@types/gsap": "^1.20.2",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/react-toastify": "^4.0.2",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "typescript": "^5"

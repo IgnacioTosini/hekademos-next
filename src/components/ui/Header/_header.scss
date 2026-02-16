@@ -1,0 +1,56 @@
+@use '../../../styles/variables' as *;
+
+.header {
+    position: sticky;
+    top: 0;
+    height: 5rem;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: space-evenly;
+    width: 100%;
+    background-color: rgba($primary-color, 0.5);
+    color: $color-text;
+    text-align: center;
+    padding: 1rem 2rem;
+
+    @media (max-width: 768px) {
+        justify-content: space-between;
+
+        .button {
+            display: none;
+        }
+    }
+
+    .logo {
+        width: $font-size-xxxlarge;
+        height: $font-size-xxxlarge;
+        margin-right: 1rem;
+        object-fit: contain;
+    }
+
+    .headerRightSection {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+
+        .button {
+            background-color: $color-button;
+            color: $color-text;
+            border: none;
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            font-size: $font-size-medium;
+            border-radius: 1.5rem;
+            transition: background-color 0.3s ease-in-out;
+
+            &:hover {
+                background-color: $color-hover-secondary;
+            }
+        }
+
+        @media (max-width: 768px) {
+            gap: 0;
+        }
+    }
+}

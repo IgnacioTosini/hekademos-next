@@ -1,0 +1,46 @@
+@use '../../../styles/variables' as *;
+
+.teachers {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 2rem;
+    background-color: $quaternary-color;
+
+    .teachersTitle {
+        font-size: clamp($font-size-xxlarge, 10vw, $font-size-xxxlarge);
+        font-weight: $font-weight-bold;
+        color: $color-text;
+        text-align: center;
+        margin-bottom: 1rem;
+
+        &::after {
+            content: '';
+            display: block;
+            width: 60px;
+            height: 4px;
+            background-color: $secondary-color;
+            margin: 0.5rem auto 0 auto;
+            border-radius: 2px;
+        }
+    }
+
+    .teachersSubtitle {
+        font-size: $font-size-medium-large;
+        font-weight: $font-weight-regular;
+        color: $color-text-secondary;
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .teacherList {
+        display: flex;
+        justify-content: space-evenly;
+        gap: 1.5rem;
+        perspective: 1000px;
+
+        @media (max-width: 1200px) {
+            flex-wrap: wrap;
+        }
+    }
+}

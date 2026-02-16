@@ -1,0 +1,108 @@
+@use '../../../styles/variables' as *;
+
+.footer {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: $quinary-color;
+    padding: 1rem 0;
+    text-align: center;
+    color: $color-text;
+    width: 100%;
+
+    .footerPartOne {
+        display: flex;
+        max-width: 1200px;
+
+        @media (max-width: 768px) {
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 1.5rem;
+
+            .logoContainer {
+                align-items: center;
+            }
+        }
+
+        .logoContainer {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            flex-direction: column;
+
+            p {
+                font-size: $font-size-normal;
+            }
+
+            @media (max-width: 768px) {
+                align-items: center;
+            }
+        }
+
+        .linksContainer {
+            display: flex;
+            justify-content: center;
+            flex: 1;
+            gap: 2rem;
+            margin-left: 2rem;
+
+            @media screen and (max-width: 1200px) {
+                flex-wrap: wrap;
+                margin: 0;
+            }
+
+            .linksSection {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                margin: 0 2rem;
+
+                h4 {
+                    margin-bottom: 0.5rem;
+                    font-size: $font-size-medium;
+                }
+
+                a,
+                button {
+                    color: $color-text-secondary;
+                    text-decoration: none;
+                    font-size: $font-size-medium;
+                    margin: 0.2rem 0;
+                    transition: all 0.3s ease-in-out;
+
+                    &:hover {
+                        color: $secondary-color;
+                    }
+                }
+
+                .socialMediasContainer {
+                    display: flex;
+                    gap: 1rem;
+
+                    a {
+                        font-size: $font-size-large;
+                    }
+                }
+            }
+        }
+    }
+
+    .footerPartTwo {
+        margin-top: 1rem;
+        border-top: 1px solid $border-color;
+        padding: 1rem 0;
+        width: 100%;
+
+        p {
+            font-size: $font-size-small;
+            margin: 0.2rem 0;
+        }
+
+        .especial {
+            font-size: $font-size-xsmall;
+            color: $color-text-tertiary;
+        }
+    }
+}

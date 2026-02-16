@@ -1,0 +1,105 @@
+@use '../../../styles/variables' as *;
+
+.userSubmenuWrapper {
+    position: relative;
+}
+
+.userIconBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: $color-text;
+    cursor: pointer;
+    transition: background .15s ease-in-out, transform .1s ease-in-out;
+
+    &:hover {
+        background: $quaternary-color;
+    }
+
+    &:active {
+        transform: scale(.98);
+    }
+}
+
+.userSubmenuContainer {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    min-width: 220px;
+
+    background: $tertiary-color;
+    color: $color-text;
+    border: 1px solid $border-color;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .25);
+
+    // Oculto por defecto; se muestra con .open
+    opacity: 0;
+    transform: translateY(-6px);
+    pointer-events: none;
+    transition: opacity .15s ease, transform .15s ease;
+
+    &.open {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+    }
+
+    .userSubmenu {
+        list-style: none;
+        padding: .5rem 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+
+        li {
+            margin: 0;
+
+            a,
+            button {
+                display: block;
+                width: 100%;
+                text-align: left;
+                background: none;
+                border: none;
+                padding: .5rem .9rem;
+                font-size: $font-size-normal;
+                color: $color-text;
+                cursor: pointer;
+                text-decoration: none;
+
+                &:hover {
+                    background: $quinary-color;
+                    color: $secondary-color;
+                }
+            }
+
+            a.link-secondary {
+                color: $secondary-color;
+            }
+
+            button.link-danger {
+                color: $color-text-tertiary;
+            }
+        }
+    }
+}
+
+.userSubmenuContainer::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    right: 14px;
+    width: 10px;
+    height: 10px;
+    background: $tertiary-color;
+    border-left: 1px solid $border-color;
+    border-top: 1px solid $border-color;
+    transform: rotate(45deg);
+}

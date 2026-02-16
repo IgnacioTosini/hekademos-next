@@ -1,0 +1,51 @@
+@use '../../../styles/variables' as *;
+
+.pillarCard {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 3rem 1rem;
+    border-radius: 1rem;
+    width: 100%;
+    max-width: 350px;
+    height: 100%;
+    border: 1px solid $border-color;
+    font-size: $font-size-medium-large;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: border 0.3s ease, transform 0.3s ease;
+
+    &:hover {
+        border: 1px solid rgba($secondary-color, 0.8);
+        transform: translateY(-5px);
+        cursor: pointer;
+    }
+
+    .iconContainer {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 55px;
+        height: 55px;
+        border-radius: 50%;
+        background-color: rgba($secondary-color, 0.1);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        margin-bottom: 1rem;
+
+        svg {
+            width: 30px;
+            height: 30px;
+            fill: $secondary-color;
+        }
+    }
+
+    .pillarTitle {
+        font-size: $font-size-large;
+        margin-bottom: 1rem;
+    }
+
+    .pillarDescription {
+        color: $color-text-secondary;
+        font-size: $font-size-normal;
+    }
+}
