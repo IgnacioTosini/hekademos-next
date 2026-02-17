@@ -1,10 +1,7 @@
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { ExerciseService } from '@/services/ExerciseService'
-import { useShortsStore } from '@/store/shorts.store'
 
 export const useShorts = () => {
-    const { appendShorts } = useShortsStore()
-
     return useInfiniteQuery({
         queryKey: ['shorts'],
         queryFn: async ({ pageParam = 0 }) => {
@@ -14,20 +11,12 @@ export const useShorts = () => {
                 throw new Error('Error fetching shorts')
             }
 
-            const data = response.data
-
-            appendShorts(
-                data.content,
-                data.number,
-                !data.last
-            )
-
-            return data
+            return response.data
         },
         getNextPageParam: (lastPage) => {
             if (lastPage.last) return undefined
             return lastPage.number + 1
         },
-        initialPageParam: 0
+        initialPageParam: 0,
     })
 }
