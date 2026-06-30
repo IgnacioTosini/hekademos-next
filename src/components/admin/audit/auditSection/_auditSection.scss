@@ -1,0 +1,324 @@
+@use '@/styles/variables' as *;
+
+.audit-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    width: 100%;
+
+    .audit-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+
+        h1 {
+            color: $color-text;
+            font-family: $font-family-display;
+            font-size: $font-size-xxlarge;
+            font-weight: $font-weight-semibold;
+            line-height: 1.1;
+        }
+
+        p {
+            margin-top: .5rem;
+            color: $color-text-secondary;
+            font-size: $font-size-medium;
+        }
+    }
+
+    .audit-table-wrapper {
+        overflow: hidden;
+        border: 1px solid rgba($secondary-color, .18);
+        border-radius: 8px;
+        background: rgba($tertiary-color, .22);
+    }
+
+    .audit-table-toolbar {
+        display: grid;
+        grid-template-columns: minmax(130px, .8fr) minmax(130px, .8fr) minmax(150px, .8fr) minmax(220px, 1.4fr) auto;
+        align-items: end;
+        gap: .85rem;
+        padding: 1rem;
+        border-bottom: 1px solid rgba($secondary-color, .16);
+
+        label {
+            display: flex;
+            flex-direction: column;
+            gap: .45rem;
+            min-width: 0;
+        }
+
+        span {
+            color: $color-text-secondary;
+            font-size: $font-size-small;
+            font-weight: $font-weight-semibold;
+            text-transform: uppercase;
+        }
+
+        input,
+        select {
+            width: 100%;
+            height: 46px;
+            padding: 0 .9rem;
+            border: 1px solid rgba($secondary-color, .24);
+            border-radius: 8px;
+            outline: none;
+            background: rgba($quinary-color, .42);
+            color: $color-text;
+            font-family: $font-family;
+            font-size: $font-size-normal;
+
+            &:focus {
+                border-color: rgba($secondary-color, .72);
+                box-shadow: 0 0 0 2px rgba($secondary-color, .16);
+            }
+
+            &::placeholder {
+                color: rgba($color-text-secondary, .78);
+            }
+        }
+
+        option {
+            background: $quinary-color;
+            color: $color-text;
+        }
+    }
+
+    .audit-search-field {
+        min-width: 0;
+    }
+
+    .audit-clear-button {
+        height: 46px;
+        padding: 0 1rem;
+        border: 1px solid rgba($secondary-color, .3);
+        border-radius: 8px;
+        background: rgba($secondary-color, .12);
+        color: $secondary-color;
+        cursor: pointer;
+        font-family: $font-family;
+        font-size: $font-size-small;
+        font-weight: $font-weight-semibold;
+
+        &:hover {
+            background: rgba($secondary-color, .2);
+        }
+    }
+
+    .audit-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+
+        th:nth-child(1),
+        td:nth-child(1) {
+            width: 120px;
+        }
+
+        th:nth-child(2),
+        td:nth-child(2) {
+            width: 140px;
+        }
+
+        th:nth-child(3),
+        td:nth-child(3) {
+            width: 210px;
+        }
+
+        th:nth-child(4),
+        td:nth-child(4) {
+            width: 120px;
+        }
+
+        th {
+            padding: 1rem;
+            border-bottom: 1px solid rgba($secondary-color, .16);
+            background: rgba($quinary-color, .6);
+            color: $color-text-secondary;
+            font-size: $font-size-small;
+            font-weight: $font-weight-semibold;
+            text-align: left;
+            text-transform: uppercase;
+        }
+
+        td {
+            padding: .95rem 1rem;
+            border-bottom: 1px solid rgba($secondary-color, .1);
+            color: $color-text;
+            font-size: $font-size-small;
+            line-height: 1.4;
+            vertical-align: top;
+            overflow-wrap: anywhere;
+        }
+
+        tr:last-child td {
+            border-bottom: 0;
+        }
+
+        strong,
+        span {
+            display: block;
+        }
+
+        strong {
+            color: $color-text;
+            font-weight: $font-weight-semibold;
+        }
+
+        span {
+            margin-top: .2rem;
+            color: $color-text-secondary;
+        }
+    }
+
+    .audit-action {
+        display: inline-flex;
+        width: fit-content;
+        min-height: 28px;
+        padding: .28rem .65rem;
+        border-radius: 999px;
+        background: rgba($secondary-color, .14);
+        color: $secondary-color;
+        font-weight: $font-weight-semibold;
+        text-align: center;
+    }
+
+    .audit-table .audit-action {
+        display: inline-flex;
+    }
+
+    .audit-detail {
+        color: $color-text-secondary;
+        font-size: $font-size-normal;
+    }
+
+    .audit-empty {
+        padding: 2rem 1rem;
+        color: $color-text-secondary;
+        text-align: center;
+
+        strong {
+            display: block;
+            margin-bottom: .35rem;
+            color: $color-text;
+            font-family: $font-family-display;
+            font-size: $font-size-large;
+            font-weight: $font-weight-semibold;
+        }
+    }
+
+    @media (max-width: 900px) {
+        .audit-table-wrapper {
+            overflow: visible;
+        }
+
+        .audit-table-toolbar {
+            grid-template-columns: 1fr 1fr;
+
+            .audit-search-field {
+                grid-column: 1 / -1;
+            }
+
+            .audit-clear-button {
+                width: 100%;
+            }
+        }
+
+        .audit-table {
+            display: block;
+            padding: .85rem;
+
+            thead {
+                display: none;
+            }
+
+            tbody {
+                display: grid;
+                gap: .85rem;
+            }
+
+            tr {
+                display: grid;
+                overflow: hidden;
+                border: 1px solid rgba($secondary-color, .16);
+                border-radius: 8px;
+                background: rgba($quinary-color, .28);
+            }
+
+            td {
+                display: grid;
+                grid-template-columns: 88px minmax(0, 1fr);
+                align-items: start;
+                gap: .85rem;
+                width: auto !important;
+                min-width: 0;
+                padding: .75rem .85rem;
+                border-bottom: 1px solid rgba($secondary-color, .1);
+                text-align: right;
+
+                &:last-child {
+                    border-bottom: 0;
+                }
+
+                &::before {
+                    content: attr(data-label);
+                    color: $color-text-secondary;
+                    font-size: $font-size-xsmall;
+                    font-weight: $font-weight-semibold;
+                    letter-spacing: 0;
+                    text-align: left;
+                    text-transform: uppercase;
+                }
+            }
+
+            td[data-label="Usuario"],
+            td[data-label="Resumen"] {
+                grid-template-columns: 1fr;
+                gap: .35rem;
+                text-align: left;
+
+                &::before {
+                    margin-bottom: .1rem;
+                }
+            }
+
+            td[data-label="Acción"],
+            td[data-label="Registro"] {
+                align-items: center;
+            }
+
+            strong,
+            span {
+                display: block;
+                min-width: 0;
+            }
+
+            .audit-action {
+                justify-self: end;
+            }
+        }
+    }
+
+    @media (max-width: 620px) {
+        .audit-table-toolbar {
+            grid-template-columns: 1fr;
+
+            .audit-search-field,
+            .audit-clear-button {
+                grid-column: auto;
+            }
+        }
+
+        .audit-table {
+            padding: .65rem;
+
+            td {
+                grid-template-columns: 76px minmax(0, 1fr);
+                gap: .65rem;
+                padding: .72rem;
+                font-size: $font-size-small;
+            }
+        }
+    }
+}

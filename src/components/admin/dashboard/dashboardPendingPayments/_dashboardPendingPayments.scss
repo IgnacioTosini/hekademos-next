@@ -1,0 +1,173 @@
+@use '@/styles/variables' as *;
+
+.dashboard-pending-payments {
+    min-height: 260px;
+    padding: 1.5rem;
+    border: 1px solid rgba($secondary-color, .18);
+    border-radius: 8px;
+    background: rgba($tertiary-color, .22);
+
+    .dashboard-pending-payments-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+
+        h2 {
+            color: $color-text;
+            font-family: $font-family-display;
+            font-size: $font-size-large;
+            font-weight: $font-weight-semibold;
+            line-height: 1.15;
+        }
+
+        p {
+            margin-top: .35rem;
+            color: $color-text-secondary;
+            font-family: $font-family;
+            font-size: $font-size-small;
+            font-weight: $font-weight-regular;
+        }
+
+        a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.25rem;
+            height: 2.25rem;
+            flex: 0 0 auto;
+            border: 1px solid rgba($secondary-color, .22);
+            border-radius: 8px;
+            color: $secondary-color;
+            background: rgba($secondary-color, .08);
+            transition: border-color .2s ease, background .2s ease, transform .2s ease;
+
+            &:hover {
+                border-color: rgba($secondary-color, .5);
+                background: rgba($secondary-color, .14);
+                transform: translateX(2px);
+            }
+        }
+    }
+
+    .dashboard-pending-payments-list {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .dashboard-pending-payment {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 1rem;
+        padding: .85rem 0;
+        border-bottom: 1px solid rgba($secondary-color, .14);
+
+        &:last-child {
+            border-bottom: 0;
+        }
+    }
+
+    .dashboard-pending-payment-info,
+    .dashboard-pending-payment-amount {
+        display: flex;
+        flex-direction: column;
+        gap: .25rem;
+        min-width: 0;
+    }
+
+    .dashboard-pending-payment-info {
+        strong {
+            overflow: hidden;
+            color: $color-text;
+            font-size: $font-size-normal;
+            font-weight: $font-weight-semibold;
+            line-height: 1.2;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        span {
+            overflow: hidden;
+            color: $color-text-secondary;
+            font-size: $font-size-small;
+            line-height: 1.2;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    }
+
+    .dashboard-pending-payment-amount {
+        align-items: flex-end;
+        text-align: right;
+
+        strong {
+            color: $secondary-color;
+            font-size: $font-size-normal;
+            font-weight: $font-weight-semibold;
+            line-height: 1.2;
+            white-space: nowrap;
+        }
+
+        span {
+            width: fit-content;
+            padding: .2rem .45rem;
+            border-radius: 999px;
+            color: $color-hover-secondary;
+            background: rgba($color-hover-secondary, .12);
+            font-size: $font-size-xsmall;
+            font-weight: $font-weight-semibold;
+            line-height: 1;
+            white-space: nowrap;
+        }
+    }
+
+    .dashboard-pending-payments-more {
+        display: inline-flex;
+        width: fit-content;
+        margin-top: 1rem;
+        color: $secondary-color;
+        font-size: $font-size-small;
+        font-weight: $font-weight-semibold;
+        text-decoration: none;
+
+        &:hover {
+            color: $color-hover-primary;
+        }
+    }
+
+    .dashboard-pending-payments-empty {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-height: 150px;
+        gap: .35rem;
+        color: $color-text-secondary;
+
+        strong {
+            color: $color-text;
+            font-family: $font-family-display;
+            font-size: $font-size-large;
+            font-weight: $font-weight-semibold;
+        }
+
+        span {
+            font-size: $font-size-normal;
+        }
+    }
+
+    @media (max-width: 560px) {
+        padding: 1rem;
+
+        .dashboard-pending-payment {
+            grid-template-columns: 1fr;
+            gap: .5rem;
+        }
+
+        .dashboard-pending-payment-amount {
+            align-items: flex-start;
+            text-align: left;
+        }
+    }
+}

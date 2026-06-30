@@ -1,0 +1,62 @@
+@use '@/styles/variables' as *;
+
+.empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: .85rem;
+    min-height: 180px;
+    padding: 2rem 1.25rem;
+    color: $color-text-secondary;
+    text-align: center;
+
+    .empty-state-icon {
+        display: grid;
+        place-items: center;
+        width: 44px;
+        height: 44px;
+        border: 1px solid rgba($secondary-color, .22);
+        border-radius: 50%;
+        background: rgba($secondary-color, .1);
+        color: $secondary-color;
+        font-size: $font-size-medium-large;
+    }
+
+    .empty-state-copy {
+        display: flex;
+        align-items: center;
+        flex-direction: column;
+        gap: .35rem;
+        max-width: 420px;
+    }
+
+    strong {
+        color: $color-text;
+        font-size: $font-size-medium;
+        font-weight: $font-weight-semibold;
+    }
+
+    p {
+        color: $color-text-secondary;
+        font-size: $font-size-normal;
+        line-height: 1.45;
+    }
+
+    .empty-state-action {
+        display: flex;
+        justify-content: center;
+        margin-top: .35rem;
+    }
+}
+
+.empty-state-compact {
+    min-height: 118px;
+    padding: 1.35rem 1rem;
+
+    .empty-state-icon {
+        width: 36px;
+        height: 36px;
+        font-size: $font-size-normal;
+    }
+}

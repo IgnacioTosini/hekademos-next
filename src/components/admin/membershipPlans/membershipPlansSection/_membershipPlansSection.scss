@@ -1,0 +1,249 @@
+@use '@/styles/variables' as *;
+
+.membership-plans-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    width: 100%;
+
+    .membership-plans-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+
+        button {
+            width: fit-content;
+            padding: .9rem 1.25rem;
+            border: 0;
+            border-radius: 8px;
+            background: $color-primary-button;
+            color: $color-text;
+            cursor: pointer;
+            font-size: $font-size-normal;
+            font-weight: $font-weight-semibold;
+            transition: .2s;
+
+            &:hover {
+                background: $secondary-color;
+            }
+        }
+    }
+
+    .membership-plans-header-text {
+        display: flex;
+        flex-direction: column;
+        gap: .5rem;
+
+        h1 {
+            color: $color-text;
+            font-family: $font-family-display;
+            font-size: $font-size-xxlarge;
+            font-weight: $font-weight-semibold;
+            line-height: 1.1;
+        }
+
+        p {
+            color: $color-text-secondary;
+            font-size: $font-size-medium;
+        }
+    }
+
+    .membership-plans-table-wrapper {
+        width: 100%;
+        overflow: hidden;
+        border: 1px solid rgba($secondary-color, .18);
+        border-radius: 8px;
+        background: rgba($tertiary-color, .22);
+    }
+
+    .membership-plans-toolbar {
+        display: flex;
+        justify-content: flex-end;
+        padding: 1rem;
+        border-bottom: 1px solid rgba($secondary-color, .14);
+
+        input {
+            width: min(100%, 360px);
+            padding: .75rem .9rem;
+            border: 1px solid rgba($secondary-color, .22);
+            border-radius: 8px;
+            background: rgba($quinary-color, .6);
+            color: $color-text;
+            font: inherit;
+
+            &::placeholder {
+                color: $color-text-secondary;
+            }
+
+            &:focus {
+                outline: 2px solid rgba($secondary-color, .42);
+                border-color: rgba($secondary-color, .75);
+            }
+        }
+    }
+
+    .membership-plans-table {
+        width: 100%;
+        border-collapse: collapse;
+
+        th {
+            padding: 1rem;
+            text-align: left;
+            background: rgba($quinary-color, .6);
+            color: $color-text-secondary;
+            border-bottom: 1px solid rgba($secondary-color, .16);
+            font-size: $font-size-small;
+            font-weight: $font-weight-semibold;
+            text-transform: uppercase;
+        }
+
+        td {
+            padding: .95rem 1rem;
+            border-bottom: 1px solid rgba($secondary-color, .11);
+            color: $color-text;
+            font-size: $font-size-normal;
+            vertical-align: middle;
+        }
+
+        tr:last-child td {
+            border-bottom: 0;
+        }
+
+        tbody tr:hover {
+            background: rgba($secondary-color, .06);
+        }
+
+        th:last-child,
+        td:last-child {
+            text-align: right;
+        }
+    }
+
+    .membership-plan-name {
+        display: flex;
+        flex-direction: column;
+        gap: .3rem;
+
+        strong {
+            font-weight: $font-weight-semibold;
+        }
+
+        span {
+            width: fit-content;
+            padding: .2rem .55rem;
+            border-radius: 999px;
+            background: rgba($secondary-color, .14);
+            color: $secondary-color;
+            font-size: $font-size-small;
+            font-weight: $font-weight-semibold;
+        }
+    }
+
+    .membership-plan-status {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: .28rem .65rem;
+        border-radius: 999px;
+        font-size: $font-size-small;
+        font-weight: $font-weight-semibold;
+    }
+
+    .membership-plan-status-active {
+        background: rgba($color-success, .14);
+        color: $color-success;
+    }
+
+    .membership-plan-status-inactive {
+        background: rgba($color-text-secondary, .14);
+        color: $color-text-secondary;
+    }
+
+    .membership-plan-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: .75rem;
+
+        button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+            border: 1px solid rgba($secondary-color, .16);
+            border-radius: 8px;
+            background: transparent;
+            color: $color-text-secondary;
+            cursor: pointer;
+            font-size: $font-size-medium;
+            transition: .2s;
+
+            &:hover {
+                border-color: rgba($secondary-color, .5);
+                color: $secondary-color;
+                background: rgba($secondary-color, .08);
+            }
+        }
+    }
+
+    .membership-plans-empty {
+        padding: 1.5rem;
+        text-align: center;
+        color: $color-text-secondary;
+        font-size: $font-size-normal;
+    }
+
+    @media (max-width: 768px) {
+        .membership-plans-header {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .membership-plans-table-wrapper {
+            border: 0;
+            background: transparent;
+        }
+
+        .membership-plans-toolbar {
+            padding: 0 0 1rem;
+            border-bottom: 0;
+        }
+
+        .membership-plans-table {
+            thead {
+                display: none;
+            }
+
+            tbody {
+                display: flex;
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            tr {
+                display: flex;
+                flex-direction: column;
+                border: 1px solid rgba($secondary-color, .18);
+                border-radius: 8px;
+                background: rgba($tertiary-color, .22);
+            }
+
+            td {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 1rem;
+
+                &::before {
+                    content: attr(data-label);
+                    color: $color-text-secondary;
+                    font-size: $font-size-small;
+                    font-weight: $font-weight-semibold;
+                    text-transform: uppercase;
+                }
+            }
+        }
+    }
+}

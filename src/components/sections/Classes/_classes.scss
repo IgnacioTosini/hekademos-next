@@ -4,8 +4,12 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 2rem 1rem;
+    padding: 5rem 1rem;
     border-radius: 1rem;
+
+    @media (max-width: 768px) {
+        padding: 4rem 1rem;
+    }
 
     .classesTitle {
         font-size: clamp($font-size-xxlarge, 10vw, $font-size-xxxlarge);

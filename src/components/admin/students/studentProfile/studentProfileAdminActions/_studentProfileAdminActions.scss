@@ -1,0 +1,49 @@
+@use '@/styles/variables' as *;
+
+.student-profile-admin-actions {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    flex: 0 0 auto;
+
+    button,
+    a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .45rem;
+        min-height: 40px;
+        padding: .65rem .95rem;
+        border: 1px solid rgba($secondary-color, .18);
+        border-radius: 8px;
+        background: rgba($secondary-color, .1);
+        color: $color-text;
+        cursor: pointer;
+        font-family: $font-family;
+        font-size: $font-size-small;
+        font-weight: $font-weight-semibold;
+        text-decoration: none;
+        transition: .2s;
+
+        &:hover:not(:disabled) {
+            border-color: rgba($secondary-color, .5);
+            background: rgba($secondary-color, .18);
+            color: $secondary-color;
+        }
+
+        &:disabled {
+            cursor: not-allowed;
+            opacity: .6;
+        }
+    }
+
+    @media (max-width: 560px) {
+        width: 100%;
+        align-items: stretch;
+        flex-direction: column;
+
+        a {
+            width: 100%;
+        }
+    }
+}

@@ -1,0 +1,63 @@
+@use '@/styles/variables' as *;
+
+.user-modal-container {
+    position: fixed;
+    inset: 0;
+    z-index: 10010;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    background: rgba(0, 0, 0, .58);
+
+    .user-modal {
+        display: flex;
+        flex-direction: column;
+        width: min(100%, 640px);
+        max-height: 90dvh;
+        overflow: hidden;
+        border: 1px solid rgba($secondary-color, .22);
+        border-radius: 8px;
+        background: $primary-color;
+        box-shadow: 0 24px 80px rgba(0, 0, 0, .32);
+    }
+
+    .user-modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid rgba($secondary-color, .16);
+    }
+
+    .user-modal-title {
+        color: $color-text;
+        font-family: $font-family-display;
+        font-size: $font-size-large;
+        font-weight: $font-weight-semibold;
+    }
+
+    .user-modal-close {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
+        color: $color-text-secondary;
+        cursor: pointer;
+        font-size: $font-size-large;
+
+        &:hover {
+            background: rgba($secondary-color, .12);
+            color: $secondary-color;
+        }
+    }
+
+    @media (max-width: 640px) {
+        padding: 1rem;
+    }
+}

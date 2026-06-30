@@ -5,45 +5,45 @@
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    align-items: flex-start;
+    align-items: stretch;
     top: 0px;
     left: 0px;
     width: 100%;
-    max-width: 250px;
+    max-width: 320px;
     height: 100dvh;
     background-color: $primary-color;
     z-index: 2000;
     transition: transform 0.3s ease-in-out;
-    box-shadow: 4px 0 16px -4px rgba(0, 0, 0, 0.18);
+    box-shadow: 4px 0 24px -4px rgba(0, 0, 0, 0.3);
     transform: translateX(-100%);
     border-right: 1px solid $secondary-color;
+    padding: 0 1rem 1rem;
 
     &.open {
         display: flex;
         transform: translateX(0);
     }
 
-    .headerLogoAside,
-    .searchBar,
-    .asideNavbarList,
-    .asideNavbarUser {
-        border-bottom: 1px solid $secondary-color;
-        width: 100%;
-    }
-
     .navbarLink,
     .customIconAside {
-        display: block;
-        padding: 0.5rem 1rem;
+        display: flex;
+        align-items: center;
+        min-height: 44px;
+        padding: 0.65rem 0.75rem;
         width: 100%;
         font-size: $font-size-normal;
         text-decoration: none;
         color: $color-text;
-        transition: background-color 0.3s;
+        border-radius: 0.5rem;
+        transition: background-color 0.3s ease, color 0.3s ease;
 
         &:hover {
-            background-color: $secondary-color;
+            background-color: rgba($secondary-color, 0.1);
             color: $color-text;
+        }
+
+        a {
+            width: 100%;
         }
     }
 
@@ -51,16 +51,63 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 1rem;
+        padding: 1rem 0 1.25rem;
         width: 100%;
+        border-bottom: 1px solid rgba($color-text-secondary, 0.2);
+        margin-bottom: 1rem;
 
         .logo {
+            display: flex;
+            align-items: center;
+
             img {
                 width: 100%;
                 max-width: 60px;
                 border-radius: 50%;
                 color: $color-text;
             }
+        }
+
+        svg {
+            width: 34px;
+            height: 34px;
+            padding: 0.35rem;
+            border-radius: 50%;
+            color: $color-text;
+            cursor: pointer;
+            transition: background-color 0.3s ease, color 0.3s ease;
+
+            &:hover {
+                background-color: rgba($secondary-color, 0.1);
+                color: $secondary-color;
+            }
+        }
+    }
+
+    .asideBarLinks {
+        gap: 0.25rem;
+        flex-wrap: nowrap;
+    }
+
+    .asideCta {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        width: 100%;
+        margin-top: auto;
+        padding: 0.9rem 1rem;
+        border-radius: 1rem;
+        background-color: $color-button;
+        color: $color-text;
+        font-size: $font-size-medium;
+        font-weight: $font-weight-bold;
+        text-decoration: none;
+        transition: background-color 0.3s ease, transform 0.3s ease;
+
+        &:hover {
+            background-color: $color-hover-secondary;
+            transform: translateY(-2px);
         }
     }
 

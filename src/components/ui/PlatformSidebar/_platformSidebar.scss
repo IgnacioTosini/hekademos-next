@@ -1,0 +1,117 @@
+@use '../../../styles/variables' as *;
+
+.platformSidebar {
+    position: sticky;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    width: 280px;
+    min-height: 100svh;
+    border-right: 1px solid rgba($secondary-color, 0.24);
+    background-color: $primary-color;
+    color: $color-text;
+
+    @media (max-width: 900px) {
+        position: relative;
+        width: 100%;
+        min-height: auto;
+        border-right: none;
+        border-bottom: 1px solid rgba($secondary-color, 0.24);
+    }
+}
+
+.platformSidebarBrand {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    padding: 2rem 1rem 1.85rem;
+    border-bottom: 1px solid rgba($secondary-color, 0.24);
+
+    span {
+        color: $color-text;
+        font-size: 1.55rem;
+        font-weight: $font-weight-extra-bold;
+        letter-spacing: 0;
+        text-transform: uppercase;
+    }
+
+    small {
+        color: $secondary-color;
+        font-size: $font-size-small;
+        font-weight: $font-weight-medium;
+        letter-spacing: 0.12rem;
+        text-transform: uppercase;
+    }
+}
+
+.platformSidebarNav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 2rem 0.85rem;
+
+    @media (max-width: 900px) {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        padding: 1rem;
+    }
+
+    @media (max-width: 640px) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    a {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        min-height: 52px;
+        padding: 0 1rem;
+        border: 1px solid transparent;
+        border-radius: 4px;
+        color: $color-text;
+        font-size: $font-size-medium;
+        font-weight: $font-weight-semibold;
+        text-decoration: none;
+        transition: border-color 0.2s ease, background-color 0.2s ease;
+
+        &:hover,
+        &.active {
+            border-color: rgba($secondary-color, 0.8);
+            background-color: rgba($secondary-color, 0.14);
+        }
+
+        svg {
+            width: 14px;
+            color: $secondary-color;
+            flex-shrink: 0;
+        }
+    }
+}
+
+.platformSidebarFooter {
+    margin-top: auto;
+    padding: 1rem 0.85rem 2rem;
+    border-top: 1px solid rgba($secondary-color, 0.24);
+
+    a {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        min-height: 52px;
+        padding: 0 1rem;
+        border-radius: 4px;
+        color: $color-text;
+        font-size: $font-size-medium;
+        font-weight: $font-weight-semibold;
+        text-decoration: none;
+
+        &:hover {
+            background-color: rgba($secondary-color, 0.14);
+        }
+
+        svg {
+            width: 14px;
+            color: $secondary-color;
+        }
+    }
+}

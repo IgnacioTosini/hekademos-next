@@ -3,6 +3,7 @@
 import { Formik, Form as FormikForm, Field, ErrorMessage, type FormikHelpers } from 'formik';
 import * as Yup from 'yup';
 import { toast } from 'react-toastify';
+import { sendContactMessage } from '@/app/actions/contact.actions';
 import './_form.scss';
 
 const validationSchema = Yup.object({
@@ -26,10 +27,12 @@ type FormValues = {
 export const Form = () => {
     const handleSubmit = async (values: FormValues, { setSubmitting, resetForm }: FormikHelpers<FormValues>) => {
         try {
-            console.log('Valores del formulario:', values);
+            const result = await sendContactMessage(values);
 
-            // Simular envío
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            if (!result.ok) {
+                toast.error(result.error);
+                return;
+            }
 
             toast.success('Mensaje enviado correctamente!');
             resetForm();
@@ -55,9 +58,12 @@ export const Form = () => {
                     <FormikForm className="form">
                         <div className="inputGroup">
                             <Field
+                                id="contact-name"
                                 type="text"
                                 name="name"
                                 placeholder="Tu nombre"
+                                aria-label="Tu nombre"
+                                maxLength={80}
                                 className={`formInput ${errors.name && touched.name ? 'error' : ''}`}
                             />
                             <ErrorMessage name="name" component="div" className="errorMessage" />
@@ -65,9 +71,12 @@ export const Form = () => {
 
                         <div className="inputGroup">
                             <Field
+                                id="contact-email"
                                 type="email"
                                 name="email"
                                 placeholder="Tu email"
+                                aria-label="Tu email"
+                                autoComplete="email"
                                 className={`formInput ${errors.email && touched.email ? 'error' : ''}`}
                             />
                             <ErrorMessage name="email" component="div" className="errorMessage" />
@@ -75,9 +84,12 @@ export const Form = () => {
 
                         <div className="inputGroup">
                             <Field
+                                id="contact-message"
                                 as="textarea"
                                 name="message"
                                 placeholder="Tu mensaje"
+                                aria-label="Tu mensaje"
+                                maxLength={1200}
                                 className={`formTextarea ${errors.message && touched.message ? 'error' : ''}`}
                             />
                             <ErrorMessage name="message" component="div" className="errorMessage" />

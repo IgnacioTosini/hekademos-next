@@ -1,0 +1,34 @@
+@use '@/styles/variables' as *;
+
+.dashboard-logout-button {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    width: 100%;
+    padding: .9rem 1rem;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: $color-text;
+    cursor: pointer;
+    font-family: $font-family;
+    font-size: $font-size-normal;
+    font-weight: $font-weight-medium;
+    text-align: left;
+    transition: .2s;
+
+    svg {
+        flex: 0 0 auto;
+        color: $secondary-color;
+        font-size: 1.05rem;
+    }
+
+    &:hover:not(:disabled) {
+        background-color: rgba($secondary-color, .12);
+    }
+
+    &:disabled {
+        cursor: not-allowed;
+        opacity: .7;
+    }
+}

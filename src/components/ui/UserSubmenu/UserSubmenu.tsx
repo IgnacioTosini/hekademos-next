@@ -1,16 +1,20 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react';
-/* import { useAuth } from '../../context/authStore'; */
+import { useEffect, useRef, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { HiMiniUserCircle } from 'react-icons/hi2';
-import './_userSubmenu.scss'
 import Link from 'next/link';
+import { logout, type AuthUser } from '@/app/actions/auth.actions';
+import './_userSubmenu.scss'
 
-export const UserSubmenu = () => {
-    /* const { user, logout } = useAuth(); */
-    const user = ''
-    const logout = () => { }
+type Props = {
+    user: AuthUser | null;
+};
+
+export const UserSubmenu = ({ user }: Props) => {
+    const router = useRouter();
     const [open, setOpen] = useState(false);
+    const [isPending, startTransition] = useTransition();
     const ref = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -27,7 +31,20 @@ export const UserSubmenu = () => {
     }, []);
 
     const toggle = () => setOpen(v => !v);
-    const handleLogout = () => { setOpen(false); logout(); };
+    const handleLogout = () => {
+        setOpen(false);
+        startTransition(async () => {
+            await logout();
+            router.replace('/auth/login');
+            router.refresh();
+        });
+    };
+
+    const profileHref = user?.role === 'COACH'
+        ? '/coach/dashboard'
+        : user?.role === 'ADMIN'
+            ? '/admin'
+            : '/perfil';
 
     return (
         <div className="userSubmenuWrapper" ref={ref}>
@@ -42,17 +59,19 @@ export const UserSubmenu = () => {
                 {user ? (
                     <ul role="menu" className="userSubmenu">
                         <li role="menuitem">
-                            <Link href="/perfil" onClick={() => setOpen(false)}>
-                                {/* Perfil {user?.name ? `(${user.name})` : ''} */}
+                            <Link href={profileHref} onClick={() => setOpen(false)}>
+                                {user.name ? `Perfil (${user.name})` : 'Mi perfil'}
                             </Link>
                         </li>
                         <li role="menuitem">
-                            <button onClick={handleLogout}>Cerrar sesión</button>
+                            <button onClick={handleLogout} disabled={isPending}>
+                                {isPending ? 'Saliendo...' : 'Cerrar sesión'}
+                            </button>
                         </li>
                     </ul>
                 ) : (
                     <ul role="menu" className="userSubmenu">
-                        <li role="menuitem"><Link href="/auth/registro" onClick={() => setOpen(false)}>Iniciar sesión</Link></li>
+                        <li role="menuitem"><Link href="/auth/login" onClick={() => setOpen(false)}>Iniciar sesión</Link></li>
                     </ul>
                 )}
             </div>

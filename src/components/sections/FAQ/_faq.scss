@@ -1,0 +1,111 @@
+@use '../../../styles/variables' as *;
+
+.faqSection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 72svh;
+    padding: 5.5rem 2rem;
+    text-align: center;
+
+    @media (max-width: 768px) {
+        min-height: auto;
+        padding: 4rem 1.25rem;
+    }
+
+    .faqTitle {
+        font-size: clamp($font-size-xxlarge, 10vw, $font-size-xxxlarge);
+        margin-bottom: 1rem;
+
+        &::after {
+            content: '';
+            display: block;
+            width: 60px;
+            height: 4px;
+            background-color: $secondary-color;
+            margin: 0.5rem auto 0;
+            border-radius: 2px;
+        }
+    }
+
+    .faqDescription {
+        color: $color-text-secondary;
+        font-size: $font-size-medium-large;
+        line-height: 1.6;
+        max-width: 700px;
+    }
+
+    .faqList {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        width: 100%;
+        max-width: 900px;
+        margin-top: 2rem;
+    }
+
+    .faqItem {
+        border: 1px solid $border-color;
+        border-radius: 1rem;
+        background-color: rgba($tertiary-color, 0.5);
+        overflow: hidden;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        transition: border 0.3s ease, background-color 0.3s ease;
+
+        &.open {
+            border-color: rgba($secondary-color, 0.8);
+            background-color: rgba($secondary-color, 0.08);
+
+            .faqQuestion svg {
+                transform: rotate(180deg);
+            }
+
+            .faqAnswer {
+                grid-template-rows: 1fr;
+            }
+        }
+    }
+
+    .faqQuestion {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        width: 100%;
+        padding: 1.2rem 1.5rem;
+        border: none;
+        background: transparent;
+        color: $color-text;
+        cursor: pointer;
+        font-size: $font-size-medium-large;
+        font-weight: $font-weight-bold;
+        text-align: left;
+
+        svg {
+            color: $secondary-color;
+            flex-shrink: 0;
+            transition: transform 0.3s ease;
+        }
+    }
+
+    .faqAnswer {
+        display: grid;
+        grid-template-rows: 0fr;
+        transition: grid-template-rows 0.3s ease;
+
+        p {
+            min-height: 0;
+            overflow: hidden;
+            color: $color-text-secondary;
+            font-size: $font-size-medium;
+            line-height: 1.6;
+            text-align: left;
+            padding: 0 1.5rem;
+        }
+    }
+
+    .faqItem.open .faqAnswer p {
+        padding-bottom: 1.2rem;
+    }
+}

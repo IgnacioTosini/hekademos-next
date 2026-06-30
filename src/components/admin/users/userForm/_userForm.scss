@@ -1,0 +1,341 @@
+@use '@/styles/variables' as *;
+@use 'sass:color';
+
+.user-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    width: 100%;
+    padding: 1.5rem;
+    overflow-y: auto;
+    color: $color-text;
+    font-family: $font-family;
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: .45rem;
+
+        label {
+            color: $color-text-secondary;
+            font-size: $font-size-xsmall;
+            font-weight: $font-weight-semibold;
+            letter-spacing: 0;
+            text-transform: uppercase;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            border: 1px solid rgba($secondary-color, .2);
+            border-radius: 8px;
+            background: rgba($tertiary-color, .22);
+            color: $color-text;
+            font-family: $font-family;
+            font-size: $font-size-normal;
+            padding: .72rem .85rem;
+
+            &::placeholder {
+                color: rgba($color-text-secondary, .7);
+            }
+
+            &:focus {
+                outline: 2px solid rgba($secondary-color, .32);
+                border-color: rgba($secondary-color, .72);
+            }
+        }
+
+        select {
+            color-scheme: dark;
+
+            option {
+                background: $quinary-color;
+                color: $color-text;
+            }
+
+            option:checked {
+                background: $secondary-color;
+                color: $color-text;
+            }
+        }
+
+        textarea {
+            min-height: 96px;
+            resize: vertical;
+        }
+    }
+
+    .checkbox-field {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: .85rem;
+        border: 1px solid rgba($secondary-color, .16);
+        border-radius: 8px;
+        background: rgba($tertiary-color, .16);
+
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: $secondary-color;
+            cursor: pointer;
+        }
+    }
+
+    .schedule-picker {
+        .schedule-picker-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+
+            span {
+                color: $secondary-color;
+                font-size: $font-size-small;
+                font-weight: $font-weight-semibold;
+            }
+        }
+
+        .schedule-options {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .schedule-day {
+            display: flex;
+            flex-direction: column;
+            gap: .65rem;
+            padding-top: .85rem;
+            border-top: 1px solid rgba($secondary-color, .14);
+
+            &:first-child {
+                padding-top: 0;
+                border-top: 0;
+            }
+
+            > strong {
+                color: $secondary-color;
+                font-size: $font-size-small;
+                font-weight: $font-weight-semibold;
+            }
+        }
+
+        .schedule-day-options {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: .55rem;
+        }
+
+        .schedule-option {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: .75rem;
+            min-height: 54px;
+            padding: .68rem .75rem;
+            border: 1px solid rgba($secondary-color, .18);
+            border-radius: 8px;
+            background: rgba($tertiary-color, .16);
+            color: $color-text;
+            cursor: pointer;
+            font-family: $font-family;
+            text-align: left;
+            transition: .2s ease;
+
+            span,
+            small {
+                display: block;
+                line-height: 1.25;
+            }
+
+            span {
+                font-size: $font-size-small;
+                font-weight: $font-weight-semibold;
+            }
+
+            small {
+                flex: 0 0 auto;
+                color: $color-text-secondary;
+                font-size: $font-size-xsmall;
+            }
+
+            &:hover:not(:disabled) {
+                border-color: rgba($secondary-color, .42);
+                background: rgba($secondary-color, .08);
+            }
+
+            &:disabled {
+                cursor: not-allowed;
+                opacity: .5;
+            }
+        }
+
+        .schedule-option-selected {
+            border-color: rgba($secondary-color, .72);
+            background: rgba($secondary-color, .14);
+            color: $secondary-color;
+        }
+
+        .schedule-option-full:not(.schedule-option-selected) {
+            border-color: rgba($color-error, .18);
+            background: rgba($color-error, .08);
+            color: rgba($color-text, .65);
+
+            small {
+                color: $color-error;
+            }
+        }
+
+        .schedule-helper {
+            color: $color-text-secondary;
+            font-size: $font-size-small;
+            line-height: 1.35;
+        }
+    }
+
+    .image-field {
+        .image-field-control {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: .85rem;
+            border: 1px solid rgba($secondary-color, .16);
+            border-radius: 8px;
+            background: rgba($tertiary-color, .16);
+        }
+
+        .image-field-preview {
+            display: grid;
+            flex: 0 0 72px;
+            place-items: center;
+            width: 72px;
+            height: 72px;
+            overflow: hidden;
+            border-radius: 50%;
+            background: rgba($secondary-color, .16);
+            color: $color-text-secondary;
+            font-size: $font-size-small;
+            font-weight: $font-weight-semibold;
+            text-align: center;
+
+            img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+        }
+
+        .image-field-actions {
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            gap: .5rem;
+            min-width: 0;
+
+            input {
+                padding: .58rem .75rem;
+            }
+
+            button {
+                width: fit-content;
+                min-height: 36px;
+                padding: .45rem .75rem;
+                border: 1px solid rgba($secondary-color, .22);
+                border-radius: 8px;
+                background: transparent;
+                color: $color-text;
+                cursor: pointer;
+                font-size: $font-size-small;
+                font-weight: $font-weight-semibold;
+
+                &:hover:not(:disabled) {
+                    background: rgba($secondary-color, .1);
+                    color: $secondary-color;
+                }
+
+                &:disabled {
+                    cursor: not-allowed;
+                    opacity: .6;
+                }
+            }
+
+            p {
+                color: $color-text-secondary;
+                font-size: $font-size-small;
+            }
+        }
+    }
+
+    .form-error {
+        color: $color-error;
+        font-size: $font-size-small;
+    }
+
+    .button-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: .75rem;
+        padding-top: .75rem;
+        border-top: 1px solid rgba($secondary-color, .16);
+
+        .submit-button,
+        .cancel-button {
+            min-height: 44px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: $font-size-small;
+            font-weight: $font-weight-bold;
+            text-transform: uppercase;
+            transition: .2s ease;
+
+            &:disabled {
+                cursor: not-allowed;
+                opacity: .6;
+            }
+        }
+
+        .submit-button {
+            border: 1px solid $color-primary-button;
+            background: $color-primary-button;
+            color: $color-text;
+
+            &:hover:not(:disabled) {
+                background: color.adjust($color-primary-button, $lightness: 8%);
+            }
+        }
+
+        .cancel-button {
+            border: 1px solid rgba($secondary-color, .28);
+            background: transparent;
+            color: $color-text;
+
+            &:hover:not(:disabled) {
+                background: rgba($secondary-color, .08);
+            }
+        }
+    }
+
+    @media (max-width: 640px) {
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+
+        .schedule-day-options {
+            grid-template-columns: 1fr;
+        }
+
+        .image-field-control {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+    }
+}

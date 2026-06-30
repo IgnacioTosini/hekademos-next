@@ -2,7 +2,7 @@ const isClient = typeof window !== 'undefined';
 
 export const loginWithGoogle = () => {
     if (isClient) {
-        window.location.href = `${process.env.VITE_API_BASE_URL_LOCAL}/oauth2/authorization/google`;
+        window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL_LOCAL}/oauth2/authorization/google`;
     }
 };
 

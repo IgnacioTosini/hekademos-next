@@ -5,6 +5,10 @@ import { IoMdMail } from 'react-icons/io'
 import { Form } from '@/components/ui/Form/Form'
 import './_contact.scss'
 
+const whatsappNumber = '2234268951'
+const whatsappMessage = 'Hola Hekademos, quiero consultar por las clases.'
+const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`
+
 export const Contact = () => {
     return (
         <div className="contactSection" id="contacto">
@@ -28,7 +32,7 @@ export const Contact = () => {
                             <picture className='iconContainer animate-icon-bounce'>
                                 <FaPhoneAlt className='contactIcon' />
                             </picture>
-                            <p>+54 11 1234-5678</p>
+                            <p>+54 9 11 2234-5698</p>
                         </div>
                         <div className='contactInfoCard stagger-card'>
                             <picture className='iconContainer animate-icon-bounce'>
@@ -39,7 +43,16 @@ export const Contact = () => {
                     </div>
 
                     <div className='buttonsContainer animate-buttons-group'>
-                        <button className='contactButton whatsapp animate-button-hover'><FaWhatsapp /><span>Escribir por WhatsApp</span></button>
+                        <a
+                            className='contactButton whatsapp animate-button-hover'
+                            href={whatsappUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label="Escribir por WhatsApp a Hekademos"
+                        >
+                            <FaWhatsapp />
+                            <span>Escribir por WhatsApp</span>
+                        </a>
                         <button className='contactButton instagram animate-button-hover' onClick={() => window.open('https://www.instagram.com/hekademos.em', '_blank')}><FaInstagram /><span>Seguir en Instagram</span></button>
                     </div>
 

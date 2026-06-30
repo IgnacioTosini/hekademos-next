@@ -1,0 +1,13 @@
+@use '@/styles/variables' as *;
+
+.coach-dashboard-page {
+    width: 100%;
+    min-height: 100dvh;
+    padding: 2.5rem;
+    background: $primary-color;
+    color: $color-text;
+
+    @media (max-width: 768px) {
+        padding: 5rem 1rem 1.5rem;
+    }
+}

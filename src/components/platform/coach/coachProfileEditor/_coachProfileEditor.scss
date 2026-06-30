@@ -1,0 +1,109 @@
+@use '@/styles/variables' as *;
+
+.coach-profile-edit-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .45rem;
+    width: fit-content;
+    min-height: 40px;
+    padding: .7rem .95rem;
+    border: 1px solid rgba($secondary-color, .18);
+    border-radius: 8px;
+    background: rgba($secondary-color, .1);
+    color: $color-text;
+    cursor: pointer;
+    font-family: $font-family;
+    font-size: $font-size-small;
+    font-weight: $font-weight-semibold;
+    transition: .2s ease;
+
+    &:hover {
+        border-color: rgba($secondary-color, .5);
+        background: rgba($secondary-color, .18);
+        color: $secondary-color;
+    }
+}
+
+.coach-profile-editor-container {
+    position: fixed;
+    inset: 0;
+    z-index: 10030;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    background: rgba(0, 0, 0, .58);
+
+    .coach-profile-editor-modal {
+        width: min(100%, 720px);
+        max-height: 92dvh;
+        overflow: hidden;
+        border: 1px solid rgba($secondary-color, .22);
+        border-radius: 8px;
+        background: $primary-color;
+        box-shadow: 0 24px 80px rgba(0, 0, 0, .32);
+    }
+
+    .coach-profile-editor-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid rgba($secondary-color, .16);
+
+        h2 {
+            color: $color-text;
+            font-family: $font-family-display;
+            font-size: $font-size-large;
+            font-weight: $font-weight-semibold;
+            line-height: 1.15;
+        }
+
+        p {
+            margin-top: .35rem;
+            color: $color-text-secondary;
+            font-size: $font-size-small;
+            line-height: 1.45;
+        }
+
+        button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border: 0;
+            border-radius: 50%;
+            background: transparent;
+            color: $color-text-secondary;
+            cursor: pointer;
+            font-size: $font-size-large;
+
+            &:hover {
+                background: rgba($secondary-color, .12);
+                color: $secondary-color;
+            }
+        }
+    }
+
+    .coach-profile-editor-form {
+        max-height: calc(92dvh - 96px);
+    }
+
+    @media (max-width: 640px) {
+        padding: 1rem;
+
+        .coach-profile-editor-header,
+        .coach-profile-editor-form {
+            padding: 1rem;
+        }
+    }
+}
+
+@media (max-width: 560px) {
+    .coach-profile-edit-button {
+        width: 100%;
+    }
+}

@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import './_philosophy.scss'
 
 export const Philosophy = () => {
@@ -10,7 +11,7 @@ export const Philosophy = () => {
 
             <div className='philosophySection animate-split-container'>
                 <picture className='imgContainer animate-philosophy-left parallax-image'>
-                    <img src="/banner.png" alt="Hekademos Logo" />
+                    <Image src="/banner.png" alt="Hekademos Logo" width={100} height={100} />
                     <p className='textOnImage animate-quote-reveal'>&ldquo;El cuerpo es el templo del alma, y el movimiento es su lenguaje.&rdquo;</p>
                 </picture>
 

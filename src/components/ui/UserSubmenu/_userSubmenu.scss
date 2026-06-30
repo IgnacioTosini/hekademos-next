@@ -18,7 +18,7 @@
     transition: background .15s ease-in-out, transform .1s ease-in-out;
 
     &:hover {
-        background: $quaternary-color;
+        background: rgba($secondary-color, .12);
     }
 
     &:active {
@@ -38,6 +38,7 @@
     border: 1px solid $border-color;
     border-radius: 10px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, .25);
+    z-index: 1200;
 
     // Oculto por defecto; se muestra con .open
     opacity: 0;
@@ -73,10 +74,16 @@
                 color: $color-text;
                 cursor: pointer;
                 text-decoration: none;
+                font-family: $font-family;
 
                 &:hover {
                     background: $quinary-color;
                     color: $secondary-color;
+                }
+
+                &:disabled {
+                    cursor: not-allowed;
+                    opacity: .7;
                 }
             }
 

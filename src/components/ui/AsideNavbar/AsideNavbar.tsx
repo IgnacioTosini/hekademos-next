@@ -5,6 +5,7 @@ import { IoCloseSharp } from 'react-icons/io5';
 import { NavbarLinks } from '../NavbarLinks/NavbarLinks';
 import Link from 'next/link';
 import Image from 'next/image';
+import { FaArrowRight } from 'react-icons/fa';
 import './_asideNavbar.scss';
 
 type AsideNavbarProps = {
@@ -40,6 +41,10 @@ export const AsideNavbar = ({ isOpen, onClose }: AsideNavbarProps) => {
                     <IoCloseSharp onClick={onClose} />
                 </div>
                 <NavbarLinks isAsideBar onClose={onClose} />
+
+                <Link href="/#contacto" className="asideCta" onClick={onClose}>
+                    Sumate a Hekademos <FaArrowRight />
+                </Link>
 
                 {/*<h2 className='asideNavbarTitle'>Mi Cuenta</h2>
                                 {!uid ? (

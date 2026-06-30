@@ -29,13 +29,22 @@ function userFromToken(t: string | null): User | null {
     const p = parseJwt(t);
     const valid = p?.exp ? p.exp * 1000 > Date.now() : true;
     if (!p || !valid) return null;
+    const role = typeof p.role === 'string'
+        ? p.role
+        : Array.isArray(p.authorities) && typeof p.authorities[0] === 'string'
+            ? p.authorities[0]
+            : typeof p.authorities === 'string'
+                ? p.authorities
+                : undefined;
+
     return {
         id: p.sub,
         email: p.sub,
         name: p.name,
         rutine: typeof p.rutine === 'string' ? p.rutine : undefined,
         image: p?.picture as string | undefined,
-        authorities: p.authorities as 'USER' | 'ADMIN',
+        role: role as User['role'],
+        authorities: role as User['authorities'],
     };
 }
 

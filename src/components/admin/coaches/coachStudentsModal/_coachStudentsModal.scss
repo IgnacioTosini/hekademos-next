@@ -1,0 +1,81 @@
+@use '@/styles/variables' as *;
+
+.coach-students-modal {
+    .coach-students-list {
+        display: flex;
+        flex-direction: column;
+        gap: .85rem;
+        padding: 1.5rem;
+    }
+
+    .coach-student-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: .9rem;
+        border: 1px solid rgba($secondary-color, .14);
+        border-radius: 8px;
+        background: rgba($tertiary-color, .18);
+    }
+
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: .85rem;
+
+        strong,
+        span {
+            display: block;
+        }
+
+        strong {
+            color: $color-text;
+            font-weight: $font-weight-semibold;
+        }
+
+        span {
+            margin-top: .2rem;
+            color: $color-text-secondary;
+            font-size: $font-size-small;
+        }
+    }
+
+    .user-avatar {
+        display: grid;
+        place-items: center;
+        width: 44px;
+        height: 44px;
+        overflow: hidden;
+        border-radius: 50%;
+        background: rgba($secondary-color, .16);
+        color: $secondary-color;
+        font-weight: $font-weight-bold;
+    }
+
+    .user-badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: .28rem .65rem;
+        border-radius: 999px;
+        background: rgba($secondary-color, .12);
+        color: $secondary-color;
+        font-size: $font-size-small;
+        font-weight: $font-weight-semibold;
+    }
+
+    .users-empty {
+        padding: 1.5rem;
+        text-align: center;
+        color: $color-text-secondary;
+        font-size: $font-size-normal;
+    }
+
+    @media (max-width: 768px) {
+        .coach-student-item {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+    }
+}

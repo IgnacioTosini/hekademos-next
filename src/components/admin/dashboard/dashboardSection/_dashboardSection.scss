@@ -1,0 +1,70 @@
+@use '@/styles/variables' as *;
+
+.dashboard-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+    flex: 1;
+    min-width: 0;
+    min-height: 100dvh;
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 1280px;
+    margin: 0 auto;
+
+    .dashboard-section-title {
+        font-family: $font-family-display;
+        font-size: $font-size-xxlarge;
+        line-height: 1.1;
+        font-weight: $font-weight-semibold;
+        color: $color-text;
+    }
+
+    .dashboard-section-description {
+        margin-top: .5rem;
+        font-family: $font-family;
+        font-size: $font-size-medium;
+        font-weight: $font-weight-regular;
+        color: $color-text-secondary;
+    }
+
+    .dashboard-items {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 1.5rem;
+        width: 100%;
+
+        @media (max-width: 1180px) {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        @media (max-width: 640px) {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+    }
+
+    .dashboard-section-footer {
+        display: grid;
+        grid-template-columns: minmax(260px, .9fr) minmax(360px, 1fr);
+        align-items: stretch;
+        gap: 1.5rem;
+        width: 100%;
+
+        .dashboard-attendance-summary {
+            grid-column: 1 / -1;
+        }
+
+        .dashboard-alerts {
+            grid-column: 1 / -1;
+        }
+
+        @media (max-width: 860px) {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 768px) {
+        padding: 5rem 1rem 1.5rem;
+    }
+}

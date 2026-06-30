@@ -1,0 +1,328 @@
+@use '@/styles/variables' as *;
+
+.users-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    width: 100%;
+
+    .users-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        width: 100%;
+    }
+
+    .users-header-text {
+        display: flex;
+        flex-direction: column;
+        gap: .5rem;
+    }
+
+    .users-title {
+        color: $color-text;
+        font-family: $font-family-display;
+        font-size: $font-size-xxlarge;
+        font-weight: $font-weight-semibold;
+        line-height: 1.1;
+    }
+
+    .users-description {
+        color: $color-text-secondary;
+        font-size: $font-size-medium;
+    }
+
+    .users-button {
+        width: fit-content;
+        padding: .9rem 1.25rem;
+        border: 0;
+        border-radius: 8px;
+        background: $color-primary-button;
+        color: $color-text;
+        cursor: pointer;
+        font-size: $font-size-normal;
+        font-weight: $font-weight-semibold;
+        transition: .2s;
+
+        &:hover {
+            background: $secondary-color;
+        }
+    }
+
+    .users-table-wrapper {
+        width: 100%;
+        overflow: hidden;
+        border: 1px solid rgba($secondary-color, .18);
+        border-radius: 8px;
+        background: rgba($tertiary-color, .22);
+    }
+
+    .users-table-toolbar {
+        display: flex;
+        justify-content: flex-end;
+        padding: 1rem;
+        border-bottom: 1px solid rgba($secondary-color, .14);
+
+        input {
+            width: min(100%, 360px);
+            padding: .75rem .9rem;
+            border: 1px solid rgba($secondary-color, .22);
+            border-radius: 8px;
+            background: rgba($primary-color, .65);
+            color: $color-text;
+            font: inherit;
+
+            &::placeholder {
+                color: $color-text-secondary;
+            }
+
+            &:focus {
+                outline: 2px solid rgba($secondary-color, .42);
+                border-color: rgba($secondary-color, .75);
+            }
+        }
+    }
+
+    .users-table {
+        width: 100%;
+        border-collapse: collapse;
+
+        th {
+            padding: 1rem;
+            text-align: left;
+            background: rgba($quinary-color, .6);
+            color: $color-text-secondary;
+            border-bottom: 1px solid rgba($secondary-color, .16);
+            font-size: $font-size-small;
+            font-weight: $font-weight-semibold;
+            letter-spacing: 0;
+            text-transform: uppercase;
+        }
+
+        td {
+            padding: .95rem 1rem;
+            border-bottom: 1px solid rgba($secondary-color, .11);
+            color: $color-text;
+            font-size: $font-size-normal;
+            vertical-align: middle;
+        }
+
+        tr:last-child td {
+            border-bottom: 0;
+        }
+
+        tbody tr:hover {
+            background: rgba($secondary-color, .06);
+        }
+
+        th:last-child,
+        td:last-child {
+            text-align: right;
+        }
+    }
+
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: .85rem;
+
+        strong,
+        span {
+            display: block;
+        }
+
+        strong {
+            font-weight: $font-weight-semibold;
+        }
+
+        span {
+            margin-top: .2rem;
+            color: $color-text-secondary;
+            font-size: $font-size-small;
+        }
+    }
+
+    .user-info-link {
+        width: fit-content;
+        color: inherit;
+        text-decoration: none;
+
+        &:hover strong {
+            color: $secondary-color;
+        }
+    }
+
+    .user-avatar {
+        display: grid;
+        place-items: center;
+        width: 44px;
+        height: 44px;
+        overflow: hidden;
+        border-radius: 50%;
+        background: rgba($secondary-color, .16);
+        color: $secondary-color;
+        font-weight: $font-weight-bold;
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+    }
+
+    .user-badge,
+    .user-status {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: .28rem .65rem;
+        border-radius: 999px;
+        font-size: $font-size-small;
+        font-weight: $font-weight-semibold;
+    }
+
+    .user-badge {
+        background: rgba($secondary-color, .12);
+        color: $secondary-color;
+    }
+
+    .students-count-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 36px;
+        height: 32px;
+        border: 1px solid rgba($secondary-color, .18);
+        border-radius: 8px;
+        background: rgba($secondary-color, .08);
+        color: $color-text;
+        cursor: pointer;
+        font-size: $font-size-normal;
+        font-weight: $font-weight-semibold;
+        transition: .2s;
+
+        &:hover {
+            border-color: rgba($secondary-color, .48);
+            background: rgba($secondary-color, .16);
+            color: $secondary-color;
+        }
+    }
+
+    .user-status-active {
+        background: rgba($color-success, .14);
+        color: $color-success;
+    }
+
+    .user-status-inactive {
+        background: rgba($color-text-secondary, .14);
+        color: $color-text-secondary;
+    }
+
+    .user-status-suspended {
+        background: rgba($color-error, .14);
+        color: $color-error;
+    }
+
+    .users-empty {
+        padding: 1.5rem;
+        text-align: center;
+        color: $color-text-secondary;
+        font-size: $font-size-normal;
+    }
+
+    .user-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: .75rem;
+
+        button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+            border: 1px solid rgba($secondary-color, .16);
+            border-radius: 8px;
+            background: transparent;
+            color: $color-text-secondary;
+            cursor: pointer;
+            font-size: $font-size-medium;
+            transition: .2s;
+
+            &:hover {
+                border-color: rgba($secondary-color, .5);
+                color: $secondary-color;
+                background: rgba($secondary-color, .08);
+            }
+        }
+    }
+
+    @media (max-width: 768px) {
+        .users-header {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .users-table-wrapper {
+            border: 0;
+            background: transparent;
+        }
+
+        .users-table-toolbar {
+            padding: 0 0 1rem;
+            border-bottom: 0;
+        }
+
+        .users-table {
+            thead {
+                display: none;
+            }
+
+            tbody {
+                display: flex;
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            tr {
+                display: flex;
+                flex-direction: column;
+                border: 1px solid rgba($secondary-color, .18);
+                border-radius: 8px;
+                background: rgba($tertiary-color, .22);
+            }
+
+            td {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 1rem;
+                border-bottom: 1px solid rgba($secondary-color, .12);
+
+                &::before {
+                    content: attr(data-label);
+                    color: $color-text-secondary;
+                    font-size: $font-size-small;
+                    font-weight: $font-weight-semibold;
+                    text-transform: uppercase;
+                }
+
+                &:last-child {
+                    border-bottom: 0;
+                }
+            }
+
+            .user-info {
+                margin-left: auto;
+                text-align: right;
+            }
+
+            .user-actions,
+            .students-count-button {
+                margin-left: auto;
+            }
+        }
+    }
+}

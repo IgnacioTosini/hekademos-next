@@ -1,0 +1,146 @@
+@use '../../../styles/variables' as *;
+
+.membershipPlans {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 78svh;
+    padding: 5.5rem 2rem;
+    background-color: $quaternary-color;
+    text-align: center;
+
+    @media (max-width: 768px) {
+        min-height: auto;
+        padding: 4rem 1.25rem;
+    }
+
+    .membershipPlansTitle {
+        font-size: clamp($font-size-xxlarge, 10vw, $font-size-xxxlarge);
+        margin-bottom: 1rem;
+
+        &::after {
+            content: '';
+            display: block;
+            width: 60px;
+            height: 4px;
+            background-color: $secondary-color;
+            margin: 0.5rem auto 0;
+            border-radius: 2px;
+        }
+    }
+
+    .membershipPlansDescription {
+        color: $color-text-secondary;
+        font-size: $font-size-medium-large;
+        line-height: 1.6;
+        max-width: 760px;
+    }
+
+    .membershipPlansList {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1.5rem;
+        width: 100%;
+        max-width: 1200px;
+        margin-top: 2rem;
+
+        @media (max-width: 1024px) {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        @media (max-width: 720px) {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .membershipPlanCard {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1.5rem;
+        min-height: 100%;
+        padding: 2rem;
+        border: 1px solid $border-color;
+        border-radius: 1rem;
+        background-color: rgba($tertiary-color, 0.5);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        text-align: left;
+        transition: border 0.3s ease, transform 0.3s ease;
+
+        &:hover {
+            border-color: rgba($secondary-color, 0.8);
+            transform: translateY(-5px);
+        }
+
+        &.recommended {
+            border-color: rgba($secondary-color, 0.8);
+            background-color: rgba($secondary-color, 0.1);
+        }
+
+        h3 {
+            color: $color-text;
+            font-size: $font-size-xlarge;
+        }
+    }
+
+    .recommendedBadge {
+        align-self: flex-start;
+        padding: 0.4rem 0.8rem;
+        border-radius: 999px;
+        background-color: $secondary-color;
+        color: $color-text;
+        font-size: $font-size-small;
+        font-weight: $font-weight-bold;
+        text-transform: uppercase;
+        letter-spacing: 0;
+    }
+
+    .planDetails {
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;
+        color: $color-text-secondary;
+        font-size: $font-size-medium;
+
+        p {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        svg {
+            color: $secondary-color;
+            flex-shrink: 0;
+        }
+    }
+
+    .planPrice {
+        margin-top: auto;
+        color: $color-text;
+        font-size: $font-size-xxlarge;
+        font-weight: $font-weight-bold;
+    }
+
+    .planButton {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.8rem;
+        width: 100%;
+        padding: 0.9rem 1.2rem;
+        border-radius: 0.8rem;
+        background-color: $color-button;
+        color: $color-text;
+        font-size: $font-size-medium;
+        font-weight: $font-weight-bold;
+        text-decoration: none;
+        transition: background-color 0.3s ease, transform 0.3s ease;
+
+        &:hover {
+            background-color: $color-hover-secondary;
+            transform: translateY(-2px);
+        }
+    }
+}

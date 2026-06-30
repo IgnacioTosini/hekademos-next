@@ -12,10 +12,16 @@ export const useScrollAnimations = () => {
     const containerRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        const isCompactViewport = window.matchMedia('(max-width: 768px)').matches
+
+        if (prefersReducedMotion || isCompactViewport) {
+            return
+        }
+
         const ctx = gsap.context(() => {
             // Animaciones básicas
             const {
-                animateBanner,
                 animateSections,
                 animateElements,
                 animateStaggeredCards
@@ -40,13 +46,11 @@ export const useScrollAnimations = () => {
                 animateScheduleItems
             } = createContactAnimations()
 
-            // Ejecutar animaciones básicas
-            animateBanner()
             animateSections()
             animateElements()
             animateStaggeredCards()
 
-            // Ejecutar animaciones de Philosophy <- AGREGAR ESTO
+            // Ejecutar animaciones de Philosophy
             animateTitleReveal()
             animateFadeUp()
             animateSplitContainer()
@@ -64,7 +68,14 @@ export const useScrollAnimations = () => {
 
         }, containerRef)
 
+        const refreshScrollTriggers = () => ScrollTrigger.refresh()
+        const refreshFrame = requestAnimationFrame(refreshScrollTriggers)
+
+        window.addEventListener('load', refreshScrollTriggers)
+
         return () => {
+            cancelAnimationFrame(refreshFrame)
+            window.removeEventListener('load', refreshScrollTriggers)
             ctx.revert()
             ScrollTrigger.getAll().forEach(trigger => trigger.kill())
         }

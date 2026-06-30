@@ -1,0 +1,559 @@
+@use '@/styles/variables' as *;
+
+.student-profile-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    width: 100%;
+
+    .student-profile-back {
+        display: inline-flex;
+        align-items: center;
+        gap: .5rem;
+        width: fit-content;
+        color: $color-text-secondary;
+        font-size: $font-size-normal;
+        font-weight: $font-weight-semibold;
+        text-decoration: none;
+        transition: color .2s ease;
+
+        &:hover {
+            color: $secondary-color;
+        }
+    }
+
+    .student-profile-hero {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1.5rem;
+        padding: 1.5rem;
+        border: 1px solid rgba($secondary-color, .18);
+        border-radius: 8px;
+        background: rgba($tertiary-color, .22);
+    }
+
+    .student-profile-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: .75rem;
+    }
+
+    .student-profile-identity {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        min-width: 0;
+
+        h1 {
+            margin-top: .55rem;
+            color: $color-text;
+            font-family: $font-family-display;
+            font-size: $font-size-xxlarge;
+            font-weight: $font-weight-semibold;
+            line-height: 1.05;
+            overflow-wrap: anywhere;
+        }
+
+        p {
+            margin-top: .35rem;
+            color: $color-text-secondary;
+            font-size: $font-size-normal;
+            overflow-wrap: anywhere;
+        }
+    }
+
+    .student-profile-avatar {
+        display: grid;
+        place-items: center;
+        width: 96px;
+        height: 96px;
+        flex: 0 0 auto;
+        overflow: hidden;
+        border: 1px solid rgba($secondary-color, .18);
+        border-radius: 50%;
+        background: rgba($secondary-color, .16);
+        color: $secondary-color;
+        font-size: $font-size-large;
+        font-weight: $font-weight-bold;
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+    }
+
+    .student-profile-status,
+    .student-profile-payment-status {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: .28rem .65rem;
+        border-radius: 999px;
+        font-size: $font-size-small;
+        font-weight: $font-weight-semibold;
+    }
+
+    .student-profile-status-active,
+    .student-profile-payment-status-paid {
+        background: rgba($color-success, .14);
+        color: $color-success;
+    }
+
+    .student-profile-status-inactive {
+        background: rgba($color-text-secondary, .14);
+        color: $color-text-secondary;
+    }
+
+    .student-profile-status-suspended,
+    .student-profile-payment-status-cancelled {
+        background: rgba($color-error, .14);
+        color: $color-error;
+    }
+
+    .student-profile-payment-status-pending {
+        background: rgba($secondary-color, .14);
+        color: $secondary-color;
+    }
+
+    .student-profile-payment-status-refunded {
+        background: rgba($color-status-confirmed, .14);
+        color: $color-status-confirmed;
+    }
+
+    .student-profile-attendance-status {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: .28rem .65rem;
+        border-radius: 999px;
+        font-size: $font-size-small;
+        font-weight: $font-weight-semibold;
+    }
+
+    .student-profile-attendance-status-present {
+        background: rgba($color-success, .14);
+        color: $color-success;
+    }
+
+    .student-profile-attendance-status-absent {
+        background: rgba($color-error, .14);
+        color: $color-error;
+    }
+
+    .student-profile-attendance-status-late {
+        background: rgba($secondary-color, .14);
+        color: $secondary-color;
+    }
+
+    .student-profile-attendance-status-excused {
+        background: rgba($color-status-confirmed, .14);
+        color: $color-status-confirmed;
+    }
+
+    .student-profile-kpis {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 1rem;
+
+        article {
+            min-height: 132px;
+            padding: 1.25rem;
+            border: 1px solid rgba($secondary-color, .18);
+            border-radius: 8px;
+            background: rgba($tertiary-color, .22);
+        }
+
+        span {
+            color: $color-text-secondary;
+            font-size: $font-size-small;
+            font-weight: $font-weight-semibold;
+            text-transform: uppercase;
+        }
+
+        strong {
+            display: block;
+            margin-top: .85rem;
+            color: $secondary-color;
+            font-family: $font-family-display;
+            font-size: $font-size-large;
+            font-weight: $font-weight-semibold;
+            line-height: 1.1;
+        }
+
+        p {
+            margin-top: .55rem;
+            color: $color-text-secondary;
+            font-size: $font-size-small;
+            line-height: 1.35;
+        }
+    }
+
+    .student-profile-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+    }
+
+    .student-profile-card {
+        min-height: 220px;
+        padding: 1.5rem;
+        border: 1px solid rgba($secondary-color, .18);
+        border-radius: 8px;
+        background: rgba($tertiary-color, .22);
+
+        h2 {
+            color: $color-text;
+            font-family: $font-family-display;
+            font-size: $font-size-large;
+            font-weight: $font-weight-semibold;
+            line-height: 1.15;
+        }
+
+        dl {
+            display: flex;
+            flex-direction: column;
+            margin-top: 1.1rem;
+        }
+
+        dl div {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: .85rem 0;
+            border-bottom: 1px solid rgba($secondary-color, .14);
+
+            &:last-child {
+                border-bottom: 0;
+            }
+        }
+
+        dt,
+        dd {
+            color: $color-text;
+            font-size: $font-size-normal;
+            line-height: 1.2;
+        }
+
+        dt {
+            color: $color-text-secondary;
+        }
+
+        dd {
+            font-weight: $font-weight-semibold;
+            text-align: right;
+            overflow-wrap: anywhere;
+        }
+    }
+
+    .student-profile-card-wide {
+        grid-column: span 2;
+    }
+
+    .student-profile-card-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1rem;
+
+        p {
+            margin-top: .35rem;
+            color: $color-text-secondary;
+            font-size: $font-size-small;
+        }
+
+        a {
+            display: inline-flex;
+            align-items: center;
+            gap: .45rem;
+            color: $secondary-color;
+            font-size: $font-size-small;
+            font-weight: $font-weight-semibold;
+            text-decoration: none;
+
+            &:hover {
+                color: $color-hover-primary;
+            }
+        }
+    }
+
+    .student-profile-card-header-compact {
+        align-items: center;
+
+        h2 {
+            margin: 0;
+        }
+    }
+
+    .student-profile-attendance-filters {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        flex: 0 0 auto;
+
+        select,
+        button {
+            min-height: 38px;
+            border: 1px solid rgba($secondary-color, .18);
+            border-radius: 8px;
+            color: $color-text;
+            font-family: $font-family;
+            font-size: $font-size-small;
+            font-weight: $font-weight-semibold;
+        }
+
+        select {
+            padding: .55rem .7rem;
+            background: rgba($primary-color, .08);
+            color-scheme: dark;
+            text-transform: capitalize;
+
+            option {
+                background: $primary-color;
+                color: $color-text;
+            }
+        }
+
+        button {
+            padding: .55rem .8rem;
+            background: rgba($secondary-color, .1);
+            cursor: pointer;
+
+            &:hover {
+                border-color: rgba($secondary-color, .48);
+                background: rgba($secondary-color, .18);
+                color: $secondary-color;
+            }
+        }
+    }
+
+    .student-profile-payments {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .75rem;
+        max-height: 420px;
+        overflow-y: auto;
+        padding-right: .35rem;
+    }
+
+    .student-profile-attendance-summary {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: .75rem;
+        margin-bottom: 1rem;
+
+        div {
+            min-height: 86px;
+            padding: .85rem;
+            border: 1px solid rgba($secondary-color, .14);
+            border-radius: 8px;
+            background: rgba($primary-color, .05);
+        }
+
+        span {
+            color: $color-text-secondary;
+            font-size: $font-size-small;
+            font-weight: $font-weight-semibold;
+            text-transform: uppercase;
+        }
+
+        strong {
+            display: block;
+            margin-top: .55rem;
+            color: $secondary-color;
+            font-family: $font-family-display;
+            font-size: $font-size-large;
+            font-weight: $font-weight-semibold;
+            line-height: 1;
+        }
+    }
+
+    .student-profile-attendance-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .75rem;
+    }
+
+    .student-profile-schedules {
+        display: flex;
+        flex-direction: column;
+        gap: .75rem;
+        margin-top: 1rem;
+    }
+
+    .student-profile-schedule {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: .85rem;
+        border: 1px solid rgba($secondary-color, .14);
+        border-radius: 8px;
+        background: rgba($primary-color, .05);
+
+        strong {
+            color: $color-text;
+            font-size: $font-size-normal;
+            font-weight: $font-weight-semibold;
+            line-height: 1.25;
+            overflow-wrap: anywhere;
+        }
+
+        span {
+            flex: 0 0 auto;
+            color: $color-text-secondary;
+            font-size: $font-size-small;
+        }
+    }
+
+    .student-profile-payment,
+    .student-profile-attendance-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: .85rem;
+        border: 1px solid rgba($secondary-color, .14);
+        border-radius: 8px;
+        background: rgba($primary-color, .05);
+
+        strong,
+        span {
+            display: block;
+        }
+
+        strong {
+            color: $color-text;
+            font-weight: $font-weight-semibold;
+            overflow-wrap: anywhere;
+        }
+
+        span {
+            margin-top: .2rem;
+            color: $color-text-secondary;
+            font-size: $font-size-small;
+        }
+
+        small {
+            display: block;
+            margin-top: .35rem;
+            color: $color-text-secondary;
+            font-size: $font-size-small;
+            line-height: 1.35;
+        }
+    }
+
+    .student-profile-empty,
+    .student-profile-notes {
+        margin-top: 1rem;
+        color: $color-text-secondary;
+        font-size: $font-size-normal;
+        line-height: 1.5;
+    }
+
+    .student-profile-routine-link {
+        display: inline-flex;
+        align-items: center;
+        gap: .5rem;
+        width: fit-content;
+        margin-top: 1rem;
+        padding: .7rem .95rem;
+        border: 1px solid rgba($secondary-color, .18);
+        border-radius: 8px;
+        background: rgba($secondary-color, .1);
+        color: $color-text;
+        font-size: $font-size-small;
+        font-weight: $font-weight-semibold;
+        text-decoration: none;
+
+        &:hover {
+            border-color: rgba($secondary-color, .5);
+            background: rgba($secondary-color, .18);
+            color: $secondary-color;
+        }
+    }
+
+    @media (max-width: 1120px) {
+        .student-profile-kpis {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 860px) {
+        .student-profile-hero,
+        .student-profile-card-header,
+        .student-profile-attendance-filters {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .student-profile-attendance-filters,
+        .student-profile-attendance-filters select,
+        .student-profile-attendance-filters button {
+            width: 100%;
+        }
+
+        .student-profile-actions {
+            justify-content: flex-start;
+        }
+
+        .student-profile-grid,
+        .student-profile-payments,
+        .student-profile-attendance-list {
+            grid-template-columns: 1fr;
+        }
+
+        .student-profile-card-wide {
+            grid-column: auto;
+        }
+    }
+
+    @media (max-width: 560px) {
+        .student-profile-hero,
+        .student-profile-card,
+        .student-profile-kpis article {
+            padding: 1rem;
+        }
+
+        .student-profile-identity {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .student-profile-avatar {
+            width: 84px;
+            height: 84px;
+        }
+
+        .student-profile-kpis {
+            width: 100%;
+            grid-template-columns: 1fr;
+        }
+
+        .student-profile-actions,
+        .student-profile-actions button {
+            width: 100%;
+        }
+
+        .student-profile-attendance-summary {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .student-profile-card dl div,
+        .student-profile-payment,
+        .student-profile-attendance-item,
+        .student-profile-schedule {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .student-profile-card dd {
+            text-align: left;
+        }
+    }
+}

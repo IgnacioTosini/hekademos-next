@@ -1,0 +1,783 @@
+@use '@/styles/variables' as *;
+
+.coach-dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    width: 100%;
+    max-width: 1180px;
+    margin: 0 auto;
+
+    .coach-dashboard-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+
+        h1 {
+            color: $color-text;
+            font-size: 2.5rem;
+            font-weight: $font-weight-semibold;
+            letter-spacing: 0;
+        }
+
+        p {
+            max-width: 760px;
+            margin-top: .35rem;
+            color: $color-text-secondary;
+            font-size: $font-size-medium-large;
+            line-height: 1.6;
+        }
+    }
+
+    .coach-dashboard-account-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: .75rem;
+        justify-content: flex-end;
+        flex: 0 0 auto;
+    }
+
+    .coach-dashboard-stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1rem;
+
+        article {
+            min-height: 132px;
+            padding: 1.25rem;
+            border: 1px solid rgba($secondary-color, .18);
+            border-radius: 8px;
+            background: rgba($tertiary-color, .22);
+        }
+
+        span {
+            color: $color-text-secondary;
+            font-size: $font-size-small;
+            font-weight: $font-weight-semibold;
+            text-transform: uppercase;
+        }
+
+        strong {
+            display: block;
+            margin-top: .75rem;
+            color: $secondary-color;
+            font-family: $font-family-display;
+            font-size: $font-size-xxlarge;
+            font-weight: $font-weight-semibold;
+            line-height: 1;
+        }
+
+        p {
+            margin-top: .65rem;
+            color: $color-text-secondary;
+            font-size: $font-size-normal;
+            line-height: 1.35;
+        }
+    }
+
+    .coach-dashboard-card {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1.5rem;
+        border: 1px solid rgba($secondary-color, .18);
+        border-radius: 8px;
+        background: rgba($tertiary-color, .22);
+
+        h2 {
+            color: $color-text;
+            font-family: $font-family-display;
+            font-size: $font-size-large;
+            font-weight: $font-weight-semibold;
+            line-height: 1.15;
+        }
+
+        p {
+            color: $color-text-secondary;
+            font-size: $font-size-normal;
+            line-height: 1.5;
+        }
+    }
+
+    .coach-dashboard-card-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid rgba($secondary-color, .14);
+    }
+
+    .coach-dashboard-search {
+        input {
+            width: 100%;
+            min-height: 44px;
+            padding: .72rem .9rem;
+            border: 1px solid rgba($secondary-color, .2);
+            border-radius: 8px;
+            background: rgba($tertiary-color, .22);
+            color: $color-text;
+            font-family: $font-family;
+            font-size: $font-size-normal;
+
+            &::placeholder {
+                color: rgba($color-text-secondary, .72);
+            }
+
+            &:focus {
+                outline: 2px solid rgba($secondary-color, .28);
+                border-color: rgba($secondary-color, .62);
+            }
+        }
+    }
+
+    .coach-students-list {
+        display: flex;
+        flex-direction: column;
+        max-height: 560px;
+        overflow-y: auto;
+        padding-right: .35rem;
+    }
+
+    .coach-student-item {
+        display: grid;
+        grid-template-columns: minmax(230px, 1.15fr) minmax(150px, .72fr) minmax(130px, .7fr) minmax(110px, .52fr) minmax(220px, auto);
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem 0;
+        border-bottom: 1px solid rgba($secondary-color, .14);
+
+        &:last-child {
+            border-bottom: 0;
+            padding-bottom: 0;
+        }
+    }
+
+    .coach-student-main {
+        display: flex;
+        align-items: center;
+        gap: .85rem;
+        min-width: 0;
+
+        strong,
+        span,
+        small {
+            display: block;
+        }
+
+        strong {
+            overflow: hidden;
+            color: $color-text;
+            font-size: $font-size-normal;
+            font-weight: $font-weight-semibold;
+            line-height: 1.3;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        span,
+        small {
+            overflow: hidden;
+            color: $color-text-secondary;
+            font-size: $font-size-small;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        small {
+            color: $color-text-secondary;
+        }
+    }
+
+    .coach-student-avatar {
+        display: grid;
+        place-items: center;
+        width: 48px;
+        height: 48px;
+        flex: 0 0 auto;
+        overflow: hidden;
+        border: 1px solid rgba($secondary-color, .24);
+        border-radius: 50%;
+        background: rgba($secondary-color, .12);
+        color: $secondary-color;
+        font-size: $font-size-small;
+        font-weight: $font-weight-bold;
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+    }
+
+    .coach-student-plan,
+    .coach-student-payment {
+        display: flex;
+        flex-direction: column;
+        gap: .25rem;
+
+        strong {
+            color: $color-text;
+            font-size: $font-size-normal;
+        }
+
+        span,
+        small,
+        em {
+            color: $color-text-secondary;
+            font-size: $font-size-small;
+            font-style: normal;
+        }
+
+        em {
+            color: $secondary-color;
+            font-weight: $font-weight-semibold;
+        }
+    }
+
+    .coach-student-schedules {
+        display: flex;
+        flex-direction: column;
+        gap: .2rem;
+        margin-top: .35rem;
+
+        small {
+            color: $color-text-secondary;
+            font-size: $font-size-xsmall;
+            line-height: 1.25;
+        }
+    }
+
+    .coach-payment-status {
+        display: inline-flex;
+        align-items: center;
+        width: fit-content;
+        min-height: 28px;
+        padding: .28rem .65rem;
+        border-radius: 999px;
+        font-size: $font-size-small;
+        font-weight: $font-weight-semibold;
+    }
+
+    .coach-payment-status-paid {
+        background: rgba($color-success, .14);
+        color: $color-success;
+    }
+
+    .coach-payment-status-pending {
+        background: rgba($secondary-color, .14);
+        color: $secondary-color;
+    }
+
+    .coach-payment-status-no-membership {
+        background: rgba($color-text-secondary, .14);
+        color: $color-text-secondary;
+    }
+
+    .coach-student-routine {
+        a,
+        span {
+            display: inline-flex;
+            align-items: center;
+            gap: .45rem;
+            color: $color-text;
+            font-size: $font-size-small;
+            font-weight: $font-weight-semibold;
+            text-decoration: none;
+        }
+
+        a:hover {
+            color: $secondary-color;
+        }
+
+        span {
+            color: $color-text-secondary;
+        }
+    }
+
+    .coach-student-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: .5rem;
+
+        button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: .4rem;
+            min-height: 36px;
+            padding: .55rem .7rem;
+            border: 1px solid rgba($secondary-color, .18);
+            border-radius: 8px;
+            background: rgba($secondary-color, .08);
+            color: $color-text;
+            cursor: pointer;
+            font-family: $font-family;
+            font-size: $font-size-small;
+            font-weight: $font-weight-semibold;
+            transition: .2s;
+
+            &:hover:not(:disabled) {
+                border-color: rgba($secondary-color, .45);
+                background: rgba($secondary-color, .12);
+                color: $secondary-color;
+            }
+
+            &:disabled {
+                cursor: not-allowed;
+                opacity: .55;
+            }
+        }
+    }
+
+    .coach-dashboard-empty {
+        padding: 2rem 1rem;
+        color: $color-text-secondary;
+        text-align: center;
+
+        strong {
+            display: block;
+            color: $color-text;
+            margin-bottom: .35rem;
+        }
+    }
+
+    .coach-attendance-card {
+        .coach-dashboard-card-header {
+            align-items: center;
+        }
+    }
+
+    .coach-attendance-schedules {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        max-height: 560px;
+        overflow-y: auto;
+        padding-right: .35rem;
+    }
+
+    .coach-attendance-schedule {
+        border: 1px solid rgba($secondary-color, .14);
+        border-radius: 8px;
+        background: rgba($primary-color, .05);
+    }
+
+    .coach-attendance-schedule-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1rem;
+        border-bottom: 1px solid rgba($secondary-color, .12);
+        background: rgba($quinary-color, .32);
+
+        strong {
+            color: $color-text;
+            font-size: $font-size-normal;
+            font-weight: $font-weight-semibold;
+            line-height: 1.3;
+        }
+
+        span {
+            flex: 0 0 auto;
+            color: $secondary-color;
+            font-size: $font-size-small;
+            font-weight: $font-weight-semibold;
+        }
+    }
+
+    .coach-attendance-students {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .coach-attendance-student {
+        display: grid;
+        grid-template-columns: minmax(220px, .8fr) minmax(360px, 1fr);
+        align-items: center;
+        gap: 1rem;
+        min-height: 76px;
+        padding: 1rem;
+        border-bottom: 1px solid rgba($secondary-color, .1);
+
+        &:last-child {
+            border-bottom: 0;
+        }
+    }
+
+    .coach-attendance-student-main {
+        display: flex;
+        align-items: center;
+        gap: .8rem;
+        min-width: 0;
+
+        strong,
+        span {
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        strong {
+            color: $color-text;
+            font-size: $font-size-normal;
+            font-weight: $font-weight-semibold;
+        }
+
+        span {
+            margin-top: .15rem;
+            color: $color-text-secondary;
+            font-size: $font-size-small;
+        }
+    }
+
+    .coach-attendance-avatar {
+        width: 42px;
+        height: 42px;
+    }
+
+    .coach-attendance-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: .45rem;
+
+        button {
+            flex: 0 0 auto;
+            min-height: 34px;
+            padding: .48rem .65rem;
+            border: 1px solid rgba($secondary-color, .18);
+            border-radius: 8px;
+            background: rgba($secondary-color, .06);
+            color: $color-text-secondary;
+            cursor: pointer;
+            font-family: $font-family;
+            font-size: $font-size-small;
+            font-weight: $font-weight-semibold;
+            transition: .2s;
+
+            &:hover:not(:disabled),
+            &.coach-attendance-action-active {
+                border-color: rgba($secondary-color, .52);
+                background: rgba($secondary-color, .14);
+                color: $secondary-color;
+            }
+
+            &:disabled {
+                cursor: not-allowed;
+                opacity: .62;
+            }
+        }
+    }
+
+    .coach-schedule-groups {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .85rem;
+        max-height: 520px;
+        overflow-y: auto;
+        padding-right: .35rem;
+    }
+
+    .coach-schedule-group {
+        display: flex;
+        flex-direction: column;
+        gap: .75rem;
+        min-height: 140px;
+        padding: 1rem;
+        border: 1px solid rgba($secondary-color, .14);
+        border-radius: 8px;
+        background: rgba($primary-color, .05);
+    }
+
+    .coach-schedule-group-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        padding-bottom: .75rem;
+        border-bottom: 1px solid rgba($secondary-color, .12);
+
+        strong {
+            color: $color-text;
+            font-size: $font-size-normal;
+            font-weight: $font-weight-semibold;
+            line-height: 1.3;
+        }
+
+        span {
+            flex: 0 0 auto;
+            color: $secondary-color;
+            font-size: $font-size-small;
+            font-weight: $font-weight-semibold;
+        }
+    }
+
+    .coach-schedule-students {
+        display: flex;
+        flex-direction: column;
+        gap: .55rem;
+    }
+
+    .coach-schedule-student {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+
+        span {
+            overflow: hidden;
+            color: $color-text;
+            font-size: $font-size-small;
+            font-weight: $font-weight-semibold;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        a,
+        small {
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+            flex: 0 0 auto;
+            color: $color-text-secondary;
+            font-size: $font-size-xsmall;
+            font-weight: $font-weight-semibold;
+            text-decoration: none;
+        }
+
+        a:hover {
+            color: $secondary-color;
+        }
+    }
+
+    .coach-student-modal-container {
+        position: fixed;
+        inset: 0;
+        z-index: 10020;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        background: rgba(0, 0, 0, .58);
+    }
+
+    .coach-student-modal {
+        width: min(100%, 560px);
+        max-height: 90dvh;
+        overflow: hidden;
+        border: 1px solid rgba($secondary-color, .22);
+        border-radius: 8px;
+        background: $primary-color;
+        box-shadow: 0 24px 80px rgba(0, 0, 0, .32);
+    }
+
+    .coach-student-modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid rgba($secondary-color, .16);
+
+        button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border: 0;
+            border-radius: 50%;
+            background: transparent;
+            color: $color-text-secondary;
+            cursor: pointer;
+            font-size: $font-size-large;
+
+            &:hover {
+                background: rgba($secondary-color, .12);
+                color: $secondary-color;
+            }
+        }
+    }
+
+    .coach-student-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        max-height: calc(90dvh - 92px);
+        overflow-y: auto;
+        padding: 1.5rem;
+    }
+
+    .coach-student-form-group {
+        display: flex;
+        flex-direction: column;
+        gap: .45rem;
+
+        label {
+            color: $color-text-secondary;
+            font-size: $font-size-small;
+            font-weight: $font-weight-semibold;
+            text-transform: uppercase;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: .75rem .85rem;
+            border: 1px solid rgba($secondary-color, .22);
+            border-radius: 8px;
+            background: rgba($tertiary-color, .24);
+            color: $color-text;
+            font: inherit;
+
+            &:focus {
+                outline: 2px solid rgba($secondary-color, .28);
+                border-color: rgba($secondary-color, .65);
+            }
+        }
+
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+    }
+
+    .coach-student-form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: .75rem;
+
+        button {
+            min-height: 40px;
+            padding: .65rem .95rem;
+            border: 1px solid rgba($secondary-color, .18);
+            border-radius: 8px;
+            background: transparent;
+            color: $color-text;
+            cursor: pointer;
+            font-family: $font-family;
+            font-size: $font-size-small;
+            font-weight: $font-weight-semibold;
+
+            &:last-child {
+                border-color: $secondary-color;
+                background: $secondary-color;
+                color: $color-text;
+            }
+
+            &:disabled {
+                cursor: not-allowed;
+                opacity: .65;
+            }
+        }
+    }
+
+    @media (max-width: 1180px) {
+        .coach-student-item {
+            grid-template-columns: minmax(220px, 1fr) minmax(150px, .75fr) minmax(130px, .7fr);
+        }
+
+        .coach-student-actions {
+            grid-column: span 3;
+            justify-content: flex-start;
+        }
+    }
+
+    @media (max-width: 820px) {
+        .coach-dashboard-header {
+            flex-direction: column;
+        }
+
+        .coach-dashboard-account-actions {
+            justify-content: flex-start;
+        }
+
+        .coach-dashboard-stats,
+        .coach-student-item,
+        .coach-attendance-student,
+        .coach-schedule-groups {
+            grid-template-columns: 1fr;
+        }
+
+        .coach-student-item {
+            align-items: stretch;
+            gap: .85rem;
+            padding: 1rem;
+            border: 1px solid rgba($secondary-color, .14);
+            border-radius: 8px;
+            background: rgba($primary-color, .05);
+
+            &:last-child {
+                padding-bottom: 1rem;
+            }
+        }
+
+        .coach-students-list {
+            gap: .85rem;
+            padding-right: 0;
+        }
+
+        .coach-attendance-actions {
+            justify-content: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .coach-student-actions {
+            grid-column: auto;
+            flex-wrap: wrap;
+        }
+    }
+
+    @media (max-width: 560px) {
+        .coach-dashboard-header h1 {
+            font-size: $font-size-xlarge;
+        }
+
+        .coach-dashboard-account-actions,
+        .coach-dashboard-account-actions button {
+            width: 100%;
+        }
+
+        .coach-dashboard-card,
+        .coach-dashboard-stats article,
+        .coach-student-form {
+            padding: 1rem;
+        }
+
+        .coach-dashboard-card-header,
+        .coach-attendance-schedule-header,
+        .coach-schedule-group-header,
+        .coach-student-modal-header {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .coach-student-plan,
+        .coach-student-payment,
+        .coach-student-routine {
+            min-width: 0;
+        }
+
+        .coach-student-actions,
+        .coach-student-actions button,
+        .coach-attendance-actions,
+        .coach-attendance-actions button,
+        .coach-student-form-actions,
+        .coach-student-form-actions button {
+            width: 100%;
+        }
+
+        .coach-student-form-actions {
+            flex-direction: column;
+        }
+
+        .coach-student-modal-container {
+            padding: 1rem;
+        }
+    }
+}

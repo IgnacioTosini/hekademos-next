@@ -1,7 +1,7 @@
 @use '../../../styles/variables' as *;
 
 .bannerParallax {
-    height: 100vh;
+    height: 100dvh;
     position: relative;
     overflow: hidden;
     display: flex;
@@ -24,7 +24,6 @@
     z-index: -2;
     will-change: transform;
 
-    // Overlay oscuro para mejorar legibilidad del texto
     &::after {
         content: '';
         position: absolute;
@@ -33,7 +32,7 @@
         width: 100%;
         height: 100%;
         background: rgba(0, 0, 0, 0.4);
-        z-index: -1; // Cambiado de 1 a -1
+        z-index: -1;
     }
 }
 
@@ -80,7 +79,6 @@
         }
     }
 
-    // Estilos para los botones de acción
     .bannerActions {
         display: flex;
         gap: 1rem;
@@ -140,7 +138,6 @@
     }
 }
 
-// Animaciones
 @keyframes fadeInUp {
     from {
         opacity: 0;
@@ -153,18 +150,21 @@
     }
 }
 
-// Mejora del rendimiento del scroll
 .bannerParallax {
-    // Optimización para el scroll suave
     transform: translate3d(0, 0, 0);
 }
 
-// Efecto parallax alternativo con CSS (más compatible)
-@media (min-width: 769px) {
-    .parallax-css-only {
-        background-attachment: fixed;
-        background-position: center;
-        background-repeat: no-repeat;
-        background-size: cover;
+@media (prefers-reduced-motion: reduce) {
+    .parallaxBg {
+        transform: none !important;
+        will-change: auto;
+    }
+
+    .bannerContent {
+        .bannerTitle,
+        .bannerSubtitle,
+        .bannerActions {
+            animation: none;
+        }
     }
 }

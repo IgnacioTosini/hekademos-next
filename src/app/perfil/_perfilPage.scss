@@ -1,0 +1,16 @@
+@use '@/styles/variables' as *;
+
+.perfil-page {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 1180px;
+    min-height: 100dvh;
+    margin: 0 auto;
+    padding: 2.5rem;
+    background: $primary-color;
+
+    @media (max-width: 768px) {
+        padding: 5rem 1rem 1.5rem;
+    }
+}

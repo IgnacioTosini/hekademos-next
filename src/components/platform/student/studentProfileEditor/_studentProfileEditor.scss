@@ -1,0 +1,108 @@
+@use '@/styles/variables' as *;
+
+.student-profile-edit-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    min-height: 42px;
+    padding: .7rem 1rem;
+    border: 1px solid rgba($secondary-color, .28);
+    border-radius: 8px;
+    background: rgba($secondary-color, .12);
+    color: $color-text;
+    cursor: pointer;
+    font-family: $font-family;
+    font-size: $font-size-small;
+    font-weight: $font-weight-semibold;
+    transition: .2s ease;
+
+    &:hover {
+        border-color: rgba($secondary-color, .62);
+        background: rgba($secondary-color, .18);
+        color: $secondary-color;
+    }
+}
+
+.student-profile-editor-container {
+    position: fixed;
+    inset: 0;
+    z-index: 10020;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    background: rgba(0, 0, 0, .62);
+}
+
+.student-profile-editor-modal {
+    width: min(100%, 760px);
+    max-height: 92dvh;
+    overflow: hidden;
+    border: 1px solid rgba($secondary-color, .24);
+    border-radius: 8px;
+    background: $primary-color;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, .34);
+}
+
+.student-profile-editor-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid rgba($secondary-color, .16);
+
+    h2 {
+        color: $color-text;
+        font-family: $font-family-display;
+        font-size: $font-size-large;
+        font-weight: $font-weight-semibold;
+        line-height: 1.15;
+    }
+
+    p {
+        margin-top: .35rem;
+        color: $color-text-secondary;
+        font-size: $font-size-small;
+        line-height: 1.4;
+    }
+
+    button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
+        color: $color-text-secondary;
+        cursor: pointer;
+        font-size: $font-size-large;
+
+        &:hover {
+            background: rgba($secondary-color, .12);
+            color: $secondary-color;
+        }
+    }
+}
+
+.student-profile-editor-form {
+    max-height: calc(92dvh - 96px);
+}
+
+@media (max-width: 640px) {
+    .student-profile-edit-button {
+        width: 100%;
+    }
+
+    .student-profile-editor-container {
+        padding: 1rem;
+    }
+
+    .student-profile-editor-header,
+    .student-profile-editor-form {
+        padding: 1rem;
+    }
+}

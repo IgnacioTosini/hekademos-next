@@ -2,35 +2,44 @@
 
 import { useEffect, useRef } from 'react'
 import { FaArrowRight } from "react-icons/fa"
+import { handleScrollTo } from '@/utils'
 import './_banner.scss'
 
 export const Banner = () => {
     const bannerRef = useRef<HTMLDivElement>(null)
+    const scrollFrameRef = useRef<number | null>(null)
 
     useEffect(() => {
-        // Detectar si es dispositivo móvil
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        const isCompactViewport = window.matchMedia('(max-width: 768px)').matches
+
+        if (prefersReducedMotion || isCompactViewport) return
 
         const handleScroll = () => {
-            if (bannerRef.current && !isMobile) { // Solo aplicar parallax en desktop
-                const scrolled = window.pageYOffset
-                const parallax = bannerRef.current.querySelector('.parallaxBg') as HTMLElement
+            if (scrollFrameRef.current !== null) return
+
+            scrollFrameRef.current = requestAnimationFrame(() => {
+                const parallax = bannerRef.current?.querySelector('.parallaxBg') as HTMLElement | null
 
                 if (parallax) {
-                    const speed = scrolled * 0.5
+                    const speed = window.scrollY * 0.35
                     parallax.style.transform = `translateY(${speed}px)`
                 }
-            }
+
+                scrollFrameRef.current = null
+            })
         }
 
         window.addEventListener('scroll', handleScroll, { passive: true })
-        return () => window.removeEventListener('scroll', handleScroll)
-    }, [])
 
-    const handleClick = (path: string) => {
-        const element = document.getElementById(path)
-        element?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
+        return () => {
+            window.removeEventListener('scroll', handleScroll)
+
+            if (scrollFrameRef.current !== null) {
+                cancelAnimationFrame(scrollFrameRef.current)
+            }
+        }
+    }, [])
 
     return (
         <div className="bannerParallax" ref={bannerRef} id='inicio'>
@@ -40,10 +49,10 @@ export const Banner = () => {
                 <p className="bannerSubtitle">Entrenamientos conscientes para ganar fuerza, movilidad y presencia.</p>
 
                 <div className="bannerActions">
-                    <button className="button" onClick={() => handleClick('clases')}>
+                    <button className="button" onClick={() => handleScrollTo('clases')}>
                         Conocé nuestras clases <FaArrowRight />
                     </button>
-                    <button className="button buttonSecondary" onClick={() => handleClick('filosofia')}>
+                    <button className="button buttonSecondary" onClick={() => handleScrollTo('filosofia')}>
                         Nuestra Filosofía
                     </button>
                 </div>

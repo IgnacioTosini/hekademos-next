@@ -1,0 +1,121 @@
+@use '../../../styles/variables' as *;
+
+.trainingSchedule {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 70svh;
+    padding: 5.5rem 2rem;
+    text-align: center;
+
+    @media (max-width: 768px) {
+        min-height: auto;
+        padding: 4rem 1.25rem;
+    }
+
+    .trainingScheduleTitle {
+        font-size: clamp($font-size-xxlarge, 10vw, $font-size-xxxlarge);
+        margin-bottom: 1rem;
+
+        &::after {
+            content: '';
+            display: block;
+            width: 60px;
+            height: 4px;
+            background-color: $secondary-color;
+            margin: 0.5rem auto 0;
+            border-radius: 2px;
+        }
+    }
+
+    .trainingScheduleDescription {
+        color: $color-text-secondary;
+        font-size: $font-size-medium-large;
+        line-height: 1.6;
+        max-width: 720px;
+    }
+
+    .trainingScheduleCards {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1.5rem;
+        width: 100%;
+        max-width: 1000px;
+        margin-top: 2rem;
+
+        @media (max-width: 900px) {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .scheduleCard {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        min-height: 100%;
+        padding: 2rem;
+        border: 1px solid $border-color;
+        border-radius: 1rem;
+        background-color: rgba($tertiary-color, 0.5);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        transition: border 0.3s ease, transform 0.3s ease;
+
+        &:hover {
+            border-color: rgba($secondary-color, 0.8);
+            transform: translateY(-5px);
+        }
+    }
+
+    .scheduleCardHeader {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+
+        h3 {
+            font-size: $font-size-large;
+            color: $color-text;
+        }
+    }
+
+    .scheduleIcon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background-color: rgba($secondary-color, 0.1);
+        color: $secondary-color;
+        flex-shrink: 0;
+
+        svg {
+            width: 22px;
+            height: 22px;
+        }
+    }
+
+    .scheduleTimes {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.8rem;
+
+        @media (max-width: 520px) {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    .scheduleTime {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 48px;
+        padding: 0.7rem 0.8rem;
+        border-radius: 0.5rem;
+        background-color: rgba($secondary-color, 0.1);
+        color: $color-text;
+        font-size: $font-size-medium-large;
+        font-weight: $font-weight-medium;
+    }
+}

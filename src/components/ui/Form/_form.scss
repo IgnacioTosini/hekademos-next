@@ -2,6 +2,7 @@
 @use 'sass:color';
 
 .formContainer {
+    width: 100%;
     max-width: 600px;
     padding: 2rem;
 
@@ -26,10 +27,16 @@
         .formInput,
         .formTextarea {
             padding: 1rem;
-            border: 1px solid $border-color;
+            border: 1px solid rgba($secondary-color, .24);
             border-radius: 0.5rem;
+            background: rgba($tertiary-color, .28);
+            color: $color-text;
             font-size: $font-size-normal;
             transition: border-color 0.3s ease;
+
+            &::placeholder {
+                color: rgba($color-text-secondary, .86);
+            }
 
             &:focus {
                 outline: none;
@@ -37,10 +44,9 @@
                 box-shadow: 0 0 0 2px rgba($secondary-color, 0.2);
             }
 
-            // Estilo para campos con error
             &.error {
-                border-color: #dc3545;
-                box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2);
+                border-color: $color-error;
+                box-shadow: 0 0 0 2px rgba($color-error, 0.2);
             }
         }
 
@@ -72,7 +78,7 @@
     }
 
     .errorMessage {
-        color: #dc3545;
+        color: $color-error;
         font-size: $font-size-small;
         margin-top: 0.25rem;
         font-weight: 500;

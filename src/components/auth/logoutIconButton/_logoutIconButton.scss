@@ -1,0 +1,31 @@
+@use '@/styles/variables' as *;
+
+.logout-icon-button {
+    position: fixed;
+    top: 1.25rem;
+    right: 1.25rem;
+    z-index: 1100;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border: 1px solid rgba($secondary-color, .24);
+    border-radius: 8px;
+    background: rgba($tertiary-color, .42);
+    color: $color-text;
+    cursor: pointer;
+    font-size: $font-size-large;
+    transition: .2s;
+
+    &:hover:not(:disabled) {
+        border-color: rgba($secondary-color, .7);
+        background: rgba($secondary-color, .16);
+        color: $secondary-color;
+    }
+
+    &:disabled {
+        cursor: not-allowed;
+        opacity: .65;
+    }
+}

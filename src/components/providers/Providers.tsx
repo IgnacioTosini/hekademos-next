@@ -1,8 +1,8 @@
 'use client';
 
 import { AuthProvider } from "./authContext";
-import { ExerciseProvider } from "./exerciseStore";
 import { ReactQueryProvider } from "./ReactQueryProvider";
+import { ToastContainer } from "react-toastify";
 
 interface Props {
     children: React.ReactNode;
@@ -11,11 +11,20 @@ interface Props {
 export const Providers = ({ children }: Props) => {
     return (
         <ReactQueryProvider>
-            <ExerciseProvider>
-                <AuthProvider>
-                    {children}
-                </AuthProvider>
-            </ExerciseProvider>
+            <AuthProvider>
+                {children}
+                <ToastContainer
+                    position="top-right"
+                    autoClose={3200}
+                    hideProgressBar={false}
+                    newestOnTop
+                    closeOnClick
+                    pauseOnFocusLoss
+                    draggable
+                    pauseOnHover
+                    theme="dark"
+                />
+            </AuthProvider>
         </ReactQueryProvider>
     )
 }
