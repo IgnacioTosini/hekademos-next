@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { writeAuditLog } from "@/lib/audit-log";
 import { getCurrentAuthSession, setAuthSessionCookie } from "@/lib/auth-session";
 import { buildEmailMessage, sendEmail } from "@/lib/email";
-import { isDeliverableEmail, isValidBirthDate, isValidOptionalPhone } from "@/lib/form-validation";
+import { isDeliverableEmail, isValidBirthDate, isValidOptionalPhone, isValidOptionalUrl } from "@/lib/form-validation";
 import type { ScheduleChangeRequestType } from "@/types/schema/classes";
 import type { PrismaDate } from "@/types/schema/common";
 import type { CreateUserImageInput } from "@/types/schema/users";
@@ -28,6 +28,10 @@ export type UpdateStudentProfileInput = {
     emergencyContactName?: string | null;
     emergencyContactPhone?: string | null;
     image?: CreateUserImageInput | null;
+};
+
+export type UpdateStudentRoutineInput = {
+    routineExcelUrl?: string | null;
 };
 
 export type CreateStudentScheduleChangeRequestInput = {
@@ -215,6 +219,7 @@ const getProfileErrorMessage = (error: unknown, fallback: string) => {
     if (error.message === "COACH_NOT_FOUND") return "No se encontro el perfil del coach";
     if (error.message === "INVALID_PHONE") return "Revisa los telefonos ingresados";
     if (error.message === "INVALID_BIRTH_DATE") return "La fecha de nacimiento no parece valida";
+    if (error.message === "INVALID_URL") return "El link ingresado no parece valido";
 
     return fallback;
 };
@@ -436,6 +441,65 @@ export const updateStudentProfile = async (
             ok: false,
             data: null,
             error: getProfileErrorMessage(error, "No se pudo actualizar el perfil"),
+        };
+    }
+};
+
+export const updateStudentRoutine = async (
+    input: UpdateStudentRoutineInput
+): Promise<ActionResponse<{ studentId: string } | null>> => {
+    try {
+        const session = await getCurrentAuthSession();
+
+        if (!session) throw new Error("UNAUTHORIZED");
+        if (session.role !== "STUDENT") throw new Error("NOT_STUDENT");
+        if (!isValidOptionalUrl(input.routineExcelUrl)) throw new Error("INVALID_URL");
+
+        const student = await prisma.student.findUnique({
+            where: {
+                userId: session.userId,
+            },
+            select: {
+                id: true,
+            },
+        });
+
+        if (!student) throw new Error("STUDENT_NOT_FOUND");
+
+        await prisma.student.update({
+            where: {
+                id: student.id,
+            },
+            data: {
+                routineExcelUrl: input.routineExcelUrl?.trim() || null,
+            },
+        });
+
+        revalidatePath(profilePath);
+        revalidatePath(adminStudentsPath);
+        revalidatePath(`${adminStudentsPath}/${student.id}`);
+        await writeAuditLog({
+            action: "STUDENT_UPDATE",
+            entityType: "Student",
+            entityId: student.id,
+            metadata: {
+                routineUpdated: true,
+            },
+        });
+
+        return {
+            ok: true,
+            data: {
+                studentId: student.id,
+            },
+        };
+    } catch (error) {
+        console.error("Error updating student routine:", error);
+
+        return {
+            ok: false,
+            data: null,
+            error: getProfileErrorMessage(error, "No se pudo actualizar la rutina"),
         };
     }
 };

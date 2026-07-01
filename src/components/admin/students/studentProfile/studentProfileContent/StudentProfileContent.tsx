@@ -32,6 +32,7 @@ type Props = {
     selectedAttendanceMonth?: number;
     selectedAttendanceYear?: number;
     scheduleActions?: ReactNode;
+    routineActions?: ReactNode;
 };
 
 export type StudentProfilePaymentStatus = PaymentStatus | "NO_MEMBERSHIP";
@@ -152,6 +153,7 @@ export const StudentProfileContent = ({
     selectedAttendanceMonth,
     selectedAttendanceYear,
     scheduleActions,
+    routineActions,
 }: Props) => {
     const today = new Date();
     const attendanceMonth = selectedAttendanceMonth ?? today.getMonth() + 1;
@@ -298,6 +300,11 @@ export const StudentProfileContent = ({
                             description="El alumno no tiene un plan activo asociado."
                         />
                     )}
+                    {!showInternalNotes && (
+                        <p className="student-profile-membership-helper">
+                            Para cambiar tu plan, consultá con tu coach.
+                        </p>
+                    )}
                 </article>
 
                 <article className="student-profile-card">
@@ -440,7 +447,10 @@ export const StudentProfileContent = ({
                 )}
 
                 <article className="student-profile-card">
-                    <h2>Rutina</h2>
+                    <div className="student-profile-card-header student-profile-card-header-compact">
+                        <h2>Rutina</h2>
+                        {routineActions}
+                    </div>
                     {student.routineExcelUrl ? (
                         <a className="student-profile-routine-link" href={student.routineExcelUrl} target="_blank" rel="noreferrer">
                             Abrir rutina

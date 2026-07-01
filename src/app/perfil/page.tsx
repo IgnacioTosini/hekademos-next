@@ -7,6 +7,7 @@ import { LogoutIconButton } from "@/components/auth/logoutIconButton/LogoutIconB
 import { ChangePasswordButton } from "@/components/account/changePasswordButton/ChangePasswordButton";
 import { StudentProfileContent } from "@/components/admin/students/studentProfile/studentProfileContent/StudentProfileContent";
 import { StudentProfileEditor } from "@/components/platform/student/studentProfileEditor/StudentProfileEditor";
+import { StudentRoutineEditor } from "@/components/platform/student/studentRoutineEditor/StudentRoutineEditor";
 import { StudentScheduleChangeRequest } from "@/components/platform/student/studentScheduleChangeRequest/StudentScheduleChangeRequest";
 import "./_perfilPage.scss";
 
@@ -171,6 +172,11 @@ export default async function PerfilPage({ searchParams }: Props) {
                     <StudentScheduleChangeRequest
                         student={sanitizedStudent}
                         weeklySchedules={weeklySchedules}
+                    />
+                )}
+                routineActions={(
+                    <StudentRoutineEditor
+                        routineExcelUrl={sanitizedStudent.routineExcelUrl}
                     />
                 )}
                 showInternalNotes={false}

@@ -6,10 +6,9 @@ import { toast } from "react-toastify";
 import { FaPencilAlt } from "react-icons/fa";
 import { IoMdClose } from "react-icons/io";
 import { updateCoachProfile } from "@/app/actions/profile.actions";
-import { deleteImage } from "@/lib/client-cloudinary";
 import { isValidOptionalPhone } from "@/lib/form-validation";
 import type { UserImage } from "@/types/schema/users";
-import { UserImageField, type UserImageValue } from "@/components/admin/users/userImageField/UserImageField";
+import { saveWithResolvedUserImage, UserImageField, type UserImageValue } from "@/components/admin/users/userImageField/UserImageField";
 import "@/components/admin/users/userForm/_userForm.scss";
 import "./_coachProfileEditor.scss";
 
@@ -82,33 +81,39 @@ export const CoachProfileEditor = ({ account }: Props) => {
         }
 
         startTransition(async () => {
-            const result = await updateCoachProfile({
-                email: form.email,
-                name: form.name || null,
-                phone: form.phone || null,
-                bio: form.bio || null,
-                specialty: form.specialty || null,
-                instagram: form.instagram || null,
-                image,
-            });
+            try {
+                const { result, previousImageDeleteFailed } = await saveWithResolvedUserImage({
+                    image,
+                    previousImagePublicId: account.image?.publicId,
+                    save: (resolvedImage) => updateCoachProfile({
+                        email: form.email,
+                        name: form.name || null,
+                        phone: form.phone || null,
+                        bio: form.bio || null,
+                        specialty: form.specialty || null,
+                        instagram: form.instagram || null,
+                        image: resolvedImage,
+                    }),
+                });
 
-            if (result.ok) {
-                try {
-                    if (account.image?.publicId && (image === null || image?.publicId)) {
-                        await deleteImage(account.image.publicId);
+                if (result.ok) {
+                    if (previousImageDeleteFailed) {
+                        toast.warning("Perfil guardado, pero no se pudo borrar la imagen anterior de Cloudinary");
                     }
-                } catch {
-                    toast.warning("Perfil guardado, pero no se pudo borrar la imagen anterior de Cloudinary");
+
+                    toast.success("Cuenta actualizada");
+                    router.refresh();
+                    setIsOpen(false);
+                    return;
                 }
 
-                toast.success("Cuenta actualizada");
-                router.refresh();
-                setIsOpen(false);
-                return;
+                setError(result.error);
+                toast.error(result.error);
+            } catch (error) {
+                const message = error instanceof Error ? error.message : "No se pudo guardar la cuenta";
+                setError(message);
+                toast.error(message);
             }
-
-            setError(result.error);
-            toast.error(result.error);
         });
     };
 

@@ -4,14 +4,13 @@ import { useRouter } from 'next/navigation';
 import { FormEvent, useMemo, useState, useTransition } from 'react';
 import { toast } from 'react-toastify';
 import { createStudentUser, updateStudentUser } from '@/app/actions/student.actions';
-import { deleteImage } from '@/lib/client-cloudinary';
 import { isValidBirthDate, isValidOptionalPhone } from '@/lib/form-validation';
 import type { WeeklyClassScheduleWithRelations } from '@/types/schema/classes';
 import type { MembershipPlan } from '@/types/schema/memberships';
 import type { UserStatus, UserWithRelations } from '@/types/schema/users';
 import { centsToPesosInput, parsePesosToCents } from '@/utils/format';
 import { addMinutesToTime, dayOrder, uppercaseDayLabels } from '@/utils/schedule';
-import { UserImageField, type UserImageValue } from '../../users/userImageField/UserImageField';
+import { saveWithResolvedUserImage, UserImageField, type UserImageValue } from '../../users/userImageField/UserImageField';
 import '../../users/userForm/_userForm.scss';
 
 type Props = {
@@ -225,47 +224,55 @@ export const StudentForm = ({ student, coaches, membershipPlans, weeklySchedules
         }
 
         startTransition(async () => {
-            const payload = {
-                coachId: form.coachId || null,
-                planId: form.planId || null,
-                scheduleIds: form.planId ? form.scheduleIds : [],
-                monthlyPriceCents: form.planId ? monthlyPriceCents : null,
-                firstName: form.firstName.trim() || null,
-                lastName: form.lastName.trim() || null,
-                name: [form.firstName, form.lastName].map((value) => value.trim()).filter(Boolean).join(' ') || null,
-                email: form.email,
-                password: form.password.trim() || null,
-                phone: form.phone.trim() || null,
-                birthDate: form.birthDate || null,
-                status: form.status,
-                emergencyContactName: form.emergencyContactName.trim() || null,
-                emergencyContactPhone: form.emergencyContactPhone.trim() || null,
-                routineExcelUrl: form.routineExcelUrl.trim() || null,
-                notes: form.notes.trim() || null,
-                image,
-            };
+            try {
+                const { result, previousImageDeleteFailed } = await saveWithResolvedUserImage({
+                    image,
+                    previousImagePublicId: student?.image?.publicId,
+                    save: (resolvedImage) => {
+                        const payload = {
+                            coachId: form.coachId || null,
+                            planId: form.planId || null,
+                            scheduleIds: form.planId ? form.scheduleIds : [],
+                            monthlyPriceCents: form.planId ? monthlyPriceCents : null,
+                            firstName: form.firstName.trim() || null,
+                            lastName: form.lastName.trim() || null,
+                            name: [form.firstName, form.lastName].map((value) => value.trim()).filter(Boolean).join(' ') || null,
+                            email: form.email,
+                            password: form.password.trim() || null,
+                            phone: form.phone.trim() || null,
+                            birthDate: form.birthDate || null,
+                            status: form.status,
+                            emergencyContactName: form.emergencyContactName.trim() || null,
+                            emergencyContactPhone: form.emergencyContactPhone.trim() || null,
+                            routineExcelUrl: form.routineExcelUrl.trim() || null,
+                            notes: form.notes.trim() || null,
+                            image: resolvedImage,
+                        };
 
-            const result = isEditing
-                ? await updateStudentUser(student.id, payload)
-                : await createStudentUser(payload);
+                        return isEditing
+                            ? updateStudentUser(student.id, payload)
+                            : createStudentUser(payload);
+                    },
+                });
 
-            if (result.ok) {
-                try {
-                    if (student?.image?.publicId && (image === null || image?.publicId)) {
-                        await deleteImage(student.image.publicId);
+                if (result.ok) {
+                    if (previousImageDeleteFailed) {
+                        toast.warning('Alumno guardado, pero no se pudo borrar la imagen anterior de Cloudinary');
                     }
-                } catch {
-                    toast.warning('Alumno guardado, pero no se pudo borrar la imagen anterior de Cloudinary');
+
+                    toast.success(isEditing ? 'Alumno actualizado' : 'Alumno creado');
+                    router.refresh();
+                    onClose();
+                    return;
                 }
 
-                toast.success(isEditing ? 'Alumno actualizado' : 'Alumno creado');
-                router.refresh();
-                onClose();
-                return;
+                setError(result.error);
+                toast.error(result.error);
+            } catch (error) {
+                const message = error instanceof Error ? error.message : 'No se pudo guardar el alumno';
+                setError(message);
+                toast.error(message);
             }
-
-            setError(result.error);
-            toast.error(result.error);
         });
     };
 

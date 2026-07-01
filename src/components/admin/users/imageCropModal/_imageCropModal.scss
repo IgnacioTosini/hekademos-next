@@ -1,0 +1,175 @@
+@use '@/styles/variables' as *;
+@use 'sass:color';
+
+.image-crop-modal {
+    position: fixed;
+    z-index: 1200;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+
+    .image-crop-modal-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(#020817, .72);
+        backdrop-filter: blur(4px);
+    }
+
+    .image-crop-modal-panel {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        gap: 1rem;
+        width: min(520px, 100%);
+        max-height: calc(100dvh - 2rem);
+        overflow-y: auto;
+        padding: 1.25rem;
+        border: 1px solid rgba($secondary-color, .35);
+        border-radius: 8px;
+        background: $primary-color;
+        box-shadow: 0 24px 64px rgba(#000, .34);
+    }
+
+    .image-crop-modal-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+
+        h2 {
+            color: $color-text;
+            font-family: $font-family-display;
+            font-size: $font-size-large;
+            line-height: 1;
+        }
+
+        p {
+            margin-top: .35rem;
+            color: $color-text-secondary;
+            font-size: $font-size-small;
+        }
+
+        button {
+            display: grid;
+            flex: 0 0 36px;
+            place-items: center;
+            width: 36px;
+            height: 36px;
+            border: 1px solid rgba($secondary-color, .3);
+            border-radius: 8px;
+            background: rgba($tertiary-color, .2);
+            color: $color-text;
+            cursor: pointer;
+            font-size: $font-size-large;
+            line-height: 1;
+
+            &:hover:not(:disabled) {
+                border-color: $secondary-color;
+                color: $secondary-color;
+            }
+        }
+    }
+
+    .image-crop-modal-preview {
+        position: relative;
+        width: min(320px, 82vw);
+        aspect-ratio: 1;
+        justify-self: center;
+        overflow: hidden;
+        border: 2px solid $secondary-color;
+        border-radius: 50%;
+        background: rgba($tertiary-color, .4);
+        background-repeat: no-repeat;
+        cursor: grab;
+        touch-action: none;
+
+        &:active {
+            cursor: grabbing;
+        }
+
+        &::after {
+            position: absolute;
+            inset: 0;
+            border: 1px solid rgba($color-text, .35);
+            border-radius: inherit;
+            content: '';
+            pointer-events: none;
+        }
+
+    }
+
+    .image-crop-modal-controls {
+        display: grid;
+        gap: .85rem;
+
+        label {
+            display: grid;
+            gap: .4rem;
+            color: $color-text-secondary;
+            font-size: $font-size-small;
+            font-weight: $font-weight-semibold;
+            text-transform: uppercase;
+        }
+
+        input[type='range'] {
+            accent-color: $secondary-color;
+            cursor: pointer;
+        }
+    }
+
+    .image-crop-modal-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: .75rem;
+        padding-top: .25rem;
+
+        button {
+            min-height: 42px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: $font-size-small;
+            font-weight: $font-weight-bold;
+            text-transform: uppercase;
+
+            &:disabled {
+                cursor: not-allowed;
+                opacity: .65;
+            }
+        }
+    }
+
+    .image-crop-modal-secondary {
+        border: 1px solid rgba($secondary-color, .32);
+        background: transparent;
+        color: $color-text;
+
+        &:hover:not(:disabled) {
+            background: rgba($secondary-color, .1);
+        }
+    }
+
+    .image-crop-modal-primary {
+        border: 1px solid $color-primary-button;
+        background: $color-primary-button;
+        color: $color-text;
+
+        &:hover:not(:disabled) {
+            background: color.adjust($color-primary-button, $lightness: 6%);
+        }
+    }
+
+    @media (max-width: 520px) {
+        align-items: end;
+        padding: .75rem;
+
+        .image-crop-modal-panel {
+            width: 100%;
+            padding: 1rem;
+        }
+
+        .image-crop-modal-actions {
+            grid-template-columns: 1fr;
+        }
+    }
+}

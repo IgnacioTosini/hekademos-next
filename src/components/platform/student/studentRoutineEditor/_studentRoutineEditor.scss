@@ -1,0 +1,184 @@
+@use '@/styles/variables' as *;
+
+.student-routine-edit-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .45rem;
+    min-height: 38px;
+    padding: .6rem .85rem;
+    border: 1px solid rgba($secondary-color, .22);
+    border-radius: 8px;
+    background: rgba($secondary-color, .1);
+    color: $color-text;
+    cursor: pointer;
+    font-family: $font-family;
+    font-size: $font-size-small;
+    font-weight: $font-weight-semibold;
+    transition: .2s ease;
+
+    &:hover {
+        border-color: rgba($secondary-color, .52);
+        background: rgba($secondary-color, .18);
+        color: $secondary-color;
+    }
+}
+
+.student-routine-editor-container {
+    position: fixed;
+    inset: 0;
+    z-index: 10030;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    background: rgba(0, 0, 0, .62);
+}
+
+.student-routine-editor-modal {
+    width: min(100%, 540px);
+    overflow: hidden;
+    border: 1px solid rgba($secondary-color, .24);
+    border-radius: 8px;
+    background: $primary-color;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, .34);
+}
+
+.student-routine-editor-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid rgba($secondary-color, .16);
+
+    h2 {
+        color: $color-text;
+        font-family: $font-family-display;
+        font-size: $font-size-large;
+        font-weight: $font-weight-semibold;
+        line-height: 1.15;
+    }
+
+    p {
+        margin-top: .35rem;
+        color: $color-text-secondary;
+        font-size: $font-size-small;
+        line-height: 1.4;
+    }
+
+    button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
+        color: $color-text-secondary;
+        cursor: pointer;
+        font-size: $font-size-large;
+
+        &:hover {
+            background: rgba($secondary-color, .12);
+            color: $secondary-color;
+        }
+    }
+}
+
+.student-routine-editor-form {
+    display: flex;
+    flex-direction: column;
+    gap: .65rem;
+    padding: 1.5rem;
+
+    label {
+        color: $color-text-secondary;
+        font-size: $font-size-small;
+        font-weight: $font-weight-semibold;
+        text-transform: uppercase;
+    }
+
+    input {
+        width: 100%;
+        min-height: 44px;
+        padding: .75rem .85rem;
+        border: 1px solid rgba($secondary-color, .22);
+        border-radius: 8px;
+        background: rgba($primary-color, .08);
+        color: $color-text;
+        font-family: $font-family;
+        font-size: $font-size-normal;
+        outline: none;
+
+        &:focus {
+            border-color: rgba($secondary-color, .72);
+        }
+    }
+
+    p {
+        color: $color-text-secondary;
+        font-size: $font-size-small;
+        line-height: 1.4;
+    }
+}
+
+.student-routine-editor-error {
+    color: $color-error;
+    font-size: $font-size-small;
+    font-weight: $font-weight-semibold;
+}
+
+.student-routine-editor-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: .75rem;
+    padding-top: .5rem;
+
+    button {
+        min-height: 42px;
+        padding: .7rem 1rem;
+        border-radius: 8px;
+        cursor: pointer;
+        font-family: $font-family;
+        font-size: $font-size-small;
+        font-weight: $font-weight-semibold;
+
+        &:first-child {
+            border: 1px solid rgba($secondary-color, .22);
+            background: transparent;
+            color: $color-text-secondary;
+        }
+
+        &:last-child {
+            border: 1px solid rgba($secondary-color, .22);
+            background: rgba($secondary-color, .16);
+            color: $color-text;
+        }
+
+        &:disabled {
+            cursor: not-allowed;
+            opacity: .55;
+        }
+    }
+}
+
+@media (max-width: 560px) {
+    .student-routine-editor-container {
+        padding: 1rem;
+    }
+
+    .student-routine-editor-header,
+    .student-routine-editor-form {
+        padding: 1rem;
+    }
+
+    .student-routine-editor-actions {
+        flex-direction: column;
+
+        button {
+            width: 100%;
+        }
+    }
+}

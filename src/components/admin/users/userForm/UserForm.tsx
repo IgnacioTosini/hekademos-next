@@ -4,10 +4,9 @@ import { FormEvent, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import { createUser, updateUser } from '@/app/actions/user.actions';
-import { deleteImage } from '@/lib/client-cloudinary';
 import { isValidOptionalPhone } from '@/lib/form-validation';
 import type { Role, UserStatus, UserWithRelations } from '@/types/schema/users';
-import { UserImageField, type UserImageValue } from '../userImageField/UserImageField';
+import { saveWithResolvedUserImage, UserImageField, type UserImageValue } from '../userImageField/UserImageField';
 import './_userForm.scss';
 
 type Props = {
@@ -73,37 +72,45 @@ export const UserForm = ({ user, onClose }: Props) => {
         }
 
         startTransition(async () => {
-            const payload = {
-                name: form.name.trim() || null,
-                email: form.email,
-                phone: form.phone.trim() || null,
-                password: form.password.trim() || null,
-                role: form.role,
-                status: form.status,
-                image,
-            };
+            try {
+                const { result, previousImageDeleteFailed } = await saveWithResolvedUserImage({
+                    image,
+                    previousImagePublicId: user?.image?.publicId,
+                    save: (resolvedImage) => {
+                        const payload = {
+                            name: form.name.trim() || null,
+                            email: form.email,
+                            phone: form.phone.trim() || null,
+                            password: form.password.trim() || null,
+                            role: form.role,
+                            status: form.status,
+                            image: resolvedImage,
+                        };
 
-            const result = isEditing
-                ? await updateUser(user.id, payload)
-                : await createUser(payload);
+                        return isEditing
+                            ? updateUser(user.id, payload)
+                            : createUser(payload);
+                    },
+                });
 
-            if (result.ok) {
-                try {
-                    if (user?.image?.publicId && (image === null || image?.publicId)) {
-                        await deleteImage(user.image.publicId);
+                if (result.ok) {
+                    if (previousImageDeleteFailed) {
+                        toast.warning('Usuario guardado, pero no se pudo borrar la imagen anterior de Cloudinary');
                     }
-                } catch {
-                    toast.warning('Usuario guardado, pero no se pudo borrar la imagen anterior de Cloudinary');
+
+                    toast.success(isEditing ? 'Usuario actualizado' : 'Usuario creado');
+                    router.refresh();
+                    onClose();
+                    return;
                 }
 
-                toast.success(isEditing ? 'Usuario actualizado' : 'Usuario creado');
-                router.refresh();
-                onClose();
-                return;
+                setError(result.error);
+                toast.error(result.error);
+            } catch (error) {
+                const message = error instanceof Error ? error.message : 'No se pudo guardar el usuario';
+                setError(message);
+                toast.error(message);
             }
-
-            setError(result.error);
-            toast.error(result.error);
         });
     };
 

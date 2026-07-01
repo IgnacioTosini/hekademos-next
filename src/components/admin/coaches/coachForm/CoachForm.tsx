@@ -4,10 +4,9 @@ import { FormEvent, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import { createCoachUser, updateCoachUser } from '@/app/actions/coach.actions';
-import { deleteImage } from '@/lib/client-cloudinary';
 import { isValidOptionalPhone } from '@/lib/form-validation';
 import type { UserStatus, UserWithRelations } from '@/types/schema/users';
-import { UserImageField, type UserImageValue } from '../../users/userImageField/UserImageField';
+import { saveWithResolvedUserImage, UserImageField, type UserImageValue } from '../../users/userImageField/UserImageField';
 import '../../users/userForm/_userForm.scss';
 
 type Props = {
@@ -79,40 +78,48 @@ export const CoachForm = ({ coach, onClose }: Props) => {
         }
 
         startTransition(async () => {
-            const payload = {
-                name: form.name.trim() || null,
-                email: form.email,
-                password: form.password.trim() || null,
-                phone: form.phone.trim() || null,
-                status: form.status,
-                specialty: form.specialty.trim() || null,
-                instagram: form.instagram.trim().replace(/^@/, '') || null,
-                bio: form.bio.trim() || null,
-                isActive: form.isActive,
-                image,
-            };
+            try {
+                const { result, previousImageDeleteFailed } = await saveWithResolvedUserImage({
+                    image,
+                    previousImagePublicId: coach?.image?.publicId,
+                    save: (resolvedImage) => {
+                        const payload = {
+                            name: form.name.trim() || null,
+                            email: form.email,
+                            password: form.password.trim() || null,
+                            phone: form.phone.trim() || null,
+                            status: form.status,
+                            specialty: form.specialty.trim() || null,
+                            instagram: form.instagram.trim().replace(/^@/, '') || null,
+                            bio: form.bio.trim() || null,
+                            isActive: form.isActive,
+                            image: resolvedImage,
+                        };
 
-            const result = isEditing
-                ? await updateCoachUser(coach.id, payload)
-                : await createCoachUser(payload);
+                        return isEditing
+                            ? updateCoachUser(coach.id, payload)
+                            : createCoachUser(payload);
+                    },
+                });
 
-            if (result.ok) {
-                try {
-                    if (coach?.image?.publicId && (image === null || image?.publicId)) {
-                        await deleteImage(coach.image.publicId);
+                if (result.ok) {
+                    if (previousImageDeleteFailed) {
+                        toast.warning('Coach guardado, pero no se pudo borrar la imagen anterior de Cloudinary');
                     }
-                } catch {
-                    toast.warning('Coach guardado, pero no se pudo borrar la imagen anterior de Cloudinary');
+
+                    toast.success(isEditing ? 'Coach actualizado' : 'Coach creado');
+                    router.refresh();
+                    onClose();
+                    return;
                 }
 
-                toast.success(isEditing ? 'Coach actualizado' : 'Coach creado');
-                router.refresh();
-                onClose();
-                return;
+                setError(result.error);
+                toast.error(result.error);
+            } catch (error) {
+                const message = error instanceof Error ? error.message : 'No se pudo guardar el coach';
+                setError(message);
+                toast.error(message);
             }
-
-            setError(result.error);
-            toast.error(result.error);
         });
     };
 

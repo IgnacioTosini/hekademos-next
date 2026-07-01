@@ -6,8 +6,7 @@ import { FaPencilAlt } from "react-icons/fa";
 import { IoMdClose } from "react-icons/io";
 import { toast } from "react-toastify";
 import { updateStudentProfile } from "@/app/actions/profile.actions";
-import { UserImageField, type UserImageValue } from "@/components/admin/users/userImageField/UserImageField";
-import { deleteImage } from "@/lib/client-cloudinary";
+import { saveWithResolvedUserImage, UserImageField, type UserImageValue } from "@/components/admin/users/userImageField/UserImageField";
 import { isValidBirthDate, isValidOptionalPhone } from "@/lib/form-validation";
 import type { AdminStudentProfile } from "@/types/schema/users";
 import { toDateInputValue } from "@/utils/date";
@@ -80,34 +79,40 @@ export const StudentProfileEditor = ({ student }: Props) => {
         }
 
         startTransition(async () => {
-            const result = await updateStudentProfile({
-                email: form.email,
-                phone: form.phone || null,
-                firstName: form.firstName || null,
-                lastName: form.lastName || null,
-                birthDate: form.birthDate || null,
-                emergencyContactName: form.emergencyContactName || null,
-                emergencyContactPhone: form.emergencyContactPhone || null,
-                image,
-            });
+            try {
+                const { result, previousImageDeleteFailed } = await saveWithResolvedUserImage({
+                    image,
+                    previousImagePublicId: student.user.image?.publicId,
+                    save: (resolvedImage) => updateStudentProfile({
+                        email: form.email,
+                        phone: form.phone || null,
+                        firstName: form.firstName || null,
+                        lastName: form.lastName || null,
+                        birthDate: form.birthDate || null,
+                        emergencyContactName: form.emergencyContactName || null,
+                        emergencyContactPhone: form.emergencyContactPhone || null,
+                        image: resolvedImage,
+                    }),
+                });
 
-            if (result.ok) {
-                try {
-                    if (student.user.image?.publicId && (image === null || image?.publicId)) {
-                        await deleteImage(student.user.image.publicId);
+                if (result.ok) {
+                    if (previousImageDeleteFailed) {
+                        toast.warning("Perfil guardado, pero no se pudo borrar la imagen anterior de Cloudinary");
                     }
-                } catch {
-                    toast.warning("Perfil guardado, pero no se pudo borrar la imagen anterior de Cloudinary");
+
+                    toast.success("Perfil actualizado");
+                    router.refresh();
+                    setIsOpen(false);
+                    return;
                 }
 
-                toast.success("Perfil actualizado");
-                router.refresh();
-                setIsOpen(false);
-                return;
+                setError(result.error);
+                toast.error(result.error);
+            } catch (error) {
+                const message = error instanceof Error ? error.message : "No se pudo guardar el perfil";
+                setError(message);
+                toast.error(message);
             }
-
-            setError(result.error);
-            toast.error(result.error);
         });
     };
 

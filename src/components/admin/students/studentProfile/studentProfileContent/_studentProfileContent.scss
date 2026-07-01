@@ -449,11 +449,18 @@
     }
 
     .student-profile-empty,
+    .student-profile-membership-helper,
     .student-profile-notes {
         margin-top: 1rem;
         color: $color-text-secondary;
         font-size: $font-size-normal;
         line-height: 1.5;
+    }
+
+    .student-profile-membership-helper {
+        padding-top: .85rem;
+        border-top: 1px solid rgba($secondary-color, .14);
+        font-size: $font-size-small;
     }
 
     .student-profile-routine-link {

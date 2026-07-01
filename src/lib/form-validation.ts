@@ -31,6 +31,19 @@ export const isValidBirthDate = (value?: string | Date | null) => {
     return birthDate >= minDate && birthDate <= maxDate;
 };
 
+export const isValidOptionalUrl = (value?: string | null) => {
+    const normalizedValue = value?.trim();
+    if (!normalizedValue) return true;
+
+    try {
+        const url = new URL(normalizedValue);
+
+        return url.protocol === "http:" || url.protocol === "https:";
+    } catch {
+        return false;
+    }
+};
+
 export const isDeliverableEmail = (value?: string | null) => {
     const email = value?.trim().toLowerCase();
 
