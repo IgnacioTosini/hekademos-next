@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import type { CSSProperties } from "react";
 import { Providers } from "@/components/providers/Providers";
+import { Analytics } from "@vercel/analytics/next"
 import "./globals.css";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -88,6 +89,7 @@ export default function RootLayout({
         <Providers>
           {children}
         </Providers>
+        <Analytics />
       </body>
     </html>
   );
