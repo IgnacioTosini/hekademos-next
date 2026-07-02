@@ -1,43 +1,22 @@
 import Link from "next/link";
 import { FaArrowRight } from "react-icons/fa";
-import type { PaymentOverviewRow } from "@/types/schema/payments";
+import type { DashboardPendingPaymentsSummary } from "@/app/actions/payment.actions";
 import { formatCurrency } from "@/utils/format";
-import { getStudentName } from "@/utils/student";
 import "./_dashboardPendingPayments.scss";
 
 type Props = {
-    rows: PaymentOverviewRow[];
+    summary: DashboardPendingPaymentsSummary;
 };
 
-const maxVisibleRows = 5;
-
-const getPlanLabel = (row: PaymentOverviewRow) => {
-    if (!row.activeMembership) return "Sin membresia";
-
-    return row.activeMembership.plan.name;
-};
-
-export const DashboardPendingPayments = ({ rows }: Props) => {
-    const pendingRows = rows
-        .filter((row) => row.status === "PENDING" || row.status === "NO_MEMBERSHIP")
-        .sort((a, b) => {
-            if (a.status === "PENDING" && b.status !== "PENDING") return -1;
-            if (a.status !== "PENDING" && b.status === "PENDING") return 1;
-            if (a.isLate && !b.isLate) return -1;
-            if (!a.isLate && b.isLate) return 1;
-
-            return getStudentName(a.student).localeCompare(getStudentName(b.student));
-        });
-
-    const visibleRows = pendingRows.slice(0, maxVisibleRows);
-    const hiddenRowsCount = pendingRows.length - visibleRows.length;
+export const DashboardPendingPayments = ({ summary }: Props) => {
+    const hiddenRowsCount = summary.totalCount - summary.rows.length;
 
     return (
         <section className="dashboard-pending-payments">
             <div className="dashboard-pending-payments-header">
                 <div>
                     <h2>Pendientes de pago</h2>
-                    <p>Mes actual · {pendingRows.length} alumnos</p>
+                    <p>Mes actual · {summary.totalCount} alumnos</p>
                 </div>
 
                 <Link href="/admin/pagos" aria-label="Ver pagos">
@@ -45,13 +24,13 @@ export const DashboardPendingPayments = ({ rows }: Props) => {
                 </Link>
             </div>
 
-            {visibleRows.length > 0 ? (
+            {summary.rows.length > 0 ? (
                 <div className="dashboard-pending-payments-list">
-                    {visibleRows.map((row) => (
-                        <article className="dashboard-pending-payment" key={row.student.id}>
+                    {summary.rows.map((row) => (
+                        <article className="dashboard-pending-payment" key={row.studentId}>
                             <div className="dashboard-pending-payment-info">
-                                <strong>{getStudentName(row.student)}</strong>
-                                <span>{row.student.coach?.user?.name || "Sin coach"} · {getPlanLabel(row)}</span>
+                                <strong>{row.studentName}</strong>
+                                <span>{row.coachName} · {row.planName}</span>
                             </div>
 
                             <div className="dashboard-pending-payment-amount">

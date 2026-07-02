@@ -77,7 +77,6 @@ export const useScrollAnimations = () => {
             cancelAnimationFrame(refreshFrame)
             window.removeEventListener('load', refreshScrollTriggers)
             ctx.revert()
-            ScrollTrigger.getAll().forEach(trigger => trigger.kill())
         }
     }, [])
 

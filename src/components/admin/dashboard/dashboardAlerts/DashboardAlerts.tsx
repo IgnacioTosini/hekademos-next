@@ -93,6 +93,11 @@ export const DashboardAlerts = ({ alerts }: Props) => {
                         )}
 
                         <div className="dashboard-alert-modal-footer">
+                            {selectedAlert.count > selectedAlert.items.length && (
+                                <span>
+                                    Mostrando {selectedAlert.items.length} de {selectedAlert.count}
+                                </span>
+                            )}
                             <Link href={selectedAlert.href}>
                                 Ir a la seccion
                                 <FaExternalLinkAlt />

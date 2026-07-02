@@ -7,13 +7,14 @@ import { FaCheck, FaDownload, FaEnvelope, FaHistory, FaRegEdit, FaUndo } from 'r
 import { IoMdClose } from 'react-icons/io';
 import { toast } from 'react-toastify';
 import {
+    getStudentPaymentHistory,
     markCurrentMonthPaymentPaid,
     markCurrentMonthPaymentPending,
     savePaymentDetails,
     sendPaymentReminderEmails,
 } from '@/app/actions/payment.actions';
 import { EmptyState } from '@/components/ui/emptyState/EmptyState';
-import type { PaymentOverviewRow, PaymentOverviewStatus } from '@/types/schema/payments';
+import type { Payment, PaymentOverviewRow, PaymentOverviewStatus } from '@/types/schema/payments';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { getInitials } from '@/utils/strings';
 import { getStudentName } from '@/utils/student';
@@ -161,11 +162,14 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
     const [selectedCoachId, setSelectedCoachId] = useState('all');
     const [pendingStudentId, setPendingStudentId] = useState<string | null>(null);
     const [historyRow, setHistoryRow] = useState<PaymentOverviewRow | null>(null);
+    const [paymentHistory, setPaymentHistory] = useState<Payment[]>([]);
+    const [historyError, setHistoryError] = useState('');
     const [detailsRow, setDetailsRow] = useState<PaymentOverviewRow | null>(null);
     const [reference, setReference] = useState('');
     const [notes, setNotes] = useState('');
     const [detailsError, setDetailsError] = useState('');
     const [isPending, startTransition] = useTransition();
+    const [isLoadingHistory, startHistoryTransition] = useTransition();
     const [isSendingReminders, startReminderTransition] = useTransition();
 
     const paidCount = rows.filter((row) => row.status === 'PAID').length;
@@ -335,6 +339,30 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
         setReference(row.currentMonthPayment?.reference ?? '');
         setNotes(row.currentMonthPayment?.notes ?? '');
         setDetailsError('');
+    };
+
+    const openHistoryModal = (row: PaymentOverviewRow) => {
+        setHistoryRow(row);
+        setPaymentHistory([]);
+        setHistoryError('');
+
+        startHistoryTransition(async () => {
+            const result = await getStudentPaymentHistory(row.student.id);
+
+            if (result.ok) {
+                setPaymentHistory(result.data);
+                return;
+            }
+
+            setHistoryError(result.error);
+            toast.error(result.error);
+        });
+    };
+
+    const closeHistoryModal = () => {
+        setHistoryRow(null);
+        setPaymentHistory([]);
+        setHistoryError('');
     };
 
     const closeDetailsModal = () => {
@@ -559,7 +587,7 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
                                                         <button
                                                             className="payment-icon-button"
                                                             type="button"
-                                                            onClick={() => setHistoryRow(row)}
+                                                            onClick={() => openHistoryModal(row)}
                                                             aria-label={`Ver historial de ${studentName}`}
                                                         >
                                                             <FaHistory />
@@ -599,15 +627,27 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
                                 <Link href={`/admin/alumnos/${historyRow.student.id}`}>
                                     Ver perfil
                                 </Link>
-                                <button type="button" onClick={() => setHistoryRow(null)} aria-label="Cerrar historial">
+                                <button type="button" onClick={closeHistoryModal} aria-label="Cerrar historial">
                                     <IoMdClose />
                                 </button>
                             </div>
                         </div>
 
                         <div className="payment-history-list">
-                            {historyRow.paymentHistory.length > 0 ? (
-                                historyRow.paymentHistory.map((payment) => (
+                            {isLoadingHistory ? (
+                                <EmptyState
+                                    compact
+                                    title="Cargando historial"
+                                    description="Estamos buscando los pagos registrados de este alumno."
+                                />
+                            ) : historyError ? (
+                                <EmptyState
+                                    compact
+                                    title="No se pudo cargar"
+                                    description={historyError}
+                                />
+                            ) : paymentHistory.length > 0 ? (
+                                paymentHistory.map((payment) => (
                                     <div className="payment-history-item" key={payment.id}>
                                         <div className="payment-history-item-main">
                                             <div>

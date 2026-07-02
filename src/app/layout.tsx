@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { CSSProperties } from "react";
-import { Providers } from "@/components/providers/Providers";
+import { ToastProvider } from "@/components/providers/ToastProvider";
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css";
 import "react-toastify/dist/ReactToastify.css";
@@ -86,9 +86,8 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body style={fontVariables} suppressHydrationWarning>
-        <Providers>
-          {children}
-        </Providers>
+        {children}
+        <ToastProvider />
         <Analytics />
       </body>
     </html>

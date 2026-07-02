@@ -27,6 +27,8 @@ export type AdminAlert = {
     items: AdminAlertItem[];
 };
 
+const maxAlertItems = 8;
+
 const dateDayToDayOfWeek: Record<number, DayOfWeek> = {
     0: "SUNDAY",
     1: "MONDAY",
@@ -56,6 +58,34 @@ const toStudentAlertItem = (
     href: `/admin/alumnos/${student.id}`,
 });
 
+const studentAlertSelect = {
+    id: true,
+    firstName: true,
+    lastName: true,
+    routineExcelUrl: true,
+    coachId: true,
+    user: {
+        select: {
+            name: true,
+            email: true,
+        },
+    },
+    coach: {
+        select: {
+            user: {
+                select: {
+                    name: true,
+                    email: true,
+                },
+            },
+        },
+    },
+} as const;
+
+const sampleStudentName = (students: Array<StudentNameSource>) => (
+    students[0] ? getStudentName(students[0]) : null
+);
+
 export const getAdminAlerts = async (): Promise<ActionResponse<AdminAlert[]>> => {
     try {
         await requireAdminSession();
@@ -65,174 +95,238 @@ export const getAdminAlerts = async (): Promise<ActionResponse<AdminAlert[]>> =>
         const { start: todayStart, end: todayEnd } = getTodayRange(today);
         const dayOfWeek = dateDayToDayOfWeek[today.getDay()];
         const dueDate = getPaymentDueDate(today);
-        const activeStudents = await prisma.student.findMany({
-            where: {
-                user: {
-                    status: "ACTIVE",
-                },
+        const activeStudentWhere = {
+            user: {
+                status: "ACTIVE" as const,
             },
-            include: {
-                user: true,
-                coach: {
-                    include: {
-                        user: true,
+        };
+        const activeMembershipWhere = {
+            status: "ACTIVE" as const,
+            OR: [
+                {
+                    endDate: null,
+                },
+                {
+                    endDate: {
+                        gte: today,
                     },
                 },
-                memberships: {
-                    where: {
-                        status: "ACTIVE",
-                        OR: [
-                            {
-                                endDate: null,
-                            },
-                            {
-                                endDate: {
-                                    gte: today,
-                                },
-                            },
-                        ],
-                    },
-                    select: {
-                        id: true,
-                    },
-                },
-                schedules: {
-                    where: {
-                        isActive: true,
-                    },
-                    select: {
-                        id: true,
-                    },
-                },
-            },
-        });
-        const activeMemberships = await prisma.studentMembership.findMany({
-            where: {
-                status: "ACTIVE",
-                OR: [
-                    {
-                        endDate: null,
-                    },
-                    {
-                        endDate: {
-                            gte: today,
-                        },
-                    },
-                ],
-            },
-            include: {
-                student: {
-                    include: {
-                        user: true,
-                        coach: {
-                            include: {
-                                user: true,
-                            },
-                        },
-                        schedules: {
-                            where: {
-                                isActive: true,
-                            },
-                            select: {
-                                id: true,
-                            },
-                        },
-                    },
-                },
-                payments: {
-                    where: {
-                        OR: [
-                            {
-                                dueDate: {
-                                    gte: monthStart,
-                                    lt: monthEnd,
-                                },
-                            },
-                            {
-                                paidAt: {
-                                    gte: monthStart,
-                                    lt: monthEnd,
-                                },
-                            },
-                        ],
-                    },
-                },
-            },
-        });
-        const latePaymentMemberships = today > dueDate
-            ? activeMemberships.filter((membership) => !membership.payments.some((payment) => payment.status === "PAID"))
-            : [];
-        const activeStudentsWithoutPlan = activeStudents.filter((student) => (
-            student.memberships.length === 0
-        ));
-        const activeStudentsWithoutSchedules = activeStudents.filter((student) => (
-            student.schedules.length === 0
-        ));
-        const activeStudentsWithoutCoach = activeStudents.filter((student) => (
-            !student.coachId
-        ));
-        const activeStudentsWithoutRoutine = activeStudents.filter((student) => (
-            !student.routineExcelUrl
-        ));
-        const todaySchedules = await prisma.weeklyClassSchedule.findMany({
-            where: {
-                dayOfWeek,
-                isActive: true,
-            },
-            include: {
-                coach: {
-                    include: {
-                        user: true,
-                    },
-                },
-                studentAssignments: {
-                    where: {
-                        isActive: true,
-                    },
-                    select: {
-                        id: true,
-                    },
-                },
-                sessions: {
-                    where: {
-                        startsAt: {
-                            gte: todayStart,
-                            lt: todayEnd,
-                        },
-                    },
-                    include: {
-                        attendance: true,
-                    },
-                },
-            },
-        });
-        const schedulesWithoutAttendance = todaySchedules.filter((schedule) => (
-            schedule.studentAssignments.length > 0
-            && schedule.sessions.every((session) => session.attendance.length === 0)
-        ));
-        const monthlyAbsences = await prisma.attendance.groupBy({
-            by: ["studentId"],
-            where: {
-                status: "ABSENT",
-                session: {
-                    startsAt: {
+            ],
+        };
+        const currentMonthPaymentWhere = {
+            OR: [
+                {
+                    dueDate: {
                         gte: monthStart,
                         lt: monthEnd,
                     },
                 },
+                {
+                    paidAt: {
+                        gte: monthStart,
+                        lt: monthEnd,
+                    },
+                },
+            ],
+        };
+        const paidCurrentMonthPaymentWhere = {
+            status: "PAID" as const,
+            ...currentMonthPaymentWhere,
+        };
+        const latePaymentWhere = {
+            ...activeMembershipWhere,
+            payments: {
+                none: paidCurrentMonthPaymentWhere,
             },
-            _count: {
-                studentId: true,
+        };
+        const missingPlanWhere = {
+            ...activeStudentWhere,
+            memberships: {
+                none: activeMembershipWhere,
             },
-            having: {
-                studentId: {
-                    _count: {
-                        gte: 2,
+        };
+        const missingSchedulesWhere = {
+            ...activeStudentWhere,
+            schedules: {
+                none: {
+                    isActive: true,
+                },
+            },
+        };
+        const missingCoachWhere = {
+            ...activeStudentWhere,
+            coachId: null,
+        };
+        const missingRoutineWhere = {
+            ...activeStudentWhere,
+            OR: [
+                {
+                    routineExcelUrl: null,
+                },
+                {
+                    routineExcelUrl: "",
+                },
+            ],
+        };
+        const schedulesWithoutAttendanceWhere = {
+            dayOfWeek,
+            isActive: true,
+            studentAssignments: {
+                some: {
+                    isActive: true,
+                },
+            },
+            sessions: {
+                none: {
+                    startsAt: {
+                        gte: todayStart,
+                        lt: todayEnd,
+                    },
+                    attendance: {
+                        some: {},
                     },
                 },
             },
-        });
-        const absentStudentIds = monthlyAbsences.map((absence) => absence.studentId);
+        };
+        const [
+            latePaymentCount,
+            latePaymentItems,
+            missingPlanCount,
+            missingPlanItems,
+            missingSchedulesCount,
+            missingSchedulesItems,
+            missingCoachCount,
+            missingCoachItems,
+            missingRoutineCount,
+            missingRoutineItems,
+            schedulesWithoutAttendanceCount,
+            schedulesWithoutAttendanceItems,
+            monthlyAbsences,
+        ] = await Promise.all([
+            today > dueDate
+                ? prisma.studentMembership.count({
+                    where: latePaymentWhere,
+                })
+                : 0,
+            today > dueDate
+                ? prisma.studentMembership.findMany({
+                    where: latePaymentWhere,
+                    take: maxAlertItems,
+                    orderBy: {
+                        createdAt: "desc",
+                    },
+                    select: {
+                        student: {
+                            select: studentAlertSelect,
+                        },
+                    },
+                })
+                : [],
+            prisma.student.count({
+                where: missingPlanWhere,
+            }),
+            prisma.student.findMany({
+                where: missingPlanWhere,
+                take: maxAlertItems,
+                orderBy: {
+                    createdAt: "desc",
+                },
+                select: studentAlertSelect,
+            }),
+            prisma.student.count({
+                where: missingSchedulesWhere,
+            }),
+            prisma.student.findMany({
+                where: missingSchedulesWhere,
+                take: maxAlertItems,
+                orderBy: {
+                    createdAt: "desc",
+                },
+                select: studentAlertSelect,
+            }),
+            prisma.student.count({
+                where: missingCoachWhere,
+            }),
+            prisma.student.findMany({
+                where: missingCoachWhere,
+                take: maxAlertItems,
+                orderBy: {
+                    createdAt: "desc",
+                },
+                select: studentAlertSelect,
+            }),
+            prisma.student.count({
+                where: missingRoutineWhere,
+            }),
+            prisma.student.findMany({
+                where: missingRoutineWhere,
+                take: maxAlertItems,
+                orderBy: {
+                    createdAt: "desc",
+                },
+                select: studentAlertSelect,
+            }),
+            prisma.weeklyClassSchedule.count({
+                where: schedulesWithoutAttendanceWhere,
+            }),
+            prisma.weeklyClassSchedule.findMany({
+                where: schedulesWithoutAttendanceWhere,
+                take: maxAlertItems,
+                orderBy: {
+                    startTime: "asc",
+                },
+                select: {
+                    id: true,
+                    startTime: true,
+                    coach: {
+                        select: {
+                            user: {
+                                select: {
+                                    name: true,
+                                    email: true,
+                                },
+                            },
+                        },
+                    },
+                    studentAssignments: {
+                        where: {
+                            isActive: true,
+                        },
+                        select: {
+                            id: true,
+                        },
+                    },
+                },
+            }),
+            prisma.attendance.groupBy({
+                by: ["studentId"],
+                where: {
+                    status: "ABSENT",
+                    session: {
+                        startsAt: {
+                            gte: monthStart,
+                            lt: monthEnd,
+                        },
+                    },
+                },
+                _count: {
+                    studentId: true,
+                },
+                having: {
+                    studentId: {
+                        _count: {
+                            gte: 2,
+                        },
+                    },
+                },
+                orderBy: {
+                    _count: {
+                        studentId: "desc",
+                    },
+                },
+            }),
+        ]);
+        const absentStudentIds = monthlyAbsences.slice(0, maxAlertItems).map((absence) => absence.studentId);
         const absentStudents = absentStudentIds.length > 0
             ? await prisma.student.findMany({
                 where: {
@@ -240,42 +334,41 @@ export const getAdminAlerts = async (): Promise<ActionResponse<AdminAlert[]>> =>
                         in: absentStudentIds,
                     },
                 },
-                include: {
-                    user: true,
-                },
+                select: studentAlertSelect,
             })
             : [];
-        const sampleName = (memberships: typeof activeMemberships) => (
-            memberships[0] ? getStudentName(memberships[0].student) : null
+        const absenceCountByStudentId = new Map(
+            monthlyAbsences.map((absence) => [absence.studentId, absence._count.studentId])
         );
-        const sampleStudentName = (students: typeof activeStudents) => (
-            students[0] ? getStudentName(students[0]) : null
-        );
+        const orderedAbsentStudents = absentStudentIds
+            .map((id) => absentStudents.find((student) => student.id === id))
+            .filter((student): student is NonNullable<typeof student> => !!student);
+        const latePaymentStudents = latePaymentItems.map((membership) => membership.student);
         const alerts: AdminAlert[] = [
             {
                 id: "late-payments",
                 title: "Pagos atrasados",
-                description: latePaymentMemberships.length > 0
-                    ? `${latePaymentMemberships.length} alumnos no pagaron despues del dia ${PAYMENT_DUE_DAY}. ${sampleName(latePaymentMemberships) ? `Ej: ${sampleName(latePaymentMemberships)}.` : ""}`
+                description: latePaymentCount > 0
+                    ? `${latePaymentCount} alumnos no pagaron despues del dia ${PAYMENT_DUE_DAY}. ${sampleStudentName(latePaymentStudents) ? `Ej: ${sampleStudentName(latePaymentStudents)}.` : ""}`
                     : "No hay pagos atrasados para el mes actual.",
                 href: "/admin/pagos",
-                severity: latePaymentMemberships.length > 0 ? "HIGH" : "LOW",
-                count: latePaymentMemberships.length,
-                items: latePaymentMemberships.map((membership) => toStudentAlertItem(
-                    membership.student,
-                    `${membership.student.coach?.user?.name || "Sin coach"} · Pago pendiente del mes actual`
+                severity: latePaymentCount > 0 ? "HIGH" : "LOW",
+                count: latePaymentCount,
+                items: latePaymentStudents.map((student) => toStudentAlertItem(
+                    student,
+                    `${student.coach?.user?.name || "Sin coach"} · Pago pendiente del mes actual`
                 )),
             },
             {
                 id: "missing-plan",
                 title: "Sin plan",
-                description: activeStudentsWithoutPlan.length > 0
-                    ? `${activeStudentsWithoutPlan.length} alumnos activos no tienen plan asignado. ${sampleStudentName(activeStudentsWithoutPlan) ? `Ej: ${sampleStudentName(activeStudentsWithoutPlan)}.` : ""}`
+                description: missingPlanCount > 0
+                    ? `${missingPlanCount} alumnos activos no tienen plan asignado. ${sampleStudentName(missingPlanItems) ? `Ej: ${sampleStudentName(missingPlanItems)}.` : ""}`
                     : "Todos los alumnos activos tienen plan asignado.",
                 href: "/admin/alumnos",
-                severity: activeStudentsWithoutPlan.length > 0 ? "HIGH" : "LOW",
-                count: activeStudentsWithoutPlan.length,
-                items: activeStudentsWithoutPlan.map((student) => toStudentAlertItem(
+                severity: missingPlanCount > 0 ? "HIGH" : "LOW",
+                count: missingPlanCount,
+                items: missingPlanItems.map((student) => toStudentAlertItem(
                     student,
                     `${student.coach?.user?.name || "Sin coach"} · Asignar plan`
                 )),
@@ -283,13 +376,13 @@ export const getAdminAlerts = async (): Promise<ActionResponse<AdminAlert[]>> =>
             {
                 id: "missing-schedules",
                 title: "Sin turnos elegidos",
-                description: activeStudentsWithoutSchedules.length > 0
-                    ? `${activeStudentsWithoutSchedules.length} alumnos activos no tienen horarios. ${sampleStudentName(activeStudentsWithoutSchedules) ? `Ej: ${sampleStudentName(activeStudentsWithoutSchedules)}.` : ""}`
+                description: missingSchedulesCount > 0
+                    ? `${missingSchedulesCount} alumnos activos no tienen horarios. ${sampleStudentName(missingSchedulesItems) ? `Ej: ${sampleStudentName(missingSchedulesItems)}.` : ""}`
                     : "Todos los alumnos activos tienen turnos asignados.",
                 href: "/admin/alumnos",
-                severity: activeStudentsWithoutSchedules.length > 0 ? "MEDIUM" : "LOW",
-                count: activeStudentsWithoutSchedules.length,
-                items: activeStudentsWithoutSchedules.map((student) => toStudentAlertItem(
+                severity: missingSchedulesCount > 0 ? "MEDIUM" : "LOW",
+                count: missingSchedulesCount,
+                items: missingSchedulesItems.map((student) => toStudentAlertItem(
                     student,
                     `${student.coach?.user?.name || "Sin coach"} · ${student.user.email}`
                 )),
@@ -297,13 +390,13 @@ export const getAdminAlerts = async (): Promise<ActionResponse<AdminAlert[]>> =>
             {
                 id: "attendance-pending",
                 title: "Turnos sin asistencia",
-                description: schedulesWithoutAttendance.length > 0
-                    ? `${schedulesWithoutAttendance.length} turnos de hoy tienen alumnos pero no tienen asistencia marcada.`
+                description: schedulesWithoutAttendanceCount > 0
+                    ? `${schedulesWithoutAttendanceCount} turnos de hoy tienen alumnos pero no tienen asistencia marcada.`
                     : "La asistencia de hoy esta al dia.",
                 href: "/admin/asistencia",
-                severity: schedulesWithoutAttendance.length > 0 ? "HIGH" : "LOW",
-                count: schedulesWithoutAttendance.length,
-                items: schedulesWithoutAttendance.map((schedule) => ({
+                severity: schedulesWithoutAttendanceCount > 0 ? "HIGH" : "LOW",
+                count: schedulesWithoutAttendanceCount,
+                items: schedulesWithoutAttendanceItems.map((schedule) => ({
                     id: schedule.id,
                     title: `${schedule.startTime} · ${schedule.coach?.user?.name || schedule.coach?.user?.email || "Sin coach asignado"}`,
                     description: `${schedule.studentAssignments.length} alumnos sin asistencia marcada`,
@@ -313,31 +406,27 @@ export const getAdminAlerts = async (): Promise<ActionResponse<AdminAlert[]>> =>
             {
                 id: "high-absences",
                 title: "Ausencias altas",
-                description: absentStudents.length > 0
-                    ? `${absentStudents.length} alumnos tienen 2 o mas ausencias este mes. ${absentStudents[0] ? `Ej: ${getStudentName(absentStudents[0])}.` : ""}`
+                description: monthlyAbsences.length > 0
+                    ? `${monthlyAbsences.length} alumnos tienen 2 o mas ausencias este mes. ${orderedAbsentStudents[0] ? `Ej: ${getStudentName(orderedAbsentStudents[0])}.` : ""}`
                     : "No hay alumnos con ausencias altas este mes.",
                 href: "/admin/asistencia",
-                severity: absentStudents.length > 0 ? "MEDIUM" : "LOW",
-                count: absentStudents.length,
-                items: absentStudents.map((student) => {
-                    const absenceCount = monthlyAbsences.find((absence) => absence.studentId === student.id)?._count.studentId ?? 0;
-
-                    return toStudentAlertItem(
-                        student,
-                        `${absenceCount} ausencias registradas este mes`
-                    );
-                }),
+                severity: monthlyAbsences.length > 0 ? "MEDIUM" : "LOW",
+                count: monthlyAbsences.length,
+                items: orderedAbsentStudents.map((student) => toStudentAlertItem(
+                    student,
+                    `${absenceCountByStudentId.get(student.id) ?? 0} ausencias registradas este mes`
+                )),
             },
             {
                 id: "missing-routines",
                 title: "Sin rutina",
-                description: activeStudentsWithoutRoutine.length > 0
-                    ? `${activeStudentsWithoutRoutine.length} alumnos activos todavia no tienen rutina cargada. ${sampleStudentName(activeStudentsWithoutRoutine) ? `Ej: ${sampleStudentName(activeStudentsWithoutRoutine)}.` : ""}`
+                description: missingRoutineCount > 0
+                    ? `${missingRoutineCount} alumnos activos todavia no tienen rutina cargada. ${sampleStudentName(missingRoutineItems) ? `Ej: ${sampleStudentName(missingRoutineItems)}.` : ""}`
                     : "Todos los alumnos activos tienen rutina cargada.",
                 href: "/admin/alumnos",
-                severity: activeStudentsWithoutRoutine.length > 0 ? "MEDIUM" : "LOW",
-                count: activeStudentsWithoutRoutine.length,
-                items: activeStudentsWithoutRoutine.map((student) => toStudentAlertItem(
+                severity: missingRoutineCount > 0 ? "MEDIUM" : "LOW",
+                count: missingRoutineCount,
+                items: missingRoutineItems.map((student) => toStudentAlertItem(
                     student,
                     `${student.coach?.user?.name || "Sin coach"} · Rutina pendiente`
                 )),
@@ -345,13 +434,13 @@ export const getAdminAlerts = async (): Promise<ActionResponse<AdminAlert[]>> =>
             {
                 id: "missing-coach",
                 title: "Sin coach asignado",
-                description: activeStudentsWithoutCoach.length > 0
-                    ? `${activeStudentsWithoutCoach.length} alumnos activos no tienen coach asignado. ${sampleStudentName(activeStudentsWithoutCoach) ? `Ej: ${sampleStudentName(activeStudentsWithoutCoach)}.` : ""}`
+                description: missingCoachCount > 0
+                    ? `${missingCoachCount} alumnos activos no tienen coach asignado. ${sampleStudentName(missingCoachItems) ? `Ej: ${sampleStudentName(missingCoachItems)}.` : ""}`
                     : "Todos los alumnos activos tienen coach asignado.",
                 href: "/admin/alumnos",
-                severity: activeStudentsWithoutCoach.length > 0 ? "HIGH" : "LOW",
-                count: activeStudentsWithoutCoach.length,
-                items: activeStudentsWithoutCoach.map((student) => toStudentAlertItem(
+                severity: missingCoachCount > 0 ? "HIGH" : "LOW",
+                count: missingCoachCount,
+                items: missingCoachItems.map((student) => toStudentAlertItem(
                     student,
                     `${student.user.email} · Asignar coach`
                 )),

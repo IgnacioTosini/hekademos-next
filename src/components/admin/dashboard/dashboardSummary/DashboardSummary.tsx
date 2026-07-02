@@ -1,32 +1,27 @@
-import type { UserWithRelations } from "@/types/schema/users";
+import type { DashboardUserSummary as DashboardUserSummaryData } from "@/app/actions/user.actions";
 import "./_dashboardSummary.scss";
 
 type Props = {
-    users: UserWithRelations[];
+    summary: DashboardUserSummaryData;
 };
 
-export const DashboardSummary = ({ users }: Props) => {
-    const activeUsers = users.filter((user) => user.status === "ACTIVE").length;
-    const inactiveUsers = users.filter((user) => user.status === "INACTIVE").length;
-    const suspendedUsers = users.filter((user) => user.status === "SUSPENDED").length;
-    const adminUsers = users.filter((user) => user.role === "ADMIN").length;
-
+export const DashboardSummary = ({ summary }: Props) => {
     const items = [
         {
             label: "Usuarios activos",
-            value: activeUsers,
+            value: summary.activeUsersCount,
         },
         {
             label: "Administradores",
-            value: adminUsers,
+            value: summary.adminUsersCount,
         },
         {
             label: "Inactivos",
-            value: inactiveUsers,
+            value: summary.inactiveUsersCount,
         },
         {
             label: "Suspendidos",
-            value: suspendedUsers,
+            value: summary.suspendedUsersCount,
         },
     ];
 

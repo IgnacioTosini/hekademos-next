@@ -26,6 +26,16 @@ import {
     type ActionResponse,
 } from "./_shared";
 
+export type DashboardUserSummary = {
+    usersCount: number;
+    studentsCount: number;
+    coachesCount: number;
+    activeUsersCount: number;
+    inactiveUsersCount: number;
+    suspendedUsersCount: number;
+    adminUsersCount: number;
+};
+
 const getUserActionErrorMessage = (error: unknown, fallback: string) => {
     if (error instanceof Error && error.message === "INVALID_PHONE") {
         return "Revisa el telefono ingresado";
@@ -37,6 +47,57 @@ const getUserActionErrorMessage = (error: unknown, fallback: string) => {
 const validateUserInput = (input: CreateUserInput | UpdateUserInput) => {
     if (!isValidOptionalPhone(input.phone)) {
         throw new Error("INVALID_PHONE");
+    }
+};
+
+export const getDashboardUserSummary = async (): Promise<ActionResponse<DashboardUserSummary>> => {
+    try {
+        await requireAdminSession();
+
+        const [roleCounts, statusCounts] = await Promise.all([
+            prisma.user.groupBy({
+                by: ["role"],
+                _count: {
+                    _all: true,
+                },
+            }),
+            prisma.user.groupBy({
+                by: ["status"],
+                _count: {
+                    _all: true,
+                },
+            }),
+        ]);
+        const getRoleCount = (role: Role) => (
+            roleCounts.find((item) => item.role === role)?._count._all ?? 0
+        );
+        const getStatusCount = (status: UserStatus) => (
+            statusCounts.find((item) => item.status === status)?._count._all ?? 0
+        );
+        const adminUsersCount = getRoleCount("ADMIN");
+        const coachesCount = getRoleCount("COACH");
+        const studentsCount = getRoleCount("STUDENT");
+
+        return {
+            ok: true,
+            data: {
+                usersCount: adminUsersCount + coachesCount + studentsCount,
+                studentsCount,
+                coachesCount,
+                activeUsersCount: getStatusCount("ACTIVE"),
+                inactiveUsersCount: getStatusCount("INACTIVE"),
+                suspendedUsersCount: getStatusCount("SUSPENDED"),
+                adminUsersCount,
+            },
+        };
+    } catch (error) {
+        logAdminActionError("Error getting dashboard user summary:", error);
+
+        return {
+            ok: false,
+            data: null,
+            error: getAdminActionErrorMessage(error, "No se pudo obtener el resumen de usuarios"),
+        };
     }
 };
 

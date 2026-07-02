@@ -6,7 +6,13 @@ import { writeAuditLog } from "@/lib/audit-log";
 import { buildEmailMessage, sendEmail } from "@/lib/email";
 import { isDeliverableEmail } from "@/lib/form-validation";
 import { prisma } from "@/lib/prisma";
-import type { PaymentOverviewPeriodInput, PaymentOverviewRow, SavePaymentDetailsInput } from "@/types/schema/payments";
+import type {
+    Payment,
+    PaymentOverviewPeriodInput,
+    PaymentOverviewRow,
+    PaymentOverviewStatus,
+    SavePaymentDetailsInput,
+} from "@/types/schema/payments";
 import { formatCurrency, formatDate } from "@/utils/format";
 import { getActiveMembership, getMembershipAmountCents } from "@/utils/membership";
 import {
@@ -52,6 +58,25 @@ export type SendPaymentReminderEmailsResult = {
     skippedCount: number;
 };
 
+export type DashboardPendingPaymentStatus = Extract<PaymentOverviewStatus, "PENDING" | "NO_MEMBERSHIP">;
+
+export type DashboardPendingPaymentRow = {
+    studentId: string;
+    studentName: string;
+    coachName: string;
+    planName: string;
+    status: DashboardPendingPaymentStatus;
+    amountCents: number | null;
+    currency: string;
+    isLate: boolean;
+    lateSurchargePercent: number;
+};
+
+export type DashboardPendingPaymentsSummary = {
+    totalCount: number;
+    rows: DashboardPendingPaymentRow[];
+};
+
 export const getPaymentOverview = async (
     input?: PaymentOverviewPeriodInput
 ): Promise<ActionResponse<PaymentOverviewRow[]>> => {
@@ -74,35 +99,78 @@ export const getPaymentOverview = async (
                     },
                 },
                 memberships: {
+                    where: {
+                        status: "ACTIVE",
+                        OR: [
+                            {
+                                endDate: null,
+                            },
+                            {
+                                endDate: {
+                                    gte: dueDate,
+                                },
+                            },
+                        ],
+                    },
                     orderBy: {
                         createdAt: "desc",
                     },
+                    take: 1,
                     include: {
                         plan: true,
                         payments: {
+                            where: {
+                                OR: [
+                                    {
+                                        dueDate: {
+                                            gte: start,
+                                            lt: end,
+                                        },
+                                    },
+                                    {
+                                        paidAt: {
+                                            gte: start,
+                                            lt: end,
+                                        },
+                                    },
+                                ],
+                            },
                             orderBy: {
                                 createdAt: "desc",
                             },
+                            take: 1,
                         },
                     },
                 },
                 payments: {
+                    where: {
+                        OR: [
+                            {
+                                dueDate: {
+                                    gte: start,
+                                    lt: end,
+                                },
+                            },
+                            {
+                                paidAt: {
+                                    gte: start,
+                                    lt: end,
+                                },
+                            },
+                        ],
+                    },
                     orderBy: {
                         createdAt: "desc",
                     },
+                    take: 1,
                 },
             },
         });
 
         const rows = students.map((student): PaymentOverviewRow => {
             const activeMembership = getActiveMembership(student.memberships, dueDate);
-            const membershipPayments = activeMembership?.payments ?? [];
-            const currentMonthPayment = getPaymentForPeriod(
-                [...membershipPayments, ...student.payments],
-                start,
-                end
-            );
-            const latestPayment = currentMonthPayment ?? student.payments[0] ?? membershipPayments[0] ?? null;
+            const currentMonthPayment = activeMembership?.payments[0] ?? student.payments[0] ?? null;
+            const latestPayment = currentMonthPayment;
             const status = activeMembership ? (currentMonthPayment?.status ?? "PENDING") : "NO_MEMBERSHIP";
             const baseAmountCents = activeMembership ? getMembershipAmountCents(activeMembership) : latestPayment?.amountCents ?? null;
             const isLate = activeMembership ? shouldApplyLateSurcharge(today, dueDate, currentMonthPayment?.status) : false;
@@ -115,7 +183,6 @@ export const getPaymentOverview = async (
                 activeMembership,
                 currentMonthPayment,
                 latestPayment,
-                paymentHistory: student.payments,
                 status,
                 amountCents,
                 baseAmountCents,
@@ -138,6 +205,203 @@ export const getPaymentOverview = async (
             ok: false,
             data: null,
             error: getAdminActionErrorMessage(error, "No se pudo obtener el resumen de pagos"),
+        };
+    }
+};
+
+export const getStudentPaymentHistory = async (studentId: string): Promise<ActionResponse<Payment[]>> => {
+    try {
+        await requireAdminSession();
+
+        const payments = await prisma.payment.findMany({
+            where: {
+                studentId,
+            },
+            orderBy: {
+                createdAt: "desc",
+            },
+        });
+
+        return {
+            ok: true,
+            data: payments,
+        };
+    } catch (error) {
+        logAdminActionError("Error getting student payment history:", error);
+
+        return {
+            ok: false,
+            data: null,
+            error: getAdminActionErrorMessage(error, "No se pudo obtener el historial de pagos"),
+        };
+    }
+};
+
+export const getDashboardPendingPayments = async (): Promise<ActionResponse<DashboardPendingPaymentsSummary>> => {
+    try {
+        await requireAdminSession();
+
+        const today = new Date();
+        const { start, end, dueDate } = getPaymentMonthRange(today);
+        const students = await prisma.student.findMany({
+            orderBy: {
+                createdAt: "desc",
+            },
+            select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                user: {
+                    select: {
+                        name: true,
+                        email: true,
+                    },
+                },
+                coach: {
+                    select: {
+                        user: {
+                            select: {
+                                name: true,
+                                email: true,
+                            },
+                        },
+                    },
+                },
+                memberships: {
+                    where: {
+                        status: "ACTIVE",
+                        OR: [
+                            {
+                                endDate: null,
+                            },
+                            {
+                                endDate: {
+                                    gte: dueDate,
+                                },
+                            },
+                        ],
+                    },
+                    orderBy: {
+                        createdAt: "desc",
+                    },
+                    take: 1,
+                    select: {
+                        monthlyPriceCents: true,
+                        plan: {
+                            select: {
+                                name: true,
+                                priceCents: true,
+                                currency: true,
+                            },
+                        },
+                        payments: {
+                            where: {
+                                OR: [
+                                    {
+                                        dueDate: {
+                                            gte: start,
+                                            lt: end,
+                                        },
+                                    },
+                                    {
+                                        paidAt: {
+                                            gte: start,
+                                            lt: end,
+                                        },
+                                    },
+                                ],
+                            },
+                            orderBy: {
+                                createdAt: "desc",
+                            },
+                            take: 1,
+                            select: {
+                                amountCents: true,
+                                currency: true,
+                                status: true,
+                            },
+                        },
+                    },
+                },
+                payments: {
+                    where: {
+                        OR: [
+                            {
+                                dueDate: {
+                                    gte: start,
+                                    lt: end,
+                                },
+                            },
+                            {
+                                paidAt: {
+                                    gte: start,
+                                    lt: end,
+                                },
+                            },
+                        ],
+                    },
+                    orderBy: {
+                        createdAt: "desc",
+                    },
+                    take: 1,
+                    select: {
+                        amountCents: true,
+                        currency: true,
+                        status: true,
+                    },
+                },
+            },
+        });
+        const pendingRows = students.flatMap((student): DashboardPendingPaymentRow[] => {
+            const activeMembership = student.memberships[0] ?? null;
+            const currentMonthPayment = activeMembership?.payments[0] ?? student.payments[0] ?? null;
+            const status = activeMembership
+                ? currentMonthPayment?.status ?? "PENDING"
+                : "NO_MEMBERSHIP";
+
+            if (status !== "PENDING" && status !== "NO_MEMBERSHIP") {
+                return [];
+            }
+
+            const baseAmountCents = activeMembership
+                ? getMembershipAmountCents(activeMembership)
+                : currentMonthPayment?.amountCents ?? null;
+            const isLate = !!activeMembership && shouldApplyLateSurcharge(today, dueDate, currentMonthPayment?.status);
+
+            return [{
+                studentId: student.id,
+                studentName: getStudentName(student),
+                coachName: student.coach?.user?.name || student.coach?.user?.email || "Sin coach",
+                planName: activeMembership?.plan.name ?? "Sin membresia",
+                status,
+                amountCents: baseAmountCents === null ? null : getAmountWithLateSurcharge(baseAmountCents, isLate),
+                currency: activeMembership?.plan.currency ?? currentMonthPayment?.currency ?? "ARS",
+                isLate,
+                lateSurchargePercent: LATE_SURCHARGE_PERCENT,
+            }];
+        }).sort((a, b) => {
+            if (a.status === "PENDING" && b.status !== "PENDING") return -1;
+            if (a.status !== "PENDING" && b.status === "PENDING") return 1;
+            if (a.isLate && !b.isLate) return -1;
+            if (!a.isLate && b.isLate) return 1;
+
+            return a.studentName.localeCompare(b.studentName);
+        });
+
+        return {
+            ok: true,
+            data: {
+                totalCount: pendingRows.length,
+                rows: pendingRows.slice(0, 5),
+            },
+        };
+    } catch (error) {
+        logAdminActionError("Error getting dashboard pending payments:", error);
+
+        return {
+            ok: false,
+            data: null,
+            error: getAdminActionErrorMessage(error, "No se pudo obtener el resumen de pagos pendientes"),
         };
     }
 };

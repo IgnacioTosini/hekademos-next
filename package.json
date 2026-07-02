@@ -4,8 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && prisma migrate deploy && next build",
+    "build": "prisma generate && next build",
     "build:vercel": "prisma generate && prisma migrate deploy && next build",
+    "build:deploy": "prisma generate && prisma migrate deploy && next build",
     "start": "next start",
     "lint": "eslint",
     "prisma:generate": "prisma generate",
@@ -15,11 +16,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",
-    "@tanstack/query-sync-storage-persister": "^5.90.22",
-    "@tanstack/react-query": "^5.90.21",
-    "@tanstack/react-query-persist-client": "^5.90.22",
     "@vercel/analytics": "^2.0.1",
-    "axios": "^1.13.5",
     "formik": "^2.4.9",
     "gsap": "^3.14.2",
     "next": "16.1.6",
@@ -30,17 +27,14 @@
     "react-icons": "^5.5.0",
     "react-toastify": "^11.1.0",
     "sass": "^1.97.3",
-    "yup": "^1.7.1",
-    "zustand": "^5.0.11"
+    "yup": "^1.7.1"
   },
   "devDependencies": {
-    "@tanstack/eslint-plugin-query": "^5.91.4",
     "@types/gsap": "^1.20.2",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@types/react-toastify": "^4.0.2",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "typescript": "^5"

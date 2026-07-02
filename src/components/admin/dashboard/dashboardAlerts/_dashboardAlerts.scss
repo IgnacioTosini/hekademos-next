@@ -267,9 +267,17 @@
 
     .dashboard-alert-modal-footer {
         display: flex;
+        align-items: center;
         justify-content: flex-end;
+        gap: 1rem;
         padding: 1rem 1.5rem;
         border-top: 1px solid rgba($secondary-color, .16);
+
+        span {
+            margin-right: auto;
+            color: $color-text-secondary;
+            font-size: $font-size-small;
+        }
 
         a {
             display: inline-flex;

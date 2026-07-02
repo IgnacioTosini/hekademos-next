@@ -1,14 +1,19 @@
-'use client'
-
-import { useScrollAnimations } from '@/hooks/useScrollAnimations'
-import { Banner, AboutUs, Classes, TrainingSchedule, MembershipPlans, Teachers, Comunity, Philosophy, FAQ, Contact } from "@/components";
-import './_homePage.scss'
+import { AboutUs } from '../AboutUs/AboutUs';
+import { Banner } from '../Banner/Banner';
+import { Classes } from '../Classes/Classes';
+import { Comunity } from '../Comunity/Comunity';
+import { Contact } from '../Contact/Contact';
+import { FAQ } from '../FAQ/FAQ';
+import { MembershipPlans } from '../MembershipPlans/MembershipPlans';
+import { Philosophy } from '../Philosophy/Philosophy';
+import { Teachers } from '../Teachers/Teachers';
+import { TrainingSchedule } from '../TrainingSchedule/TrainingSchedule';
+import { HomeAnimations } from './HomeAnimations';
+import './_homePage.scss';
 
 export const HomePage = () => {
-    const { containerRef } = useScrollAnimations()
-
     return (
-        <div className="homePage" ref={containerRef}>
+        <HomeAnimations>
             <div className="banner">
                 <Banner />
             </div>
@@ -39,6 +44,6 @@ export const HomePage = () => {
             <div className="contact-section">
                 <Contact />
             </div>
-        </div>
-    )
-}
+        </HomeAnimations>
+    );
+};

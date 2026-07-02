@@ -40,7 +40,6 @@ export type PaymentOverviewRow = {
     activeMembership: PaymentOverviewMembership | null;
     currentMonthPayment: Payment | null;
     latestPayment: Payment | null;
-    paymentHistory: Payment[];
     status: PaymentOverviewStatus;
     amountCents: number | null;
     baseAmountCents: number | null;

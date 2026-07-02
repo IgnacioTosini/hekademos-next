@@ -1,5 +1,6 @@
 "use server";
 
+import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { getAdminActionErrorMessage, logAdminActionError, requireAdminSession } from "@/lib/admin-session";
 import { writeAuditLog } from "@/lib/audit-log";
@@ -122,6 +123,24 @@ const getAdminAttendanceErrorMessage = (error: unknown, fallback: string) => {
 
     return getAdminActionErrorMessage(error, fallback);
 };
+
+type MonthlyAttendanceSummaryRow = {
+    studentId: string;
+    firstName: string | null;
+    lastName: string | null;
+    userName: string | null;
+    email: string;
+    coachUserName: string | null;
+    coachUserEmail: string | null;
+    totalCount: number | bigint;
+    presentCount: number | bigint;
+    absentCount: number | bigint;
+    lateCount: number | bigint;
+    excusedCount: number | bigint;
+    lastAttendanceAt: Date | null;
+};
+
+const toNumber = (value: number | bigint) => Number(value);
 
 export const getCoachTodayAttendance = async (): Promise<ActionResponse<CoachTodayAttendanceSchedule[]>> => {
     try {
@@ -476,64 +495,103 @@ export const getAdminMonthlyAttendanceSummary = async (
         await requireAdminSession();
 
         const { start, end, month, year } = getMonthRange(input.month, input.year);
-        const attendance = await prisma.attendance.findMany({
-            where: {
-                session: {
-                    startsAt: {
-                        gte: start,
-                        lt: end,
-                    },
-                    coachId: input.coachId && input.coachId !== "all" ? input.coachId : undefined,
+        const coachFilter = input.coachId && input.coachId !== "all"
+            ? Prisma.sql`AND cs."coachId" = ${input.coachId}`
+            : Prisma.empty;
+        const rows = await prisma.$queryRaw<MonthlyAttendanceSummaryRow[]>(Prisma.sql`
+            WITH filtered_attendance AS (
+                SELECT
+                    a."studentId",
+                    a."status",
+                    COALESCE(cs."startsAt", a."createdAt") AS "attendanceAt",
+                    s."firstName",
+                    s."lastName",
+                    u."name" AS "userName",
+                    u."email",
+                    cu."name" AS "coachUserName",
+                    cu."email" AS "coachUserEmail"
+                FROM "Attendance" a
+                INNER JOIN "ClassSession" cs ON cs."id" = a."sessionId"
+                INNER JOIN "Student" s ON s."id" = a."studentId"
+                INNER JOIN "User" u ON u."id" = s."userId"
+                LEFT JOIN "Coach" c ON c."id" = cs."coachId"
+                LEFT JOIN "User" cu ON cu."id" = c."userId"
+                WHERE cs."startsAt" >= ${start}
+                    AND cs."startsAt" < ${end}
+                    ${coachFilter}
+            ),
+            student_summary AS (
+                SELECT
+                    "studentId",
+                    MAX("firstName") AS "firstName",
+                    MAX("lastName") AS "lastName",
+                    MAX("userName") AS "userName",
+                    MAX("email") AS "email",
+                    COUNT(*)::int AS "totalCount",
+                    COUNT(*) FILTER (WHERE "status" = 'PRESENT')::int AS "presentCount",
+                    COUNT(*) FILTER (WHERE "status" = 'ABSENT')::int AS "absentCount",
+                    COUNT(*) FILTER (WHERE "status" = 'LATE')::int AS "lateCount",
+                    COUNT(*) FILTER (WHERE "status" = 'EXCUSED')::int AS "excusedCount",
+                    MAX("attendanceAt") AS "lastAttendanceAt"
+                FROM filtered_attendance
+                GROUP BY "studentId"
+            ),
+            latest_coach AS (
+                SELECT DISTINCT ON ("studentId")
+                    "studentId",
+                    "coachUserName",
+                    "coachUserEmail"
+                FROM filtered_attendance
+                ORDER BY "studentId", "attendanceAt" DESC
+            )
+            SELECT
+                ss."studentId",
+                ss."firstName",
+                ss."lastName",
+                ss."userName",
+                ss."email",
+                lc."coachUserName",
+                lc."coachUserEmail",
+                ss."totalCount",
+                ss."presentCount",
+                ss."absentCount",
+                ss."lateCount",
+                ss."excusedCount",
+                ss."lastAttendanceAt"
+            FROM student_summary ss
+            LEFT JOIN latest_coach lc ON lc."studentId" = ss."studentId"
+        `);
+        const students = rows.map((row): AdminMonthlyAttendanceSummary["students"][number] => ({
+            studentId: row.studentId,
+            name: getStudentName({
+                firstName: row.firstName,
+                lastName: row.lastName,
+                user: {
+                    name: row.userName,
+                    email: row.email,
                 },
-            },
-            orderBy: {
-                createdAt: "desc",
-            },
-            include: {
-                student: {
-                    include: {
-                        user: true,
-                    },
-                },
-                session: {
-                    include: {
-                        coach: {
-                            include: {
-                                user: true,
-                            },
-                        },
-                    },
-                },
-            },
-        });
-        const studentsMap = new Map<string, AdminMonthlyAttendanceSummary["students"][number]>();
-
-        attendance.forEach((attendanceItem) => {
-            const current = studentsMap.get(attendanceItem.studentId) ?? {
-                studentId: attendanceItem.studentId,
-                name: getStudentName(attendanceItem.student),
-                email: attendanceItem.student.user.email,
-                coachName: attendanceItem.session.coach?.user?.name || attendanceItem.session.coach?.user?.email || "Sin coach asignado",
-                totalCount: 0,
-                presentCount: 0,
-                absentCount: 0,
-                lateCount: 0,
-                excusedCount: 0,
-                lastAttendanceAt: null,
-            };
-            const attendanceDate = attendanceItem.session.startsAt ?? attendanceItem.createdAt;
-
-            current.totalCount += 1;
-            current.presentCount += attendanceItem.status === "PRESENT" ? 1 : 0;
-            current.absentCount += attendanceItem.status === "ABSENT" ? 1 : 0;
-            current.lateCount += attendanceItem.status === "LATE" ? 1 : 0;
-            current.excusedCount += attendanceItem.status === "EXCUSED" ? 1 : 0;
-
-            if (!current.lastAttendanceAt || new Date(attendanceDate).getTime() > new Date(current.lastAttendanceAt).getTime()) {
-                current.lastAttendanceAt = attendanceDate;
-            }
-
-            studentsMap.set(attendanceItem.studentId, current);
+            }),
+            email: row.email,
+            coachName: row.coachUserName || row.coachUserEmail || "Sin coach asignado",
+            totalCount: toNumber(row.totalCount),
+            presentCount: toNumber(row.presentCount),
+            absentCount: toNumber(row.absentCount),
+            lateCount: toNumber(row.lateCount),
+            excusedCount: toNumber(row.excusedCount),
+            lastAttendanceAt: row.lastAttendanceAt,
+        })).sort((a, b) => a.name.localeCompare(b.name));
+        const totals = students.reduce((summary, student) => ({
+            totalCount: summary.totalCount + student.totalCount,
+            presentCount: summary.presentCount + student.presentCount,
+            absentCount: summary.absentCount + student.absentCount,
+            lateCount: summary.lateCount + student.lateCount,
+            excusedCount: summary.excusedCount + student.excusedCount,
+        }), {
+            totalCount: 0,
+            presentCount: 0,
+            absentCount: 0,
+            lateCount: 0,
+            excusedCount: 0,
         });
 
         return {
@@ -541,12 +599,8 @@ export const getAdminMonthlyAttendanceSummary = async (
             data: {
                 month,
                 year,
-                totalCount: attendance.length,
-                presentCount: attendance.filter((item) => item.status === "PRESENT").length,
-                absentCount: attendance.filter((item) => item.status === "ABSENT").length,
-                lateCount: attendance.filter((item) => item.status === "LATE").length,
-                excusedCount: attendance.filter((item) => item.status === "EXCUSED").length,
-                students: Array.from(studentsMap.values()).sort((a, b) => a.name.localeCompare(b.name)),
+                ...totals,
+                students,
             },
         };
     } catch (error) {

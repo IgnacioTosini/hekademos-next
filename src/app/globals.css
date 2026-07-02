@@ -43,11 +43,6 @@ body {
   background-color: #1D2C3F;
 }
 
-body:has(.platformLayout) .header,
-body:has(.platformLayout) .footer {
-  display: none;
-}
-
 html {
   scroll-behavior: smooth;
   scroll-padding-top: 6rem;
