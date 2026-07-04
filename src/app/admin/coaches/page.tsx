@@ -1,5 +1,5 @@
 import { getCoaches } from '@/app/actions/coach.actions';
-import { CoachesSection } from '@/components/admin/coaches/coachesSection/CoachesSection';
+import { CoachesSection } from '@/components/admin/coaches';
 import type { Metadata } from 'next';
 import './_coachesPage.scss';
 

@@ -14,14 +14,14 @@ export type ChangePasswordInput = {
 
 const getAccountErrorMessage = (error: unknown, fallback: string) => {
     if (!(error instanceof Error)) return fallback;
-    if (error.message === "UNAUTHORIZED") return "Necesitas iniciar sesion";
-    if (error.message === "CURRENT_PASSWORD_REQUIRED") return "La contraseña actual es obligatoria";
-    if (error.message === "NEW_PASSWORD_REQUIRED") return "La nueva contraseña es obligatoria";
-    if (error.message === "PASSWORD_TOO_SHORT") return "La nueva contraseña debe tener al menos 6 caracteres";
-    if (error.message === "PASSWORD_MISMATCH") return "Las contraseñas no coinciden";
-    if (error.message === "USER_NOT_FOUND") return "No se encontro tu usuario";
-    if (error.message === "PASSWORD_NOT_SET") return "Tu cuenta no tiene una contraseña configurada";
-    if (error.message === "INVALID_CURRENT_PASSWORD") return "La contraseña actual no es correcta";
+    if (error.message === "Necesitas iniciar sesion") return error.message;
+    if (error.message === "La contraseña actual es obligatoria") return error.message;
+    if (error.message === "La nueva contraseña es obligatoria") return error.message;
+    if (error.message === "La nueva contraseña debe tener al menos 6 caracteres") return error.message;
+    if (error.message === "Las contraseñas no coinciden") return error.message;
+    if (error.message === "No se encontro tu usuario") return error.message;
+    if (error.message === "Tu cuenta no tiene una contraseña configurada") return error.message;
+    if (error.message === "La contraseña actual no es correcta") return error.message;
 
     return fallback;
 };
@@ -32,16 +32,16 @@ export const changeCurrentUserPassword = async (
     try {
         const session = await getCurrentAuthSession();
 
-        if (!session) throw new Error("UNAUTHORIZED");
+        if (!session) throw new Error("Necesitas iniciar sesion");
 
         const currentPassword = input.currentPassword.trim();
         const newPassword = input.newPassword.trim();
         const confirmPassword = input.confirmPassword.trim();
 
-        if (!currentPassword) throw new Error("CURRENT_PASSWORD_REQUIRED");
-        if (!newPassword) throw new Error("NEW_PASSWORD_REQUIRED");
-        if (newPassword.length < 6) throw new Error("PASSWORD_TOO_SHORT");
-        if (newPassword !== confirmPassword) throw new Error("PASSWORD_MISMATCH");
+        if (!currentPassword) throw new Error("La contraseña actual es obligatoria");
+        if (!newPassword) throw new Error("La nueva contraseña es obligatoria");
+        if (newPassword.length < 6) throw new Error("La nueva contraseña debe tener al menos 6 caracteres");
+        if (newPassword !== confirmPassword) throw new Error("Las contraseñas no coinciden");
 
         const user = await prisma.user.findUnique({
             where: {
@@ -53,12 +53,12 @@ export const changeCurrentUserPassword = async (
             },
         });
 
-        if (!user) throw new Error("USER_NOT_FOUND");
-        if (!user.passwordHash) throw new Error("PASSWORD_NOT_SET");
+        if (!user) throw new Error("No se encontro tu usuario");
+        if (!user.passwordHash) throw new Error("Tu cuenta no tiene una contraseña configurada");
 
         const isCurrentPasswordValid = await verifyPassword(currentPassword, user.passwordHash);
 
-        if (!isCurrentPasswordValid) throw new Error("INVALID_CURRENT_PASSWORD");
+        if (!isCurrentPasswordValid) throw new Error("La contraseña actual no es correcta");
 
         await prisma.user.update({
             where: {
@@ -79,7 +79,7 @@ export const changeCurrentUserPassword = async (
             },
         };
     } catch (error) {
-        console.error("Error changing password:", error);
+        console.error("Error al cambiar la contraseña:", error);
 
         return {
             ok: false,

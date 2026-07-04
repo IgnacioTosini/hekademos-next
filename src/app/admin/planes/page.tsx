@@ -1,5 +1,5 @@
 import { getAdminMembershipPlans } from '@/app/actions/membership.actions';
-import { MembershipPlansSection } from '@/components/admin/membershipPlans/membershipPlansSection/MembershipPlansSection';
+import { MembershipPlansSection } from '@/components/admin/membershipPlans';
 import type { Metadata } from 'next';
 import './_planesPage.scss';
 

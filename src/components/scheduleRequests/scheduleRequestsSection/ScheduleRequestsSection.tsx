@@ -9,7 +9,7 @@ import {
     rejectScheduleChangeRequest,
     type ScheduleChangeRequestReviewItem,
 } from "@/app/actions/scheduleChangeRequest.actions";
-import { EmptyState } from "@/components/ui/emptyState/EmptyState";
+import { EmptyState } from "@/components/ui";
 import type { ScheduleChangeRequestStatus, WeeklyClassScheduleWithRelations } from "@/types/schema/classes";
 import { formatDateTime } from "@/utils/format";
 import { addMinutesToTime, dayLabels, dayOrderIndex } from "@/utils/schedule";

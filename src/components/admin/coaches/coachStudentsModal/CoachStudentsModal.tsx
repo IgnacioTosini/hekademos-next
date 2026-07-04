@@ -1,7 +1,7 @@
 'use client';
 
 import { IoMdClose } from 'react-icons/io';
-import { EmptyState } from '@/components/ui/emptyState/EmptyState';
+import { EmptyState } from '@/components/ui';
 import type { UserWithRelations } from '@/types/schema/users';
 import { getStudentName } from '@/utils/student';
 import '../../users/userModal/_userModal.scss';

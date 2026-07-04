@@ -42,6 +42,6 @@ export const writeAuditLog = async ({
             )
         `;
     } catch (error) {
-        console.error("Error writing audit log:", error);
+        console.error("Error al escribir el registro de auditoria:", error);
     }
 };

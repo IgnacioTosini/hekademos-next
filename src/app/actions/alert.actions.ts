@@ -452,7 +452,7 @@ export const getAdminAlerts = async (): Promise<ActionResponse<AdminAlert[]>> =>
             data: alerts,
         };
     } catch (error) {
-        logAdminActionError("Error getting admin alerts:", error);
+        logAdminActionError("Error al obtener las alertas de administracion:", error);
 
         return {
             ok: false,

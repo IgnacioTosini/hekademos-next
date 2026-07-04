@@ -7,7 +7,7 @@ import { FaRegTrashAlt } from 'react-icons/fa';
 import { GoPencil } from 'react-icons/go';
 import { toast } from 'react-toastify';
 import { deleteUser } from '@/app/actions/user.actions';
-import { EmptyState } from '@/components/ui/emptyState/EmptyState';
+import { EmptyState } from '@/components/ui';
 import type { UserWithRelations } from '@/types/schema/users';
 import { formatDate } from '@/utils/format';
 import { getInitials } from '@/utils/strings';

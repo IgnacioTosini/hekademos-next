@@ -63,12 +63,12 @@ export async function POST(req: NextRequest) {
             public_id: image.publicId,
         });
     } catch (error) {
-        console.error("Cloudinary upload error:", error);
+        console.error("Error al subir la imagen a Cloudinary:", error);
 
         return Response.json(
             {
                 success: false,
-                error: error instanceof Error ? error.message : "No se pudo subir la imagen.",
+                error: "No se pudo subir la imagen.",
             },
             { status: 500 }
         );

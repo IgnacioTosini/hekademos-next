@@ -1,5 +1,5 @@
 import { getScheduleChangeRequests } from "@/app/actions/scheduleChangeRequest.actions";
-import { ScheduleRequestsSection } from "@/components/scheduleRequests/scheduleRequestsSection/ScheduleRequestsSection";
+import { ScheduleRequestsSection } from "@/components/scheduleRequests";
 import type { Metadata } from "next";
 import "./_solicitudesHorariosPage.scss";
 

@@ -189,7 +189,7 @@ const sendScheduleChangeRequestNotification = async ({
             await sendEmail(emailMessage);
             sentCount += 1;
         } catch (error) {
-            console.error(`Error sending schedule request notification to ${recipient.email}:`, error);
+            console.error(`Error al enviar la notificacion de solicitud de horario a ${recipient.email}:`, error);
         }
     }
 
@@ -201,25 +201,25 @@ const sendScheduleChangeRequestNotification = async ({
 
 const getProfileErrorMessage = (error: unknown, fallback: string) => {
     if (!(error instanceof Error)) return fallback;
-    if (error.message === "UNAUTHORIZED") return "Necesitas iniciar sesion";
-    if (error.message === "NOT_STUDENT") return "Solo los alumnos pueden editar este perfil";
-    if (error.message === "STUDENT_NOT_FOUND") return "No se encontro el perfil del alumno";
-    if (error.message === "EMAIL_IN_USE") return "Ese email ya esta en uso";
-    if (error.message === "SCHEDULE_LIMIT_EXCEEDED") return "La cantidad de turnos supera lo permitido por tu plan";
-    if (error.message === "SCHEDULE_NOT_FOUND") return "Uno de los turnos seleccionados ya no existe";
-    if (error.message === "SCHEDULE_FULL") return "Uno de los turnos seleccionados no tiene cupos disponibles";
-    if (error.message === "SCHEDULE_REPEATED_DAY") return "No podes elegir dos turnos el mismo dia";
-    if (error.message === "NO_ACTIVE_MEMBERSHIP") return "Necesitas una membresia activa para elegir turnos";
-    if (error.message === "SCHEDULE_REQUEST_TYPE_INVALID") return "Selecciona el tipo de cambio de horario";
-    if (error.message === "SCHEDULE_REQUEST_REASON_REQUIRED") return "Agrega una justificacion para solicitar el cambio";
-    if (error.message === "SCHEDULE_REQUEST_EMPTY") return "Selecciona al menos un turno para solicitar el cambio";
-    if (error.message === "SCHEDULE_REQUEST_NO_CHANGES") return "Los turnos seleccionados son iguales a tus turnos actuales";
-    if (error.message === "SCHEDULE_REQUEST_PENDING") return "Ya tenes una solicitud de horario pendiente";
-    if (error.message === "NOT_COACH") return "Solo los coaches pueden editar este perfil";
-    if (error.message === "COACH_NOT_FOUND") return "No se encontro el perfil del coach";
-    if (error.message === "INVALID_PHONE") return "Revisa los telefonos ingresados";
-    if (error.message === "INVALID_BIRTH_DATE") return "La fecha de nacimiento no parece valida";
-    if (error.message === "INVALID_URL") return "El link ingresado no parece valido";
+    if (error.message === "Necesitas iniciar sesion") return error.message;
+    if (error.message === "Solo los alumnos pueden editar este perfil") return error.message;
+    if (error.message === "No se encontro el perfil del alumno") return error.message;
+    if (error.message === "Ese email ya esta en uso") return error.message;
+    if (error.message === "La cantidad de turnos supera lo permitido por tu plan") return error.message;
+    if (error.message === "Uno de los turnos seleccionados ya no existe") return error.message;
+    if (error.message === "Uno de los turnos seleccionados no tiene cupos disponibles") return error.message;
+    if (error.message === "No podes elegir dos turnos el mismo dia") return error.message;
+    if (error.message === "Necesitas una membresia activa para elegir turnos") return error.message;
+    if (error.message === "Selecciona el tipo de cambio de horario") return error.message;
+    if (error.message === "Agrega una justificacion para solicitar el cambio") return error.message;
+    if (error.message === "Selecciona al menos un turno para solicitar el cambio") return error.message;
+    if (error.message === "Los turnos seleccionados son iguales a tus turnos actuales") return error.message;
+    if (error.message === "Ya tenes una solicitud de horario pendiente") return error.message;
+    if (error.message === "Solo los coaches pueden editar este perfil") return error.message;
+    if (error.message === "No se encontro el perfil del coach") return error.message;
+    if (error.message === "Revisa los telefonos ingresados") return error.message;
+    if (error.message === "La fecha de nacimiento no parece valida") return error.message;
+    if (error.message === "El link ingresado no parece valido") return error.message;
 
     return fallback;
 };
@@ -249,11 +249,11 @@ const validateStudentScheduleSelection = async (
     const uniqueScheduleIds = Array.from(new Set(scheduleIds.filter(Boolean)));
     const activeMembership = await getCurrentActiveStudentMembership(student.id);
 
-    if (uniqueScheduleIds.length === 0) throw new Error("SCHEDULE_REQUEST_EMPTY");
-    if (!activeMembership) throw new Error("NO_ACTIVE_MEMBERSHIP");
+    if (uniqueScheduleIds.length === 0) throw new Error("Selecciona al menos un turno para solicitar el cambio");
+    if (!activeMembership) throw new Error("Necesitas una membresia activa para elegir turnos");
 
     if (uniqueScheduleIds.length > activeMembership.plan.trainingDaysPerWeek) {
-        throw new Error("SCHEDULE_LIMIT_EXCEEDED");
+        throw new Error("La cantidad de turnos supera lo permitido por tu plan");
     }
 
     const selectedSchedules = await prisma.weeklyClassSchedule.findMany({
@@ -277,13 +277,13 @@ const validateStudentScheduleSelection = async (
     });
 
     if (selectedSchedules.length !== uniqueScheduleIds.length) {
-        throw new Error("SCHEDULE_NOT_FOUND");
+        throw new Error("Uno de los turnos seleccionados ya no existe");
     }
 
     const selectedDays = selectedSchedules.map((schedule) => schedule.dayOfWeek);
 
     if (new Set(selectedDays).size !== selectedDays.length) {
-        throw new Error("SCHEDULE_REPEATED_DAY");
+        throw new Error("No podes elegir dos turnos el mismo dia");
     }
 
     const hasFullSchedule = selectedSchedules.some((schedule) => (
@@ -291,7 +291,7 @@ const validateStudentScheduleSelection = async (
     ));
 
     if (hasFullSchedule) {
-        throw new Error("SCHEDULE_FULL");
+        throw new Error("Uno de los turnos seleccionados no tiene cupos disponibles");
     }
 
     return uniqueScheduleIds;
@@ -312,12 +312,12 @@ export const updateStudentProfile = async (
     try {
         const session = await getCurrentAuthSession();
 
-        if (!session) throw new Error("UNAUTHORIZED");
-        if (session.role !== "STUDENT") throw new Error("NOT_STUDENT");
+        if (!session) throw new Error("Necesitas iniciar sesion");
+        if (session.role !== "STUDENT") throw new Error("Solo los alumnos pueden editar este perfil");
         if (!isValidOptionalPhone(input.phone) || !isValidOptionalPhone(input.emergencyContactPhone)) {
-            throw new Error("INVALID_PHONE");
+            throw new Error("Revisa los telefonos ingresados");
         }
-        if (!isValidBirthDate(input.birthDate)) throw new Error("INVALID_BIRTH_DATE");
+        if (!isValidBirthDate(input.birthDate)) throw new Error("La fecha de nacimiento no parece valida");
 
         const email = normalizeEmail(input.email);
         const student = await prisma.student.findUnique({
@@ -337,7 +337,7 @@ export const updateStudentProfile = async (
             },
         });
 
-        if (!student) throw new Error("STUDENT_NOT_FOUND");
+        if (!student) throw new Error("No se encontro el perfil del alumno");
 
         if (email !== normalizeEmail(student.user.email)) {
             const existingUser = await prisma.user.findUnique({
@@ -350,7 +350,7 @@ export const updateStudentProfile = async (
             });
 
             if (existingUser && existingUser.id !== session.userId) {
-                throw new Error("EMAIL_IN_USE");
+                throw new Error("Ese email ya esta en uso");
             }
         }
 
@@ -435,7 +435,7 @@ export const updateStudentProfile = async (
             },
         };
     } catch (error) {
-        console.error("Error updating student profile:", error);
+        console.error("Error al actualizar el perfil del alumno:", error);
 
         return {
             ok: false,
@@ -451,9 +451,9 @@ export const updateStudentRoutine = async (
     try {
         const session = await getCurrentAuthSession();
 
-        if (!session) throw new Error("UNAUTHORIZED");
-        if (session.role !== "STUDENT") throw new Error("NOT_STUDENT");
-        if (!isValidOptionalUrl(input.routineExcelUrl)) throw new Error("INVALID_URL");
+        if (!session) throw new Error("Necesitas iniciar sesion");
+        if (session.role !== "STUDENT") throw new Error("Solo los alumnos pueden editar este perfil");
+        if (!isValidOptionalUrl(input.routineExcelUrl)) throw new Error("El link ingresado no parece valido");
 
         const student = await prisma.student.findUnique({
             where: {
@@ -464,7 +464,7 @@ export const updateStudentRoutine = async (
             },
         });
 
-        if (!student) throw new Error("STUDENT_NOT_FOUND");
+        if (!student) throw new Error("No se encontro el perfil del alumno");
 
         await prisma.student.update({
             where: {
@@ -494,7 +494,7 @@ export const updateStudentRoutine = async (
             },
         };
     } catch (error) {
-        console.error("Error updating student routine:", error);
+        console.error("Error al actualizar la rutina del alumno:", error);
 
         return {
             ok: false,
@@ -510,15 +510,15 @@ export const createStudentScheduleChangeRequest = async (
     try {
         const session = await getCurrentAuthSession();
 
-        if (!session) throw new Error("UNAUTHORIZED");
-        if (session.role !== "STUDENT") throw new Error("NOT_STUDENT");
+        if (!session) throw new Error("Necesitas iniciar sesion");
+        if (session.role !== "STUDENT") throw new Error("Solo los alumnos pueden editar este perfil");
         if (input.type !== "ONE_TIME" && input.type !== "PERMANENT") {
-            throw new Error("SCHEDULE_REQUEST_TYPE_INVALID");
+            throw new Error("Selecciona el tipo de cambio de horario");
         }
 
         const reason = input.reason.trim();
 
-        if (reason.length < 5) throw new Error("SCHEDULE_REQUEST_REASON_REQUIRED");
+        if (reason.length < 5) throw new Error("Agrega una justificacion para solicitar el cambio");
 
         const student = await prisma.student.findUnique({
             where: {
@@ -542,7 +542,7 @@ export const createStudentScheduleChangeRequest = async (
             },
         });
 
-        if (!student) throw new Error("STUDENT_NOT_FOUND");
+        if (!student) throw new Error("No se encontro el perfil del alumno");
 
         const pendingRequests = await prisma.$queryRaw<Array<{ id: string }>>`
             SELECT "id"
@@ -552,13 +552,13 @@ export const createStudentScheduleChangeRequest = async (
             LIMIT 1
         `;
 
-        if (pendingRequests.length > 0) throw new Error("SCHEDULE_REQUEST_PENDING");
+        if (pendingRequests.length > 0) throw new Error("Ya tenes una solicitud de horario pendiente");
 
         const currentScheduleIds = student.schedules.map((schedule) => schedule.weeklyScheduleId);
         const requestedScheduleIds = await validateStudentScheduleSelection(student, input.requestedScheduleIds);
 
         if (areStringArraysEqual(currentScheduleIds, requestedScheduleIds)) {
-            throw new Error("SCHEDULE_REQUEST_NO_CHANGES");
+            throw new Error("Los turnos seleccionados son iguales a tus turnos actuales");
         }
 
         const now = new Date();
@@ -625,7 +625,7 @@ export const createStudentScheduleChangeRequest = async (
             },
         };
     } catch (error) {
-        console.error("Error creating schedule change request:", error);
+        console.error("Error al crear la solicitud de cambio de horario:", error);
 
         return {
             ok: false,
@@ -641,9 +641,9 @@ export const updateCoachProfile = async (
     try {
         const session = await getCurrentAuthSession();
 
-        if (!session) throw new Error("UNAUTHORIZED");
-        if (session.role !== "COACH") throw new Error("NOT_COACH");
-        if (!isValidOptionalPhone(input.phone)) throw new Error("INVALID_PHONE");
+        if (!session) throw new Error("Necesitas iniciar sesion");
+        if (session.role !== "COACH") throw new Error("Solo los coaches pueden editar este perfil");
+        if (!isValidOptionalPhone(input.phone)) throw new Error("Revisa los telefonos ingresados");
 
         const email = normalizeEmail(input.email);
         const coach = await prisma.coach.findUnique({
@@ -655,7 +655,7 @@ export const updateCoachProfile = async (
             },
         });
 
-        if (!coach) throw new Error("COACH_NOT_FOUND");
+        if (!coach) throw new Error("No se encontro el perfil del coach");
 
         if (email !== normalizeEmail(coach.user.email)) {
             const existingUser = await prisma.user.findUnique({
@@ -668,7 +668,7 @@ export const updateCoachProfile = async (
             });
 
             if (existingUser && existingUser.id !== session.userId) {
-                throw new Error("EMAIL_IN_USE");
+                throw new Error("Ese email ya esta en uso");
             }
         }
 
@@ -738,7 +738,7 @@ export const updateCoachProfile = async (
             },
         };
     } catch (error) {
-        console.error("Error updating coach profile:", error);
+        console.error("Error al actualizar el perfil del coach:", error);
 
         return {
             ok: false,

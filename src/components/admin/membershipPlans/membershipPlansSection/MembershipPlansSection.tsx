@@ -6,7 +6,7 @@ import { FaRegTrashAlt } from 'react-icons/fa';
 import { GoPencil } from 'react-icons/go';
 import { toast } from 'react-toastify';
 import { deleteMembershipPlan } from '@/app/actions/membership.actions';
-import { EmptyState } from '@/components/ui/emptyState/EmptyState';
+import { EmptyState } from '@/components/ui';
 import type { MembershipPlanWithRelations } from '@/types/schema/memberships';
 import { formatCurrency } from '@/utils/format';
 import { MembershipPlanModal } from '../membershipPlanModal/MembershipPlanModal';

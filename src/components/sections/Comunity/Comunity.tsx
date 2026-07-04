@@ -1,4 +1,4 @@
-import { ComunityCard } from '@/components/ui/ComunityCard/ComunityCard'
+import { ComunityCard } from '@/components/ui'
 import './_comunity.scss'
 
 export const Comunity = () => {

@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { HomePage } from "@/components/sections/HomePage/HomePage";
+import { HomePage } from "@/components/sections";
 
 export const metadata: Metadata = {
   title: "Hekademos - Movimiento Consciente",

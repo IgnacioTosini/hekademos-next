@@ -28,8 +28,8 @@ import {
 const coachDashboardPath = "/coach/dashboard";
 
 const getCoachActionErrorMessage = (error: unknown, fallback: string) => {
-    if (error instanceof Error && error.message === "INVALID_PHONE") {
-        return "Revisa el telefono ingresado";
+    if (error instanceof Error && error.message === "Revisa el telefono ingresado") {
+        return error.message;
     }
 
     return getAdminActionErrorMessage(error, fallback);
@@ -37,7 +37,7 @@ const getCoachActionErrorMessage = (error: unknown, fallback: string) => {
 
 const validateCoachUserInput = (input: CreateCoachUserInput | UpdateCoachUserInput) => {
     if (!isValidOptionalPhone(input.phone)) {
-        throw new Error("INVALID_PHONE");
+        throw new Error("Revisa el telefono ingresado");
     }
 };
 
@@ -94,7 +94,7 @@ export const getCoaches = async (): Promise<ActionResponse<UserWithRelations[]>>
             data: coaches.map((coach) => sanitizeUserForClient(coach)),
         };
     } catch (error) {
-        logAdminActionError("Error getting coaches:", error);
+        logAdminActionError("Error al obtener los coaches:", error);
 
         return {
             ok: false,
@@ -150,7 +150,7 @@ export const createCoachUser = async (
             data: sanitizeUserForClient(user),
         };
     } catch (error) {
-        logAdminActionError("Error creating coach user:", error);
+        logAdminActionError("Error al crear el usuario coach:", error);
 
         return {
             ok: false,
@@ -237,7 +237,7 @@ export const updateCoachUser = async (
             data: sanitizeUserForClient(updatedUser),
         };
     } catch (error) {
-        logAdminActionError("Error updating coach user:", error);
+        logAdminActionError("Error al actualizar el usuario coach:", error);
 
         return {
             ok: false,
@@ -312,7 +312,7 @@ export const updateCoachStudent = async (
             },
         };
     } catch (error) {
-        logAdminActionError("Error updating coach student:", error);
+        logAdminActionError("Error al actualizar el alumno del coach:", error);
 
         return {
             ok: false,
@@ -422,7 +422,7 @@ export const markCoachStudentCurrentMonthPaymentPaid = async (
             },
         };
     } catch (error) {
-        logAdminActionError("Error marking coach student payment as paid:", error);
+        logAdminActionError("Error al marcar como pagado el pago del alumno del coach:", error);
 
         return {
             ok: false,
@@ -511,7 +511,7 @@ export const markCoachStudentCurrentMonthPaymentPending = async (
             },
         };
     } catch (error) {
-        logAdminActionError("Error marking coach student payment as pending:", error);
+        logAdminActionError("Error al marcar como pendiente el pago del alumno del coach:", error);
 
         return {
             ok: false,

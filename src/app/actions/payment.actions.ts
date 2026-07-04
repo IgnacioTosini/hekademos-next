@@ -199,7 +199,7 @@ export const getPaymentOverview = async (
             data: rows,
         };
     } catch (error) {
-        logAdminActionError("Error getting payment overview:", error);
+        logAdminActionError("Error al obtener el resumen de pagos:", error);
 
         return {
             ok: false,
@@ -227,7 +227,7 @@ export const getStudentPaymentHistory = async (studentId: string): Promise<Actio
             data: payments,
         };
     } catch (error) {
-        logAdminActionError("Error getting student payment history:", error);
+        logAdminActionError("Error al obtener el historial de pagos del alumno:", error);
 
         return {
             ok: false,
@@ -396,7 +396,7 @@ export const getDashboardPendingPayments = async (): Promise<ActionResponse<Dash
             },
         };
     } catch (error) {
-        logAdminActionError("Error getting dashboard pending payments:", error);
+        logAdminActionError("Error al obtener los pagos pendientes del panel:", error);
 
         return {
             ok: false,
@@ -528,7 +528,7 @@ export const markCurrentMonthPaymentPaid = async (
             },
         };
     } catch (error) {
-        logAdminActionError("Error marking payment as paid:", error);
+        logAdminActionError("Error al marcar el pago como pagado:", error);
 
         return {
             ok: false,
@@ -611,7 +611,7 @@ export const markCurrentMonthPaymentPending = async (
             },
         };
     } catch (error) {
-        logAdminActionError("Error marking payment as pending:", error);
+        logAdminActionError("Error al marcar el pago como pendiente:", error);
 
         return {
             ok: false,
@@ -744,7 +744,7 @@ export const savePaymentDetails = async (
             },
         };
     } catch (error) {
-        logAdminActionError("Error saving payment details:", error);
+        logAdminActionError("Error al guardar los detalles del pago:", error);
 
         return {
             ok: false,
@@ -843,7 +843,7 @@ export const sendPaymentReminderEmails = async (
                 sentCount += 1;
             } catch (error) {
                 failedCount += 1;
-                console.error(`Error sending payment reminder to ${student.user.email}:`, error);
+                console.error(`Error al enviar el recordatorio de pago a ${student.user.email}:`, error);
             }
         }
 
@@ -875,7 +875,7 @@ export const sendPaymentReminderEmails = async (
             },
         };
     } catch (error) {
-        logAdminActionError("Error sending payment reminder emails:", error);
+        logAdminActionError("Error al enviar los emails de recordatorio de pago:", error);
 
         return {
             ok: false,

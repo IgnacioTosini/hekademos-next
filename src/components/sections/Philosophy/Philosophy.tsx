@@ -11,7 +11,7 @@ export const Philosophy = () => {
 
             <div className='philosophySection animate-split-container'>
                 <picture className='imgContainer animate-philosophy-left parallax-image'>
-                    <Image src="/banner.png" alt="Hekademos Logo" width={100} height={100} />
+                    <Image src="/banner.png" alt="Hekademos Logo" width={400} height={400} />
                     <p className='textOnImage animate-quote-reveal'>&ldquo;El cuerpo es el templo del alma, y el movimiento es su lenguaje.&rdquo;</p>
                 </picture>
 

@@ -190,7 +190,7 @@ export const login = async (
             },
         };
     } catch (error) {
-        console.error("Error logging in:", error);
+        console.error("Error al iniciar sesion:", error);
 
         return {
             ok: false,
@@ -282,7 +282,7 @@ export const requestPasswordReset = async (
         try {
             await sendEmail(emailMessage);
         } catch (emailError) {
-            console.error("Error sending password reset email:", emailError);
+            console.error("Error al enviar el email de recuperacion de contraseña:", emailError);
 
             if (process.env.NODE_ENV !== "production") {
                 return {
@@ -308,7 +308,7 @@ export const requestPasswordReset = async (
             },
         };
     } catch (error) {
-        console.error("Error requesting password reset:", error);
+        console.error("Error al solicitar la recuperacion de contraseña:", error);
 
         return {
             ok: false,
@@ -403,7 +403,7 @@ export const resetPassword = async (
             },
         };
     } catch (error) {
-        console.error("Error resetting password:", error);
+        console.error("Error al restablecer la contraseña:", error);
 
         return {
             ok: false,

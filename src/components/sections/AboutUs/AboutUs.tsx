@@ -1,4 +1,4 @@
-import { PillarCard } from '@/components/ui/PillarCard/PillarCard'
+import { PillarCard } from '@/components/ui'
 import './_aboutUs.scss'
 import Image from 'next/image'
 

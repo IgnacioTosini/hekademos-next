@@ -17,7 +17,7 @@ const getRequiredEnv = (key: string) => {
     const value = process.env[key]?.trim();
 
     if (!value) {
-        throw new Error(`EMAIL_CONFIG_MISSING_${key}`);
+        throw new Error(`Falta configurar la variable de email ${key}`);
     }
 
     return value;
@@ -35,7 +35,7 @@ const getEmailTransportConfig = (): EmailTransportConfig => {
     const port = Number(getRequiredEnv("SMTP_PORT"));
 
     if (!Number.isInteger(port) || port <= 0) {
-        throw new Error("EMAIL_CONFIG_INVALID_SMTP_PORT");
+        throw new Error("El puerto SMTP configurado no es valido");
     }
 
     const user = getRequiredEnv("SMTP_USER");

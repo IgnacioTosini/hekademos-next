@@ -116,7 +116,7 @@ const sendStudentWelcomeEmail = async ({
         await sendEmail(emailMessage);
         return "SENT";
     } catch (error) {
-        console.error(`Error sending student welcome email to ${email}:`, error);
+        console.error(`Error al enviar el email de bienvenida al alumno ${email}:`, error);
         return "FAILED";
     }
 };
@@ -178,23 +178,23 @@ const syncActiveMembership = async (
 
 const getStudentActionErrorMessage = (error: unknown, fallback: string) => {
     if (!(error instanceof Error)) return fallback;
-    if (error.message === "SCHEDULE_LIMIT_EXCEEDED") return "La cantidad de turnos supera lo permitido por el plan.";
-    if (error.message === "SCHEDULE_NOT_FOUND") return "Uno de los turnos seleccionados ya no existe.";
-    if (error.message === "SCHEDULE_FULL") return "Uno de los turnos seleccionados no tiene cupos disponibles.";
-    if (error.message === "SCHEDULE_REPEATED_DAY") return "El alumno no puede elegir dos turnos el mismo dia.";
-    if (error.message === "INVALID_PHONE") return "Revisa los telefonos ingresados.";
-    if (error.message === "INVALID_BIRTH_DATE") return "La fecha de nacimiento no parece valida.";
+    if (error.message === "La cantidad de turnos supera lo permitido por el plan.") return error.message;
+    if (error.message === "Uno de los turnos seleccionados ya no existe.") return error.message;
+    if (error.message === "Uno de los turnos seleccionados no tiene cupos disponibles.") return error.message;
+    if (error.message === "El alumno no puede elegir dos turnos el mismo dia.") return error.message;
+    if (error.message === "Revisa los telefonos ingresados.") return error.message;
+    if (error.message === "La fecha de nacimiento no parece valida.") return error.message;
 
     return fallback;
 };
 
 const validateStudentProfileFields = (input: CreateStudentUserInput | UpdateStudentUserInput) => {
     if (!isValidOptionalPhone(input.phone) || !isValidOptionalPhone(input.emergencyContactPhone)) {
-        throw new Error("INVALID_PHONE");
+        throw new Error("Revisa los telefonos ingresados.");
     }
 
     if (!isValidBirthDate(input.birthDate)) {
-        throw new Error("INVALID_BIRTH_DATE");
+        throw new Error("La fecha de nacimiento no parece valida.");
     }
 };
 
@@ -209,7 +209,7 @@ const validateNewStudentSchedules = async (planId?: string | null, scheduleIds?:
     });
 
     if (!plan || uniqueScheduleIds.length > plan.trainingDaysPerWeek) {
-        throw new Error("SCHEDULE_LIMIT_EXCEEDED");
+        throw new Error("La cantidad de turnos supera lo permitido por el plan.");
     }
 
     const selectedSchedules = await prisma.weeklyClassSchedule.findMany({
@@ -229,13 +229,13 @@ const validateNewStudentSchedules = async (planId?: string | null, scheduleIds?:
     });
 
     if (selectedSchedules.length !== uniqueScheduleIds.length) {
-        throw new Error("SCHEDULE_NOT_FOUND");
+        throw new Error("Uno de los turnos seleccionados ya no existe.");
     }
 
     const selectedDays = selectedSchedules.map((schedule) => schedule.dayOfWeek);
 
     if (new Set(selectedDays).size !== selectedDays.length) {
-        throw new Error("SCHEDULE_REPEATED_DAY");
+        throw new Error("El alumno no puede elegir dos turnos el mismo dia.");
     }
 
     const hasFullSchedule = selectedSchedules.some((schedule) => (
@@ -243,7 +243,7 @@ const validateNewStudentSchedules = async (planId?: string | null, scheduleIds?:
     ));
 
     if (hasFullSchedule) {
-        throw new Error("SCHEDULE_FULL");
+        throw new Error("Uno de los turnos seleccionados no tiene cupos disponibles.");
     }
 };
 
@@ -270,7 +270,7 @@ const syncStudentSchedules = async (
     }
 
     if (uniqueScheduleIds.length > activeMembership.plan.trainingDaysPerWeek) {
-        throw new Error("SCHEDULE_LIMIT_EXCEEDED");
+        throw new Error("La cantidad de turnos supera lo permitido por el plan.");
     }
 
     const selectedSchedules = await prisma.weeklyClassSchedule.findMany({
@@ -293,13 +293,13 @@ const syncStudentSchedules = async (
     });
 
     if (selectedSchedules.length !== uniqueScheduleIds.length) {
-        throw new Error("SCHEDULE_NOT_FOUND");
+        throw new Error("Uno de los turnos seleccionados ya no existe.");
     }
 
     const selectedDays = selectedSchedules.map((schedule) => schedule.dayOfWeek);
 
     if (new Set(selectedDays).size !== selectedDays.length) {
-        throw new Error("SCHEDULE_REPEATED_DAY");
+        throw new Error("El alumno no puede elegir dos turnos el mismo dia.");
     }
 
     const hasFullSchedule = selectedSchedules.some((schedule) => (
@@ -307,7 +307,7 @@ const syncStudentSchedules = async (
     ));
 
     if (hasFullSchedule) {
-        throw new Error("SCHEDULE_FULL");
+        throw new Error("Uno de los turnos seleccionados no tiene cupos disponibles.");
     }
 
     await prisma.studentScheduleAssignment.updateMany({
@@ -363,7 +363,7 @@ export const getStudents = async (): Promise<ActionResponse<UserWithRelations[]>
             data: students.map((student) => sanitizeUserForClient(student)),
         };
     } catch (error) {
-        logAdminActionError("Error getting students:", error);
+        logAdminActionError("Error al obtener los alumnos:", error);
 
         return {
             ok: false,
@@ -510,7 +510,7 @@ export const getStudentById = async (
             data: sanitizedStudent,
         };
     } catch (error) {
-        logAdminActionError("Error getting student:", error);
+        logAdminActionError("Error al obtener el alumno:", error);
 
         return {
             ok: false,
@@ -601,7 +601,7 @@ export const createStudentUser = async (
             data: sanitizeUserForClient(createdUser),
         };
     } catch (error) {
-        logAdminActionError("Error creating student user:", error);
+        logAdminActionError("Error al crear el usuario alumno:", error);
 
         return {
             ok: false,
@@ -722,7 +722,7 @@ export const updateStudentUser = async (
             data: sanitizeUserForClient(updatedUser),
         };
     } catch (error) {
-        logAdminActionError("Error updating student user:", error);
+        logAdminActionError("Error al actualizar el usuario alumno:", error);
 
         return {
             ok: false,

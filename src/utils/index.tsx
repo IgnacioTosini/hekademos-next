@@ -19,9 +19,27 @@ export const primaryNavLinks = [
     { name: 'Contacto', href: '/#contacto' }
 ]
 
+const defaultHeaderOffset = 80
+const titleTopSpacing = 16
+
 export const handleScrollTo = (sectionId: string) => {
     const element = document.getElementById(sectionId)
-    element?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    if (!element) return
+
+    if (sectionId === 'inicio') {
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+        return
+    }
+
+    const header = document.querySelector<HTMLElement>('.header')
+    const scrollTarget = element.querySelector<HTMLElement>('h1, h2, h3') ?? element
+    const headerOffset = header?.offsetHeight ?? defaultHeaderOffset
+    const targetTop = scrollTarget.getBoundingClientRect().top + window.scrollY - headerOffset - titleTopSpacing
+
+    window.scrollTo({
+        top: Math.max(targetTop, 0),
+        behavior: 'smooth',
+    })
 }
 
 export const getSectionIdFromHref = (href: string) => {

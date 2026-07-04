@@ -1,4 +1,4 @@
-import { DashboardSection } from "@/components/admin/dashboard/dashboardSection/DashboardSection";
+import { DashboardSection } from "@/components/admin/dashboard";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {

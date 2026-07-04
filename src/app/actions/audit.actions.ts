@@ -42,7 +42,7 @@ export const getAuditLogs = async (): Promise<ActionResponse<AuditLog[]>> => {
             data: logs,
         };
     } catch (error) {
-        logAdminActionError("Error getting audit logs:", error);
+        logAdminActionError("Error al obtener los registros de auditoria:", error);
 
         return {
             ok: false,

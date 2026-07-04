@@ -12,7 +12,7 @@ import {
     markCoachStudentCurrentMonthPaymentPending,
     updateCoachStudent,
 } from '@/app/actions/coach.actions';
-import { EmptyState } from '@/components/ui/emptyState/EmptyState';
+import { EmptyState } from '@/components/ui';
 import type { AttendanceStatus, CoachTodayAttendanceSchedule } from '@/types/schema/classes';
 import { getInitials } from '@/utils/strings';
 import './_coachDashboard.scss';

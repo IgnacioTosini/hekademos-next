@@ -1,4 +1,4 @@
-import { TeacherCard } from '@/components/ui/TeacherCard/TeacherCard'
+import { TeacherCard } from '@/components/ui'
 import './_teachers.scss'
 
 export const Teachers = () => {

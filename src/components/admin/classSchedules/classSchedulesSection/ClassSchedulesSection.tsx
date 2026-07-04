@@ -6,7 +6,7 @@ import { FaRegTrashAlt } from 'react-icons/fa';
 import { GoPencil } from 'react-icons/go';
 import { toast } from 'react-toastify';
 import { deleteWeeklyClassSchedule } from '@/app/actions/class.actions';
-import { EmptyState } from '@/components/ui/emptyState/EmptyState';
+import { EmptyState } from '@/components/ui';
 import type { DayOfWeek, WeeklyClassScheduleWithRelations } from '@/types/schema/classes';
 import type { UserWithRelations } from '@/types/schema/users';
 import { addMinutesToTime, dayLabels, dayOrder } from '@/utils/schedule';

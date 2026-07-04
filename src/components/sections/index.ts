@@ -1,0 +1,11 @@
+export { AboutUs } from "./AboutUs/AboutUs";
+export { Banner } from "./Banner/Banner";
+export { Classes } from "./Classes/Classes";
+export { Comunity } from "./Comunity/Comunity";
+export { Contact } from "./Contact/Contact";
+export { FAQ } from "./FAQ/FAQ";
+export { HomePage } from "./HomePage/HomePage";
+export { MembershipPlans } from "./MembershipPlans/MembershipPlans";
+export { Philosophy } from "./Philosophy/Philosophy";
+export { Teachers } from "./Teachers/Teachers";
+export { TrainingSchedule } from "./TrainingSchedule/TrainingSchedule";

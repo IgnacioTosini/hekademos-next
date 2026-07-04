@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Footer } from "@/components/ui/Footer/Footer";
-import { Header } from "@/components/ui/Header/Header";
+import { Footer, Header } from "@/components/ui";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://hekademos.vercel.app"),

@@ -68,9 +68,9 @@ export type ReviewScheduleChangeRequestInput = {
 const requireScheduleRequestReviewer = async () => {
     const session = await getCurrentAuthSession();
 
-    if (!session) throw new Error("UNAUTHORIZED");
+    if (!session) throw new Error("Necesitas iniciar sesion");
     if (session.role !== "ADMIN" && session.role !== "COACH") {
-        throw new Error("FORBIDDEN");
+        throw new Error("Solo admin o coaches pueden revisar solicitudes");
     }
 
     return session;
@@ -78,15 +78,15 @@ const requireScheduleRequestReviewer = async () => {
 
 const getScheduleRequestErrorMessage = (error: unknown, fallback: string) => {
     if (!(error instanceof Error)) return fallback;
-    if (error.message === "UNAUTHORIZED") return "Necesitas iniciar sesion";
-    if (error.message === "FORBIDDEN") return "Solo admin o coaches pueden revisar solicitudes";
-    if (error.message === "SCHEDULE_REQUEST_NOT_FOUND") return "No se encontro la solicitud";
-    if (error.message === "SCHEDULE_REQUEST_NOT_PENDING") return "La solicitud ya fue revisada";
-    if (error.message === "NO_ACTIVE_MEMBERSHIP") return "El alumno no tiene una membresia activa";
-    if (error.message === "SCHEDULE_LIMIT_EXCEEDED") return "La cantidad de turnos supera el plan del alumno";
-    if (error.message === "SCHEDULE_NOT_FOUND") return "Uno de los turnos solicitados ya no esta disponible";
-    if (error.message === "SCHEDULE_REPEATED_DAY") return "La solicitud tiene mas de un turno en el mismo dia";
-    if (error.message === "SCHEDULE_FULL") return "Uno de los turnos solicitados ya no tiene cupo";
+    if (error.message === "Necesitas iniciar sesion") return error.message;
+    if (error.message === "Solo admin o coaches pueden revisar solicitudes") return error.message;
+    if (error.message === "No se encontro la solicitud") return error.message;
+    if (error.message === "La solicitud ya fue revisada") return error.message;
+    if (error.message === "El alumno no tiene una membresia activa") return error.message;
+    if (error.message === "La cantidad de turnos supera el plan del alumno") return error.message;
+    if (error.message === "Uno de los turnos solicitados ya no esta disponible") return error.message;
+    if (error.message === "La solicitud tiene mas de un turno en el mismo dia") return error.message;
+    if (error.message === "Uno de los turnos solicitados ya no tiene cupo") return error.message;
 
     return fallback;
 };
@@ -172,7 +172,7 @@ const sendScheduleChangeRequestReviewNotification = async ({
         await sendEmail(emailMessage);
         return "SENT";
     } catch (error) {
-        console.error(`Error sending schedule request review notification to ${student.user.email}:`, error);
+        console.error(`Error al enviar la notificacion de revision de solicitud a ${student.user.email}:`, error);
         return "FAILED";
     }
 };
@@ -337,9 +337,9 @@ const validateRequestedSchedulesForStudent = async (
         }),
     ]);
 
-    if (!activeMembership) throw new Error("NO_ACTIVE_MEMBERSHIP");
+    if (!activeMembership) throw new Error("El alumno no tiene una membresia activa");
     if (uniqueScheduleIds.length > activeMembership.plan.trainingDaysPerWeek) {
-        throw new Error("SCHEDULE_LIMIT_EXCEEDED");
+        throw new Error("La cantidad de turnos supera el plan del alumno");
     }
 
     const selectedSchedules = await prisma.weeklyClassSchedule.findMany({
@@ -362,17 +362,17 @@ const validateRequestedSchedulesForStudent = async (
         },
     });
 
-    if (selectedSchedules.length !== uniqueScheduleIds.length) throw new Error("SCHEDULE_NOT_FOUND");
+    if (selectedSchedules.length !== uniqueScheduleIds.length) throw new Error("Uno de los turnos solicitados ya no esta disponible");
 
     const selectedDays = selectedSchedules.map((schedule) => schedule.dayOfWeek);
 
-    if (new Set(selectedDays).size !== selectedDays.length) throw new Error("SCHEDULE_REPEATED_DAY");
+    if (new Set(selectedDays).size !== selectedDays.length) throw new Error("La solicitud tiene mas de un turno en el mismo dia");
 
     const hasFullSchedule = selectedSchedules.some((schedule) => (
         schedule.capacity !== null && schedule.studentAssignments.length >= schedule.capacity
     ));
 
-    if (hasFullSchedule) throw new Error("SCHEDULE_FULL");
+    if (hasFullSchedule) throw new Error("Uno de los turnos solicitados ya no tiene cupo");
 
     return {
         activeMembershipId: activeMembership.id,
@@ -420,7 +420,7 @@ export const getScheduleChangeRequests = async (): Promise<ActionResponse<Schedu
             data,
         };
     } catch (error) {
-        console.error("Error getting schedule change requests:", error);
+        console.error("Error al obtener las solicitudes de cambio de horario:", error);
 
         return {
             ok: false,
@@ -437,8 +437,8 @@ export const approveScheduleChangeRequest = async (
         const session = await requireScheduleRequestReviewer();
         const request = await getScheduleChangeRequestById(input.requestId);
 
-        if (!request) throw new Error("SCHEDULE_REQUEST_NOT_FOUND");
-        if (request.status !== "PENDING") throw new Error("SCHEDULE_REQUEST_NOT_PENDING");
+        if (!request) throw new Error("No se encontro la solicitud");
+        if (request.status !== "PENDING") throw new Error("La solicitud ya fue revisada");
 
         const notes = input.notes?.trim() || null;
         const now = new Date();
@@ -494,7 +494,7 @@ export const approveScheduleChangeRequest = async (
                       AND "status" = 'PENDING'::"ScheduleChangeRequestStatus"
                 `;
 
-                if (updatedRows === 0) throw new Error("SCHEDULE_REQUEST_NOT_PENDING");
+                if (updatedRows === 0) throw new Error("La solicitud ya fue revisada");
             });
         } else {
             const updatedRows = await prisma.$executeRaw`
@@ -509,7 +509,7 @@ export const approveScheduleChangeRequest = async (
                   AND "status" = 'PENDING'::"ScheduleChangeRequestStatus"
             `;
 
-            if (updatedRows === 0) throw new Error("SCHEDULE_REQUEST_NOT_PENDING");
+            if (updatedRows === 0) throw new Error("La solicitud ya fue revisada");
         }
 
         const studentNotificationStatus = await sendScheduleChangeRequestReviewNotification({
@@ -540,7 +540,7 @@ export const approveScheduleChangeRequest = async (
             },
         };
     } catch (error) {
-        console.error("Error approving schedule change request:", error);
+        console.error("Error al aprobar la solicitud de cambio de horario:", error);
 
         return {
             ok: false,
@@ -557,8 +557,8 @@ export const rejectScheduleChangeRequest = async (
         const session = await requireScheduleRequestReviewer();
         const request = await getScheduleChangeRequestById(input.requestId);
 
-        if (!request) throw new Error("SCHEDULE_REQUEST_NOT_FOUND");
-        if (request.status !== "PENDING") throw new Error("SCHEDULE_REQUEST_NOT_PENDING");
+        if (!request) throw new Error("No se encontro la solicitud");
+        if (request.status !== "PENDING") throw new Error("La solicitud ya fue revisada");
 
         const notes = input.notes?.trim() || null;
         const now = new Date();
@@ -574,7 +574,7 @@ export const rejectScheduleChangeRequest = async (
               AND "status" = 'PENDING'::"ScheduleChangeRequestStatus"
         `;
 
-        if (updatedRows === 0) throw new Error("SCHEDULE_REQUEST_NOT_PENDING");
+        if (updatedRows === 0) throw new Error("La solicitud ya fue revisada");
 
         const studentNotificationStatus = await sendScheduleChangeRequestReviewNotification({
             request,
@@ -603,7 +603,7 @@ export const rejectScheduleChangeRequest = async (
             },
         };
     } catch (error) {
-        console.error("Error rejecting schedule change request:", error);
+        console.error("Error al rechazar la solicitud de cambio de horario:", error);
 
         return {
             ok: false,

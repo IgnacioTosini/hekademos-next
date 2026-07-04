@@ -34,12 +34,12 @@ export async function DELETE(req: NextRequest) {
             error: result.success ? undefined : "Cloudinary no pudo eliminar la imagen",
         });
     } catch (error) {
-        console.error("Cloudinary delete error:", error);
+        console.error("Error al eliminar la imagen de Cloudinary:", error);
 
         return Response.json(
             {
                 success: false,
-                error: error instanceof Error ? error.message : "No se pudo eliminar la imagen.",
+                error: "No se pudo eliminar la imagen.",
             },
             { status: 500 }
         );

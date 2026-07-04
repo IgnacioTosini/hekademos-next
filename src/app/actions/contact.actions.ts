@@ -20,10 +20,10 @@ const getContactRecipientEmail = () => (
 
 const getContactErrorMessage = (error: unknown) => {
     if (!(error instanceof Error)) return "No se pudo enviar el mensaje";
-    if (error.message === "CONTACT_NAME_INVALID") return "Ingresá un nombre válido";
-    if (error.message === "CONTACT_EMAIL_INVALID") return "Ingresá un email válido";
-    if (error.message === "CONTACT_MESSAGE_INVALID") return "El mensaje debe tener entre 10 y 1200 caracteres";
-    if (error.message === "CONTACT_RECIPIENT_MISSING") return "El formulario de contacto no tiene un destinatario configurado";
+    if (error.message === "Ingresa un nombre valido") return error.message;
+    if (error.message === "Ingresa un email valido") return error.message;
+    if (error.message === "El mensaje debe tener entre 10 y 1200 caracteres") return error.message;
+    if (error.message === "El formulario de contacto no tiene un destinatario configurado") return error.message;
 
     return "No se pudo enviar el mensaje";
 };
@@ -37,11 +37,11 @@ export const sendContactMessage = async (
         const message = input.message.trim();
         const recipientEmail = getContactRecipientEmail();
 
-        if (name.length < 2 || name.length > 80) throw new Error("CONTACT_NAME_INVALID");
-        if (!isDeliverableEmail(email)) throw new Error("CONTACT_EMAIL_INVALID");
-        if (message.length < 10 || message.length > 1200) throw new Error("CONTACT_MESSAGE_INVALID");
+        if (name.length < 2 || name.length > 80) throw new Error("Ingresa un nombre valido");
+        if (!isDeliverableEmail(email)) throw new Error("Ingresa un email valido");
+        if (message.length < 10 || message.length > 1200) throw new Error("El mensaje debe tener entre 10 y 1200 caracteres");
         if (!recipientEmail || !isDeliverableEmail(recipientEmail)) {
-            throw new Error("CONTACT_RECIPIENT_MISSING");
+            throw new Error("El formulario de contacto no tiene un destinatario configurado");
         }
 
         const emailMessage = buildEmailMessage({
@@ -70,7 +70,7 @@ export const sendContactMessage = async (
             },
         };
     } catch (error) {
-        console.error("Error sending contact message:", error);
+        console.error("Error al enviar el mensaje de contacto:", error);
 
         return {
             ok: false,

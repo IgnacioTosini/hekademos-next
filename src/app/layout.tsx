@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { CSSProperties } from "react";
-import { ToastProvider } from "@/components/providers/ToastProvider";
+import { ToastProvider } from "@/components/providers";
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css";
 import "react-toastify/dist/ReactToastify.css";

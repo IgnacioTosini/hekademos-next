@@ -108,17 +108,17 @@ const getCurrentCoachId = async () => {
 
 const getAttendanceErrorMessage = (error: unknown, fallback: string) => {
     if (!(error instanceof Error)) return fallback;
-    if (error.message === "UNAUTHORIZED") return "Necesitas iniciar sesion como coach";
-    if (error.message === "SCHEDULE_NOT_FOUND") return "No se encontro el turno";
-    if (error.message === "STUDENT_NOT_IN_SCHEDULE") return "El alumno no pertenece a este turno";
+    if (error.message === "Necesitas iniciar sesion como coach") return error.message;
+    if (error.message === "No se encontro el turno") return error.message;
+    if (error.message === "El alumno no pertenece a este turno") return error.message;
 
     return fallback;
 };
 
 const getAdminAttendanceErrorMessage = (error: unknown, fallback: string) => {
     if (error instanceof Error) {
-        if (error.message === "SCHEDULE_NOT_FOUND") return "No se encontro el turno";
-        if (error.message === "STUDENT_NOT_IN_SCHEDULE") return "El alumno no pertenece a este turno";
+        if (error.message === "No se encontro el turno") return error.message;
+        if (error.message === "El alumno no pertenece a este turno") return error.message;
     }
 
     return getAdminActionErrorMessage(error, fallback);
@@ -146,7 +146,7 @@ export const getCoachTodayAttendance = async (): Promise<ActionResponse<CoachTod
     try {
         const coachId = await getCurrentCoachId();
 
-        if (!coachId) throw new Error("UNAUTHORIZED");
+        if (!coachId) throw new Error("Necesitas iniciar sesion como coach");
 
         const today = new Date();
         const { start, end } = getTodayRange(today);
@@ -226,7 +226,7 @@ export const getCoachTodayAttendance = async (): Promise<ActionResponse<CoachTod
             data: attendanceSchedules,
         };
     } catch (error) {
-        console.error("Error getting coach attendance:", error);
+        console.error("Error al obtener la asistencia del coach:", error);
 
         return {
             ok: false,
@@ -244,7 +244,7 @@ export const markCoachStudentAttendance = async (
     try {
         const coachId = await getCurrentCoachId();
 
-        if (!coachId) throw new Error("UNAUTHORIZED");
+        if (!coachId) throw new Error("Necesitas iniciar sesion como coach");
 
         const today = new Date();
         const { start, end } = getTodayRange(today);
@@ -267,8 +267,8 @@ export const markCoachStudentAttendance = async (
             },
         });
 
-        if (!schedule) throw new Error("SCHEDULE_NOT_FOUND");
-        if (schedule.studentAssignments.length === 0) throw new Error("STUDENT_NOT_IN_SCHEDULE");
+        if (!schedule) throw new Error("No se encontro el turno");
+        if (schedule.studentAssignments.length === 0) throw new Error("El alumno no pertenece a este turno");
 
         const startsAt = getScheduleStartsAt(today, schedule.startTime);
         const endsAt = addMinutesToDate(startsAt, schedule.durationMinutes);
@@ -346,7 +346,7 @@ export const markCoachStudentAttendance = async (
             },
         };
     } catch (error) {
-        console.error("Error marking coach attendance:", error);
+        console.error("Error al marcar la asistencia del coach:", error);
 
         return {
             ok: false,
@@ -478,7 +478,7 @@ export const getAdminAttendanceOverview = async (
             data: attendanceSchedules,
         };
     } catch (error) {
-        logAdminActionError("Error getting admin attendance:", error);
+        logAdminActionError("Error al obtener la asistencia de administracion:", error);
 
         return {
             ok: false,
@@ -604,7 +604,7 @@ export const getAdminMonthlyAttendanceSummary = async (
             },
         };
     } catch (error) {
-        logAdminActionError("Error getting monthly attendance summary:", error);
+        logAdminActionError("Error al obtener el resumen mensual de asistencia:", error);
 
         return {
             ok: false,
@@ -643,8 +643,8 @@ export const markAdminStudentAttendance = async (
             },
         });
 
-        if (!schedule) throw new Error("SCHEDULE_NOT_FOUND");
-        if (schedule.studentAssignments.length === 0) throw new Error("STUDENT_NOT_IN_SCHEDULE");
+        if (!schedule) throw new Error("No se encontro el turno");
+        if (schedule.studentAssignments.length === 0) throw new Error("El alumno no pertenece a este turno");
 
         const startsAt = getScheduleStartsAt(selectedDate, schedule.startTime);
         const endsAt = addMinutesToDate(startsAt, schedule.durationMinutes);
@@ -723,7 +723,7 @@ export const markAdminStudentAttendance = async (
             },
         };
     } catch (error) {
-        logAdminActionError("Error marking admin attendance:", error);
+        logAdminActionError("Error al marcar la asistencia desde administracion:", error);
 
         return {
             ok: false,
@@ -774,7 +774,7 @@ export const getAdminTodayAttendanceSummary = async (): Promise<ActionResponse<A
             },
         };
     } catch (error) {
-        logAdminActionError("Error getting admin attendance summary:", error);
+        logAdminActionError("Error al obtener el resumen de asistencia de administracion:", error);
 
         return {
             ok: false,

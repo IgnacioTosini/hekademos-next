@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { AuditLog } from "@/app/actions/audit.actions";
-import { EmptyState } from "@/components/ui/emptyState/EmptyState";
+import { EmptyState } from "@/components/ui";
 import { formatCurrency } from "@/utils/format";
 import "./_auditSection.scss";
 

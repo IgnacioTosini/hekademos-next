@@ -1,9 +1,8 @@
 import { redirect } from 'next/navigation';
 import { getCoachTodayAttendance } from '@/app/actions/attendance.actions';
-import { ChangePasswordButton } from '@/components/account/changePasswordButton/ChangePasswordButton';
-import { LogoutIconButton } from '@/components/auth/logoutIconButton/LogoutIconButton';
-import { CoachDashboard, type CoachDashboardStudent } from '@/components/platform/coach/coachDashboard/CoachDashboard';
-import { CoachProfileEditor } from '@/components/platform/coach/coachProfileEditor/CoachProfileEditor';
+import { ChangePasswordButton } from '@/components/account';
+import { LogoutIconButton } from '@/components/auth';
+import { CoachDashboard, CoachProfileEditor, type CoachDashboardStudent } from '@/components/platform/coach';
 import { getCurrentAuthSession } from '@/lib/auth-session';
 import { prisma } from '@/lib/prisma';
 import { formatCurrency } from '@/utils/format';

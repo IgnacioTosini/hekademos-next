@@ -1,6 +1,6 @@
 import { getCurrentAuthSession } from "./auth-session";
 
-const adminRequiredErrorCode = "ADMIN_REQUIRED";
+const adminRequiredErrorCode = "No tenes permiso para realizar esta accion";
 
 export const isAdminAuthenticated = async () => {
     const session = await getCurrentAuthSession();
@@ -20,7 +20,7 @@ export const requireAdminSession = async () => {
 
 export const getAdminActionErrorMessage = (error: unknown, fallback: string) => {
     if (error instanceof Error && error.message === adminRequiredErrorCode) {
-        return "No tenes permiso para realizar esta accion";
+        return adminRequiredErrorCode;
     }
 
     return fallback;

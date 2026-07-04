@@ -1,5 +1,5 @@
 import { getUsers } from '@/app/actions/user.actions';
-import { UsersSection } from '@/components/admin/users/usersSection/UsersSection';
+import { UsersSection } from '@/components/admin/users';
 import type { Metadata } from 'next';
 import './_usuariosPage.scss';
 

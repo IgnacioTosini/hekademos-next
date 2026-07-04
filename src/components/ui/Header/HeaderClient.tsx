@@ -39,7 +39,7 @@ export const HeaderClient = ({ user }: Props) => {
             setIsDashboardOpen(false);
         }
         if (location.pathname !== '/') {
-            router.push('/');
+            router.push('/#contacto');
             return;
         }
         handleScrollTo('contacto');

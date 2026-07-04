@@ -1,6 +1,6 @@
 import { getAdminWeeklyClassSchedules } from '@/app/actions/class.actions';
 import { getCoaches } from '@/app/actions/coach.actions';
-import { ClassSchedulesSection } from '@/components/admin/classSchedules/classSchedulesSection/ClassSchedulesSection';
+import { ClassSchedulesSection } from '@/components/admin/classSchedules';
 import type { Metadata } from 'next';
 import './_turnosPage.scss';
 

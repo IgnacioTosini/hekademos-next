@@ -13,6 +13,7 @@ import {
     adminMembershipPlansPath,
     adminPaymentsPath,
     adminStudentsPath,
+    publicHomePath,
     type ActionResponse,
 } from "./_shared";
 
@@ -26,20 +27,20 @@ const normalizePlanInput = (input: CreateMembershipPlanInput | UpdateMembershipP
 });
 
 const validatePlanInput = (input: CreateMembershipPlanInput | UpdateMembershipPlanInput, isCreate: boolean) => {
-    if (isCreate && !input.name?.trim()) throw new Error("PLAN_NAME_REQUIRED");
+    if (isCreate && !input.name?.trim()) throw new Error("El nombre del plan es obligatorio");
     if (input.trainingDaysPerWeek !== undefined && input.trainingDaysPerWeek < 1) {
-        throw new Error("PLAN_DAYS_INVALID");
+        throw new Error("Los dias por semana deben ser mayores a cero");
     }
     if (input.priceCents !== undefined && input.priceCents < 0) {
-        throw new Error("PLAN_PRICE_INVALID");
+        throw new Error("El precio mensual no puede ser negativo");
     }
 };
 
 const getPlanErrorMessage = (error: unknown, fallback: string) => {
     if (error instanceof Error) {
-        if (error.message === "PLAN_NAME_REQUIRED") return "El nombre del plan es obligatorio";
-        if (error.message === "PLAN_DAYS_INVALID") return "Los dias por semana deben ser mayores a cero";
-        if (error.message === "PLAN_PRICE_INVALID") return "El precio mensual no puede ser negativo";
+        if (error.message === "El nombre del plan es obligatorio") return error.message;
+        if (error.message === "Los dias por semana deben ser mayores a cero") return error.message;
+        if (error.message === "El precio mensual no puede ser negativo") return error.message;
     }
 
     return getAdminActionErrorMessage(error, fallback);
@@ -61,7 +62,7 @@ export const getMembershipPlans = async (): Promise<ActionResponse<MembershipPla
             data: plans,
         };
     } catch (error) {
-        logAdminActionError("Error getting membership plans:", error);
+        logAdminActionError("Error al obtener los planes:", error);
 
         return {
             ok: false,
@@ -94,7 +95,7 @@ export const getAdminMembershipPlans = async (): Promise<ActionResponse<Membersh
             data: plans,
         };
     } catch (error) {
-        logAdminActionError("Error getting admin membership plans:", error);
+        logAdminActionError("Error al obtener los planes de administracion:", error);
 
         return {
             ok: false,
@@ -125,13 +126,14 @@ export const createMembershipPlan = async (
 
         revalidatePath(adminMembershipPlansPath);
         revalidatePath(adminStudentsPath);
+        revalidatePath(publicHomePath);
 
         return {
             ok: true,
             data: plan,
         };
     } catch (error) {
-        logAdminActionError("Error creating membership plan:", error);
+        logAdminActionError("Error al crear el plan:", error);
 
         return {
             ok: false,
@@ -167,13 +169,14 @@ export const updateMembershipPlan = async (
         revalidatePath(adminMembershipPlansPath);
         revalidatePath(adminStudentsPath);
         revalidatePath(adminPaymentsPath);
+        revalidatePath(publicHomePath);
 
         return {
             ok: true,
             data: plan,
         };
     } catch (error) {
-        logAdminActionError("Error updating membership plan:", error);
+        logAdminActionError("Error al actualizar el plan:", error);
 
         return {
             ok: false,
@@ -209,6 +212,7 @@ export const deleteMembershipPlan = async (
             revalidatePath(adminMembershipPlansPath);
             revalidatePath(adminStudentsPath);
             revalidatePath(adminPaymentsPath);
+            revalidatePath(publicHomePath);
 
             return {
                 ok: true,
@@ -227,6 +231,7 @@ export const deleteMembershipPlan = async (
 
         revalidatePath(adminMembershipPlansPath);
         revalidatePath(adminStudentsPath);
+        revalidatePath(publicHomePath);
 
         return {
             ok: true,
@@ -236,7 +241,7 @@ export const deleteMembershipPlan = async (
             },
         };
     } catch (error) {
-        logAdminActionError("Error deleting membership plan:", error);
+        logAdminActionError("Error al eliminar el plan:", error);
 
         return {
             ok: false,

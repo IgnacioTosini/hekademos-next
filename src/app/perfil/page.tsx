@@ -3,12 +3,10 @@ import type { Metadata } from "next";
 import { getWeeklyClassSchedules } from "@/app/actions/class.actions";
 import { getCurrentAuthSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
-import { LogoutIconButton } from "@/components/auth/logoutIconButton/LogoutIconButton";
-import { ChangePasswordButton } from "@/components/account/changePasswordButton/ChangePasswordButton";
-import { StudentProfileContent } from "@/components/admin/students/studentProfile/studentProfileContent/StudentProfileContent";
-import { StudentProfileEditor } from "@/components/platform/student/studentProfileEditor/StudentProfileEditor";
-import { StudentRoutineEditor } from "@/components/platform/student/studentRoutineEditor/StudentRoutineEditor";
-import { StudentScheduleChangeRequest } from "@/components/platform/student/studentScheduleChangeRequest/StudentScheduleChangeRequest";
+import { ChangePasswordButton } from "@/components/account";
+import { StudentProfileContent } from "@/components/admin/students";
+import { LogoutIconButton } from "@/components/auth";
+import { StudentProfileEditor, StudentRoutineEditor, StudentScheduleChangeRequest } from "@/components/platform/student";
 import "./_perfilPage.scss";
 
 export const metadata: Metadata = {

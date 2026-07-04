@@ -8,7 +8,7 @@ import { IoMdClose } from "react-icons/io";
 import { updateCoachProfile } from "@/app/actions/profile.actions";
 import { isValidOptionalPhone } from "@/lib/form-validation";
 import type { UserImage } from "@/types/schema/users";
-import { saveWithResolvedUserImage, UserImageField, type UserImageValue } from "@/components/admin/users/userImageField/UserImageField";
+import { saveWithResolvedUserImage, UserImageField, type UserImageValue } from "@/components/admin/users";
 import "@/components/admin/users/userForm/_userForm.scss";
 import "./_coachProfileEditor.scss";
 

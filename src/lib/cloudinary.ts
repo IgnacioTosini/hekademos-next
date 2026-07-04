@@ -62,7 +62,7 @@ export async function uploadCloudinaryImage(
     const data = await response.json();
 
     if (!response.ok) {
-        throw new Error(data?.error?.message ?? "No se pudo subir la imagen.");
+        throw new Error("No se pudo subir la imagen.");
     }
 
     return {
@@ -106,7 +106,7 @@ export async function deleteCloudinaryImage(
     const data = await response.json();
 
     if (!response.ok) {
-        throw new Error(data?.error?.message ?? "No se pudo eliminar la imagen.");
+        throw new Error("No se pudo eliminar la imagen.");
     }
 
     return {

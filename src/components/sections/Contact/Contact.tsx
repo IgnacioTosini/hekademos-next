@@ -2,12 +2,12 @@
 
 import { FaClock, FaInstagram, FaMapMarkerAlt, FaPhoneAlt, FaWhatsapp } from 'react-icons/fa'
 import { IoMdMail } from 'react-icons/io'
-import { Form } from '@/components/ui/Form/Form'
+import { Form } from '@/components/ui'
+import { buildHekademosWhatsappUrl } from '@/utils/whatsapp'
 import './_contact.scss'
 
-const whatsappNumber = '2234268951'
 const whatsappMessage = 'Hola Hekademos, quiero consultar por las clases.'
-const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`
+const whatsappUrl = buildHekademosWhatsappUrl(whatsappMessage)
 
 export const Contact = () => {
     return (

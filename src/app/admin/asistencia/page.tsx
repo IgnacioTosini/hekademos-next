@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { getAdminAttendanceOverview, getAdminMonthlyAttendanceSummary } from '@/app/actions/attendance.actions';
 import { getCoaches } from '@/app/actions/coach.actions';
-import { AttendanceSection } from '@/components/admin/attendance/attendanceSection/AttendanceSection';
+import { AttendanceSection } from '@/components/admin/attendance';
 import { toDateInputValue } from '@/utils/date';
 import './_asistenciaPage.scss';
 

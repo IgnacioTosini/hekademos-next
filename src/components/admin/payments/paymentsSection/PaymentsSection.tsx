@@ -13,7 +13,7 @@ import {
     savePaymentDetails,
     sendPaymentReminderEmails,
 } from '@/app/actions/payment.actions';
-import { EmptyState } from '@/components/ui/emptyState/EmptyState';
+import { EmptyState } from '@/components/ui';
 import type { Payment, PaymentOverviewRow, PaymentOverviewStatus } from '@/types/schema/payments';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { getInitials } from '@/utils/strings';

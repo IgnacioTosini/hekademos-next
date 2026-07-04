@@ -17,6 +17,7 @@ export const adminCoachesPath = '/admin/coaches';
 export const adminPaymentsPath = '/admin/pagos';
 export const adminMembershipPlansPath = '/admin/planes';
 export const adminClassSchedulesPath = '/admin/turnos';
+export const publicHomePath = '/';
 
 export const userInclude = {
     image: true,

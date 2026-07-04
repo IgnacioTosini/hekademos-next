@@ -37,8 +37,8 @@ export type DashboardUserSummary = {
 };
 
 const getUserActionErrorMessage = (error: unknown, fallback: string) => {
-    if (error instanceof Error && error.message === "INVALID_PHONE") {
-        return "Revisa el telefono ingresado";
+    if (error instanceof Error && error.message === "Revisa el telefono ingresado") {
+        return error.message;
     }
 
     return getAdminActionErrorMessage(error, fallback);
@@ -46,7 +46,7 @@ const getUserActionErrorMessage = (error: unknown, fallback: string) => {
 
 const validateUserInput = (input: CreateUserInput | UpdateUserInput) => {
     if (!isValidOptionalPhone(input.phone)) {
-        throw new Error("INVALID_PHONE");
+        throw new Error("Revisa el telefono ingresado");
     }
 };
 
@@ -91,7 +91,7 @@ export const getDashboardUserSummary = async (): Promise<ActionResponse<Dashboar
             },
         };
     } catch (error) {
-        logAdminActionError("Error getting dashboard user summary:", error);
+        logAdminActionError("Error al obtener el resumen de usuarios del panel:", error);
 
         return {
             ok: false,
@@ -117,7 +117,7 @@ export const getUsers = async (): Promise<ActionResponse<UserWithRelations[]>> =
             data: users.map((user) => sanitizeUserForClient(user)),
         };
     } catch (error) {
-        logAdminActionError("Error getting users:", error);
+        logAdminActionError("Error al obtener los usuarios:", error);
 
         return {
             ok: false,
@@ -146,7 +146,7 @@ export const getUserById = async (id: string): Promise<ActionResponse<UserWithRe
             data: sanitizeUserForClient(user),
         };
     } catch (error) {
-        logAdminActionError("Error getting user by id:", error);
+        logAdminActionError("Error al obtener el usuario por id:", error);
 
         return {
             ok: false,
@@ -180,7 +180,7 @@ export const getUserByEmail = async (email: string): Promise<ActionResponse<User
             data: sanitizeUserForClient(user),
         };
     } catch (error) {
-        logAdminActionError("Error getting user by email:", error);
+        logAdminActionError("Error al obtener el usuario por email:", error);
 
         return {
             ok: false,
@@ -227,7 +227,7 @@ export const createUser = async (
             data: sanitizeUserForClient(user),
         };
     } catch (error) {
-        logAdminActionError("Error creating user:", error);
+        logAdminActionError("Error al crear el usuario:", error);
 
         return {
             ok: false,
@@ -297,7 +297,7 @@ export const updateUser = async (
             data: sanitizeUserForClient(updatedUser),
         };
     } catch (error) {
-        logAdminActionError("Error updating user:", error);
+        logAdminActionError("Error al actualizar el usuario:", error);
 
         return {
             ok: false,
@@ -352,7 +352,7 @@ export const upsertUserImage = async (
             data: image,
         };
     } catch (error) {
-        logAdminActionError("Error upserting user image:", error);
+        logAdminActionError("Error al guardar la imagen del usuario:", error);
 
         return {
             ok: false,
@@ -382,7 +382,7 @@ export const deleteUserImage = async (
             data: { userId },
         };
     } catch (error) {
-        logAdminActionError("Error deleting user image:", error);
+        logAdminActionError("Error al eliminar la imagen del usuario:", error);
 
         return {
             ok: false,
@@ -412,7 +412,7 @@ export const deleteUser = async (id: string): Promise<ActionResponse<UserWithRel
             data: sanitizeUserForClient(user),
         };
     } catch (error) {
-        logAdminActionError("Error deleting user:", error);
+        logAdminActionError("Error al eliminar el usuario:", error);
 
         return {
             ok: false,

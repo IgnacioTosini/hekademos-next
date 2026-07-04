@@ -1,4 +1,4 @@
-import { Dashboard } from "@/components/admin/dashboard/Dashboard";
+import { Dashboard } from "@/components/admin/dashboard";
 import { getCurrentAuthSession } from "@/lib/auth-session";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";

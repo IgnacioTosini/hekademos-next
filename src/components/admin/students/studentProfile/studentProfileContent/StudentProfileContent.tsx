@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { FaArrowLeft, FaExternalLinkAlt } from "react-icons/fa";
-import { EmptyState } from "@/components/ui/emptyState/EmptyState";
+import { EmptyState } from "@/components/ui";
 import type { AttendanceStatus, WeeklyClassSchedule } from "@/types/schema/classes";
 import type { StudentMembershipWithRelations } from "@/types/schema/memberships";
 import type { Payment, PaymentStatus } from "@/types/schema/payments";

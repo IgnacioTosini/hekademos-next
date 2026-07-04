@@ -118,4 +118,15 @@
         font-size: $font-size-medium-large;
         font-weight: $font-weight-medium;
     }
+
+    .trainingScheduleEmpty {
+        grid-column: 1 / -1;
+        width: 100%;
+        padding: 2rem;
+        border: 1px solid $border-color;
+        border-radius: 1rem;
+        color: $color-text-secondary;
+        font-size: $font-size-medium;
+        text-align: center;
+    }
 }

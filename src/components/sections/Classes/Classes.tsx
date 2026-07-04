@@ -1,4 +1,4 @@
-import { ClassCard } from '@/components/ui/ClassCard/ClassCard'
+import { ClassCard } from '@/components/ui'
 import './_classes.scss'
 
 export const Classes = () => {

@@ -13,6 +13,7 @@ import { dayOrderIndex } from "@/utils/schedule";
 import {
     adminClassSchedulesPath,
     adminStudentsPath,
+    publicHomePath,
     type ActionResponse,
 } from "./_shared";
 
@@ -46,19 +47,19 @@ const validateScheduleInput = async (
     const candidateStartTime = input.startTime?.trim() ?? currentSchedule?.startTime;
     const candidateCoachId = input.coachId === undefined ? currentSchedule?.coachId ?? null : input.coachId || null;
 
-    if (!candidateDayOfWeek) throw new Error("SCHEDULE_DAY_REQUIRED");
-    if (!candidateStartTime) throw new Error("SCHEDULE_TIME_REQUIRED");
+    if (!candidateDayOfWeek) throw new Error("El dia del turno es obligatorio");
+    if (!candidateStartTime) throw new Error("El horario del turno es obligatorio");
 
     if (input.startTime !== undefined && !timePattern.test(input.startTime)) {
-        throw new Error("SCHEDULE_TIME_INVALID");
+        throw new Error("El horario debe tener formato HH:mm");
     }
 
     if (input.durationMinutes !== undefined && input.durationMinutes < 15) {
-        throw new Error("SCHEDULE_DURATION_INVALID");
+        throw new Error("La duracion debe ser de al menos 15 minutos");
     }
 
     if (input.capacity !== undefined && input.capacity !== null && input.capacity < 1) {
-        throw new Error("SCHEDULE_CAPACITY_INVALID");
+        throw new Error("La capacidad debe ser mayor a cero");
     }
 
     if (input.capacity !== undefined && currentScheduleId) {
@@ -70,7 +71,7 @@ const validateScheduleInput = async (
         });
 
         if (input.capacity !== null && input.capacity < occupiedSpots) {
-            throw new Error("SCHEDULE_CAPACITY_LOWER_THAN_OCCUPIED");
+            throw new Error("La capacidad no puede ser menor a los cupos ocupados");
         }
     }
 
@@ -91,19 +92,19 @@ const validateScheduleInput = async (
             },
         });
 
-        if (duplicatedSchedule) throw new Error("SCHEDULE_DUPLICATED");
+        if (duplicatedSchedule) throw new Error("Ese coach ya tiene un turno en ese dia y horario");
     }
 };
 
 const getScheduleErrorMessage = (error: unknown, fallback: string) => {
     if (error instanceof Error) {
-        if (error.message === "SCHEDULE_DAY_REQUIRED") return "El dia del turno es obligatorio";
-        if (error.message === "SCHEDULE_TIME_REQUIRED") return "El horario del turno es obligatorio";
-        if (error.message === "SCHEDULE_TIME_INVALID") return "El horario debe tener formato HH:mm";
-        if (error.message === "SCHEDULE_DURATION_INVALID") return "La duracion debe ser de al menos 15 minutos";
-        if (error.message === "SCHEDULE_CAPACITY_INVALID") return "La capacidad debe ser mayor a cero";
-        if (error.message === "SCHEDULE_CAPACITY_LOWER_THAN_OCCUPIED") return "La capacidad no puede ser menor a los cupos ocupados";
-        if (error.message === "SCHEDULE_DUPLICATED") return "Ese coach ya tiene un turno en ese dia y horario";
+        if (error.message === "El dia del turno es obligatorio") return error.message;
+        if (error.message === "El horario del turno es obligatorio") return error.message;
+        if (error.message === "El horario debe tener formato HH:mm") return error.message;
+        if (error.message === "La duracion debe ser de al menos 15 minutos") return error.message;
+        if (error.message === "La capacidad debe ser mayor a cero") return error.message;
+        if (error.message === "La capacidad no puede ser menor a los cupos ocupados") return error.message;
+        if (error.message === "Ese coach ya tiene un turno en ese dia y horario") return error.message;
     }
 
     return getAdminActionErrorMessage(error, fallback);
@@ -148,7 +149,7 @@ export const getWeeklyClassSchedules = async (): Promise<ActionResponse<WeeklyCl
             )),
         };
     } catch (error) {
-        logAdminActionError("Error getting weekly class schedules:", error);
+        logAdminActionError("Error al obtener los turnos semanales:", error);
 
         return {
             ok: false,
@@ -208,7 +209,7 @@ export const getAdminWeeklyClassSchedules = async (): Promise<ActionResponse<Wee
             )),
         };
     } catch (error) {
-        logAdminActionError("Error getting admin weekly class schedules:", error);
+        logAdminActionError("Error al obtener los turnos semanales de administracion:", error);
 
         return {
             ok: false,
@@ -240,13 +241,14 @@ export const createWeeklyClassSchedule = async (
 
         revalidatePath(adminClassSchedulesPath);
         revalidatePath(adminStudentsPath);
+        revalidatePath(publicHomePath);
 
         return {
             ok: true,
             data: schedule,
         };
     } catch (error) {
-        logAdminActionError("Error creating weekly class schedule:", error);
+        logAdminActionError("Error al crear el turno semanal:", error);
 
         return {
             ok: false,
@@ -282,13 +284,14 @@ export const updateWeeklyClassSchedule = async (
 
         revalidatePath(adminClassSchedulesPath);
         revalidatePath(adminStudentsPath);
+        revalidatePath(publicHomePath);
 
         return {
             ok: true,
             data: schedule,
         };
     } catch (error) {
-        logAdminActionError("Error updating weekly class schedule:", error);
+        logAdminActionError("Error al actualizar el turno semanal:", error);
 
         return {
             ok: false,
@@ -322,6 +325,7 @@ export const deleteWeeklyClassSchedule = async (
 
             revalidatePath(adminClassSchedulesPath);
             revalidatePath(adminStudentsPath);
+            revalidatePath(publicHomePath);
 
             return {
                 ok: true,
@@ -340,6 +344,7 @@ export const deleteWeeklyClassSchedule = async (
 
         revalidatePath(adminClassSchedulesPath);
         revalidatePath(adminStudentsPath);
+        revalidatePath(publicHomePath);
 
         return {
             ok: true,
@@ -349,7 +354,7 @@ export const deleteWeeklyClassSchedule = async (
             },
         };
     } catch (error) {
-        logAdminActionError("Error deleting weekly class schedule:", error);
+        logAdminActionError("Error al eliminar el turno semanal:", error);
 
         return {
             ok: false,
