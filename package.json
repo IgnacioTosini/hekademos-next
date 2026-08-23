@@ -5,14 +5,15 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
-    "build:vercel": "prisma generate && prisma migrate deploy && next build",
-    "build:deploy": "prisma generate && prisma migrate deploy && next build",
+    "build:vercel": "prisma generate && prisma migrate deploy && npm run prisma:seed:admin && next build",
+    "build:deploy": "prisma generate && prisma migrate deploy && npm run prisma:seed:admin && next build",
     "start": "next start",
     "lint": "eslint",
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
-    "prisma:seed": "prisma db seed"
+    "prisma:seed": "prisma db seed",
+    "prisma:seed:admin": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types prisma/seed-admin.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",

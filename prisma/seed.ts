@@ -1,4 +1,5 @@
 import { DayOfWeek, PrismaClient } from "@prisma/client";
+import { seedAdmin } from "./seed-admin.ts";
 
 const prisma = new PrismaClient();
 
@@ -116,23 +117,6 @@ const studentsSeed = [
     routineExcelUrl: "https://docs.google.com/spreadsheets/d/tomas-silva",
   },
 ];
-
-async function seedAdmin() {
-  await prisma.user.upsert({
-    where: { email: "admin@hekademos.local" },
-    update: {
-      name: "Admin Hekademos",
-      role: "ADMIN",
-      status: "ACTIVE",
-    },
-    create: {
-      email: "admin@hekademos.local",
-      name: "Admin Hekademos",
-      role: "ADMIN",
-      status: "ACTIVE",
-    },
-  });
-}
 
 async function seedMembershipPlans() {
   for (const plan of membershipPlansSeed) {
@@ -310,7 +294,7 @@ async function seedStudents() {
 }
 
 async function main() {
-  await seedAdmin();
+  await seedAdmin(prisma);
   await seedMembershipPlans();
 
   const coaches = await seedCoaches();
