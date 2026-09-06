@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // The custom Prisma client loads its native engine dynamically. Include it
+  // explicitly so Vercel copies it into each Node.js function bundle.
+  outputFileTracingIncludes: {
+    '/*': ['src/generated/prisma/*.node'],
+  },
   images: {
     remotePatterns: [
       {

@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
-    "build:vercel": "npm run validate:env:production && prisma generate && prisma migrate deploy && npm run prisma:seed:admin && next build",
-    "build:deploy": "npm run validate:env:production && prisma generate && prisma migrate deploy && npm run prisma:seed:admin && next build",
+    "build": "prisma generate && next build && npm run verify:prisma-engine",
+    "build:vercel": "npm run validate:env:production && prisma generate && prisma migrate deploy && npm run prisma:seed:admin && next build && npm run verify:prisma-engine",
+    "build:deploy": "npm run validate:env:production && prisma generate && prisma migrate deploy && npm run prisma:seed:admin && next build && npm run verify:prisma-engine",
+    "verify:prisma-engine": "node scripts/verify-prisma-engine.mjs",
     "start": "npm run validate:env:production && next start",
     "validate:env:production": "node --no-warnings --experimental-strip-types scripts/validate-production-env.mjs",
     "lint": "eslint",
