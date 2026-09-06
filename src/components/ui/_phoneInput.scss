@@ -1,0 +1,15 @@
+.phone-input {
+    min-width: 0;
+    width: 100%;
+    .phone-input__fields {
+        display: grid;
+        grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.2fr);
+        gap: .5rem;
+        input, select { min-width: 0; box-sizing: border-box; }
+    }
+    small { display: block; margin-top: .4rem; line-height: 1.4; color: #a6b3c4; }
+    .phone-input__error { color: #ffb4ab; }
+    @media (max-width: 480px) {
+        .phone-input__fields { grid-template-columns: minmax(0, 1fr); }
+    }
+}

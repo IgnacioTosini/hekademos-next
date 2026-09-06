@@ -385,15 +385,35 @@ test("el alumno edita su perfil y ve el cambio sin una recarga completa", async 
     await studentPage.evaluate(() => { window.__hekademosQaMarker = "student-profile"; });
     await studentPage.getByRole("button", { name: "Editar perfil" }).click();
     await studentPage.locator("#profile-phone").fill("123456");
+    await studentPage.getByRole("button", { name: "Guardar cambios" }).click();
+    assert.equal(await studentPage.locator('#profile-phone').getAttribute('aria-invalid'), 'true');
+    assert.equal(await studentPage.locator('#profile-phone-country').inputValue(), 'AR');
+    await studentPage.locator('#profile-phone-country').selectOption('ES');
+    await studentPage.locator('#profile-phone').fill('+34612345678');
+    const phoneViewport = studentPage.viewportSize();
+    await studentPage.setViewportSize({ width: 390, height: 844 });
+    assert.equal(await studentPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), true);
+    const phoneBox = await studentPage.locator('#profile-phone').boundingBox();
+    assert.ok(phoneBox && phoneBox.x >= 0 && phoneBox.x + phoneBox.width <= 391);
+    if (process.env.QA_PHONE_SCREENSHOT) await studentPage.locator('.phone-input').screenshot({ path: process.env.QA_PHONE_SCREENSHOT });
+    await studentPage.setViewportSize(phoneViewport);
     await studentPage.locator("#profile-emergency-name").fill(`${tag} Emergencia`);
     await studentPage.getByRole("button", { name: "Guardar cambios" }).click();
     await studentPage.getByText("Perfil actualizado", { exact: true }).waitFor();
-    await studentPage.getByText("123456", { exact: true }).waitFor();
+    await studentPage.getByText("+34612345678", { exact: true }).waitFor();
     assert.equal(await studentPage.evaluate(() => window.__hekademosQaMarker), "student-profile");
 
     const updated = await prisma.student.findUnique({ where: { id: data.studentId }, include: { user: true } });
-    assert.equal(updated.user.phone, "123456");
+    assert.equal(updated.user.phone, "+34612345678");
     assert.equal(updated.emergencyContactName, `${tag} Emergencia`);
+    await studentPage.getByRole('button', { name: 'Editar perfil' }).click();
+    assert.equal(await studentPage.locator('#profile-phone-country').inputValue(), 'ES');
+    await studentPage.locator('#profile-phone-country').selectOption('AR');
+    await studentPage.locator('#profile-phone').fill('02234268951');
+    await studentPage.getByRole('button', { name: 'Guardar cambios' }).click();
+    await studentPage.getByText('+5492234268951', { exact: true }).waitFor();
+    const normalized = await prisma.user.findUnique({ where: { id: studentUser.id } });
+    assert.equal(normalized.phone, '+5492234268951');
     assertNoBrowserProblems();
 });
 
@@ -604,7 +624,7 @@ test("el administrador ejecuta ABM de usuarios, coaches y alumnos con membresía
     await adminPage.getByRole("button", { name: "Guardar cambios" }).click();
     await waitForDatabase(
         () => prisma.user.findUnique({ where: { email: userEmail } }),
-        (user) => user?.phone === "223 555 0101" && user.role === "ADMIN",
+        (user) => user?.phone === "+5492235550101" && user.role === "ADMIN",
         "El usuario administrativo no se actualizó"
     );
     userRow = adminPage.locator(".users-table tbody tr").filter({ hasText: userEmail });
@@ -667,7 +687,7 @@ test("el administrador ejecuta ABM de usuarios, coaches y alumnos con membresía
     await adminPage.getByRole("button", { name: "Guardar cambios" }).click();
     await waitForDatabase(
         () => prisma.user.findUnique({ where: { id: createdStudent.id }, include: { student: true } }),
-        (user) => user?.phone === "223 555 0202" && user.student?.notes === `${tag} alumno editado`,
+        (user) => user?.phone === "+5492235550202" && user.student?.notes === `${tag} alumno editado`,
         "El alumno administrativo no se actualizó"
     );
     studentRow = adminPage.locator(".users-table tbody tr").filter({ hasText: studentEmail });

@@ -1,3 +1,5 @@
+import { normalizeWhatsappPhoneNumber } from '@/utils/whatsapp';
+
 type WhatsAppConfig = {
     accessToken: string;
     apiVersion: string;
@@ -74,20 +76,7 @@ const normalizeApiVersion = (value?: string | null) => {
     return normalized;
 };
 
-export const normalizeWhatsAppPhoneNumber = (value?: string | null) => {
-    if (!value?.trim()) return null;
-
-    const trimmedValue = value.trim();
-
-    if (!trimmedValue.startsWith("+") && !trimmedValue.startsWith("00")) return null;
-
-    const compactValue = trimmedValue.replace(/^00/, "+");
-    const digits = compactValue.replace(/\D/g, "");
-
-    if (digits.length < 8 || digits.length > 15) return null;
-
-    return digits;
-};
+export const normalizeWhatsAppPhoneNumber = normalizeWhatsappPhoneNumber;
 
 const getWhatsAppConfig = (): WhatsAppConfig | null => {
     if (!getBooleanEnv("WHATSAPP_ENABLED", false)) return null;

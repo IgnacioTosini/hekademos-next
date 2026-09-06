@@ -1,5 +1,7 @@
 "use server";
 
+import { isValidOptionalContactPhone, normalizeContactPhone } from '@/utils/phone';
+
 import { revalidatePath } from "next/cache";
 import { getAppUrl } from "@/lib/app-url";
 import { getAdminActionErrorMessage, logAdminActionError, requireAdminSession } from "@/lib/admin-session";
@@ -184,7 +186,7 @@ const getStudentActionErrorMessage = (error: unknown, fallback: string) => {
 };
 
 const validateStudentProfileFields = (input: CreateStudentUserInput | UpdateStudentUserInput) => {
-    if (!isValidOptionalPhone(input.phone) || !isValidOptionalPhone(input.emergencyContactPhone)) {
+    if (!isValidOptionalContactPhone(input.phone) || !isValidOptionalPhone(input.emergencyContactPhone)) {
         throw new Error("Revisa los telefonos ingresados.");
     }
 
@@ -543,7 +545,7 @@ export const createStudentUser = async (
             data: {
                 email: normalizeEmail(input.email),
                 name,
-                phone: input.phone,
+                phone: input.phone === undefined ? undefined : normalizeContactPhone(input.phone),
                 passwordHash,
                 emailVerified: toDate(input.emailVerified),
                 role: "STUDENT",
@@ -638,7 +640,7 @@ export const updateStudentUser = async (
             data: {
                 email: input.email ? normalizeEmail(input.email) : undefined,
                 name,
-                phone: input.phone,
+                phone: input.phone === undefined ? undefined : normalizeContactPhone(input.phone),
                 passwordHash,
                 sessionVersion: passwordIsChanging ? { increment: 1 } : undefined,
                 emailVerified: toDate(input.emailVerified),

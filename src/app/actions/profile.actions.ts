@@ -1,5 +1,7 @@
 "use server";
 
+import { isValidOptionalContactPhone, normalizeContactPhone } from '@/utils/phone';
+
 import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
@@ -226,7 +228,7 @@ export const updateStudentProfile = async (
 
         if (!session) throw new Error("Necesitas iniciar sesion");
         if (session.role !== "STUDENT") throw new Error("Solo los alumnos pueden editar este perfil");
-        if (!isValidOptionalPhone(input.phone) || !isValidOptionalPhone(input.emergencyContactPhone)) {
+        if (!isValidOptionalContactPhone(input.phone) || !isValidOptionalPhone(input.emergencyContactPhone)) {
             throw new Error("Revisa los telefonos ingresados");
         }
         if (!isValidBirthDate(input.birthDate)) throw new Error("La fecha de nacimiento no parece valida");
@@ -277,7 +279,7 @@ export const updateStudentProfile = async (
             data: {
                 email,
                 name,
-                phone: input.phone?.trim() || null,
+                phone: normalizeContactPhone(input.phone),
             },
         });
 
@@ -814,7 +816,7 @@ export const updateCoachProfile = async (
 
         if (!session) throw new Error("Necesitas iniciar sesion");
         if (session.role !== "COACH") throw new Error("Solo los coaches pueden editar este perfil");
-        if (!isValidOptionalPhone(input.phone)) throw new Error("Revisa los telefonos ingresados");
+        if (!isValidOptionalContactPhone(input.phone)) throw new Error("Revisa los telefonos ingresados");
 
         const email = normalizeEmail(input.email);
         const coach = await prisma.coach.findUnique({
@@ -850,7 +852,7 @@ export const updateCoachProfile = async (
             data: {
                 email,
                 name: input.name?.trim() || null,
-                phone: input.phone?.trim() || null,
+                phone: normalizeContactPhone(input.phone),
             },
         });
 

@@ -2,6 +2,8 @@
 
 import { useRouter } from 'next/navigation';
 import { FormEvent, useMemo, useState, useTransition } from 'react';
+import { PhoneInput } from '@/components/ui/PhoneInput';
+import { isValidOptionalContactPhone } from '@/utils/phone';
 import { toast } from 'react-toastify';
 import { createStudentUser, updateStudentUser } from '@/app/actions/student.actions';
 import { isValidBirthDate, isValidOptionalPhone } from '@/lib/form-validation';
@@ -207,7 +209,7 @@ export const StudentForm = ({ student, coaches, membershipPlans, weeklySchedules
 
         const monthlyPriceCents = parsePesosToCents(form.monthlyPricePesos);
 
-        if (!isValidOptionalPhone(form.phone) || !isValidOptionalPhone(form.emergencyContactPhone)) {
+        if (!isValidOptionalContactPhone(form.phone) || !isValidOptionalPhone(form.emergencyContactPhone)) {
             setError('Revisá los teléfonos: usá solo números, espacios, +, - o paréntesis.');
             return;
         }
@@ -332,12 +334,11 @@ export const StudentForm = ({ student, coaches, membershipPlans, weeklySchedules
 
                 <div className="form-group">
                     <label htmlFor="student-phone">Telefono</label>
-                    <input
+                    <PhoneInput
                         id="student-phone"
-                        inputMode="tel"
                         value={form.phone}
-                        onChange={(event) => updateField('phone', event.target.value)}
-                        placeholder="11 5555-5555"
+                        onChange={(value) => updateField('phone', value)}
+                        disabled={isPending}
                     />
                 </div>
             </div>

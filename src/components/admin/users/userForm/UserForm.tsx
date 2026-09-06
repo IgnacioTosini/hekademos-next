@@ -1,10 +1,11 @@
 'use client';
 
 import { FormEvent, useState, useTransition } from 'react';
+import { PhoneInput } from '@/components/ui/PhoneInput';
+import { isValidOptionalContactPhone, phoneValidationMessage } from '@/utils/phone';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import { createUser, updateUser } from '@/app/actions/user.actions';
-import { isValidOptionalPhone } from '@/lib/form-validation';
 import type { Role, UserStatus, UserWithRelations } from '@/types/schema/users';
 import { saveWithResolvedUserImage, UserImageField, type UserImageValue } from '../userImageField/UserImageField';
 import './_userForm.scss';
@@ -66,8 +67,8 @@ export const UserForm = ({ user, onClose }: Props) => {
             return;
         }
 
-        if (!isValidOptionalPhone(form.phone)) {
-            setError('Revisá el teléfono: usá solo números, espacios, +, - o paréntesis.');
+        if (!isValidOptionalContactPhone(form.phone)) {
+            setError(phoneValidationMessage);
             return;
         }
 
@@ -151,12 +152,11 @@ export const UserForm = ({ user, onClose }: Props) => {
             <div className="form-row">
                 <div className="form-group">
                     <label htmlFor="user-phone">Telefono</label>
-                    <input
+                    <PhoneInput
                         id="user-phone"
-                        inputMode="tel"
                         value={form.phone}
-                        onChange={(event) => updateField('phone', event.target.value)}
-                        placeholder="11 5555-5555"
+                        onChange={(value) => updateField('phone', value)}
+                        disabled={isPending}
                     />
                 </div>
 

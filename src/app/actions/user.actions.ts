@@ -1,10 +1,11 @@
 "use server";
 
+import { isValidOptionalContactPhone, normalizeContactPhone } from '@/utils/phone';
+
 import { revalidatePath } from "next/cache";
 import { getAdminActionErrorMessage, logAdminActionError, requireAdminSession } from "@/lib/admin-session";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
-import { isValidOptionalPhone } from "@/lib/form-validation";
 import type {
     CreateUserInput,
     CreateUserImageInput,
@@ -45,7 +46,7 @@ const getUserActionErrorMessage = (error: unknown, fallback: string) => {
 };
 
 const validateUserInput = (input: CreateUserInput | UpdateUserInput) => {
-    if (!isValidOptionalPhone(input.phone)) {
+    if (!isValidOptionalContactPhone(input.phone)) {
         throw new Error("Revisa el telefono ingresado");
     }
 };
@@ -203,7 +204,7 @@ export const createUser = async (
             data: {
                 email: normalizeEmail(input.email),
                 name: input.name,
-                phone: input.phone,
+                phone: input.phone === undefined ? undefined : normalizeContactPhone(input.phone),
                 passwordHash,
                 emailVerified: toDate(input.emailVerified),
                 role: input.role ?? "STUDENT",
@@ -255,7 +256,7 @@ export const updateUser = async (
             data: {
                 email: input.email ? normalizeEmail(input.email) : undefined,
                 name: input.name,
-                phone: input.phone,
+                phone: input.phone === undefined ? undefined : normalizeContactPhone(input.phone),
                 passwordHash,
                 sessionVersion: passwordIsChanging ? { increment: 1 } : undefined,
                 emailVerified: toDate(input.emailVerified),

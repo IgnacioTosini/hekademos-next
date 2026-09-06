@@ -1,12 +1,13 @@
 "use client";
 
 import { FormEvent, useState, useTransition } from "react";
+import { PhoneInput } from '@/components/ui/PhoneInput';
+import { isValidOptionalContactPhone, phoneValidationMessage } from '@/utils/phone';
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { FaPencilAlt } from "react-icons/fa";
 import { IoMdClose } from "react-icons/io";
 import { updateCoachProfile } from "@/app/actions/profile.actions";
-import { isValidOptionalPhone } from "@/lib/form-validation";
 import type { UserImage } from "@/types/schema/users";
 import { saveWithResolvedUserImage, UserImageField, type UserImageValue } from "@/components/admin/users/userImageField/UserImageField";
 import "@/components/admin/users/userForm/_userForm.scss";
@@ -81,8 +82,8 @@ export const CoachProfileEditor = ({ account }: Props) => {
             return;
         }
 
-        if (!isValidOptionalPhone(form.phone)) {
-            setError("Revisá el teléfono: usá solo números, espacios, +, - o paréntesis.");
+        if (!isValidOptionalContactPhone(form.phone)) {
+            setError(phoneValidationMessage);
             return;
         }
 
@@ -183,12 +184,11 @@ export const CoachProfileEditor = ({ account }: Props) => {
                             <div className="form-row">
                                 <div className="form-group">
                                     <label htmlFor="coach-profile-phone">Telefono</label>
-                                    <input
+                                    <PhoneInput
                                         id="coach-profile-phone"
-                                        inputMode="tel"
                                         value={form.phone}
-                                        onChange={(event) => updateField("phone", event.target.value)}
-                                        placeholder="11 5555-5555"
+                                        onChange={(value) => updateField('phone', value)}
+                                        disabled={isPending}
                                     />
                                 </div>
 
