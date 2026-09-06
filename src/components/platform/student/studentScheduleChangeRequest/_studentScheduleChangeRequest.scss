@@ -1,5 +1,13 @@
 @use '@/styles/variables' as *;
 
+.student-schedule-change-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: .6rem;
+    flex-wrap: wrap;
+}
+
 .student-schedule-change-button {
     display: inline-flex;
     align-items: center;
@@ -22,6 +30,48 @@
         background: rgba($secondary-color, .18);
         color: $secondary-color;
     }
+
+    &:disabled {
+        cursor: not-allowed;
+        opacity: .55;
+    }
+}
+
+.student-schedule-cancel-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .45rem;
+    min-height: 38px;
+    padding: .6rem .85rem;
+    border: 1px solid rgba($color-error, .42);
+    border-radius: 8px;
+    background: rgba($color-error, .08);
+    color: $color-error;
+    cursor: pointer;
+    font-family: $font-family;
+    font-size: $font-size-small;
+    font-weight: $font-weight-semibold;
+    transition: .2s ease;
+
+    &:hover:not(:disabled) {
+        border-color: rgba($color-error, .72);
+        background: rgba($color-error, .15);
+    }
+
+    &:disabled {
+        cursor: not-allowed;
+        opacity: .55;
+    }
+}
+
+.student-schedule-cancel-reason {
+    flex-basis: 100%;
+    max-width: 380px;
+    color: $color-text-secondary;
+    font-size: $font-size-small;
+    line-height: 1.35;
+    text-align: right;
 }
 
 .student-schedule-request-container {
@@ -214,6 +264,15 @@
         font-size: $font-size-normal;
         font-weight: $font-weight-semibold;
         line-height: 1.25;
+
+        em {
+            display: block;
+            margin-bottom: .2rem;
+            color: $secondary-color;
+            font-size: $font-size-small;
+            font-style: normal;
+            text-transform: capitalize;
+        }
     }
 
     small {
@@ -250,6 +309,50 @@
 .student-schedule-request-error {
     color: $color-error;
     font-weight: $font-weight-semibold;
+}
+
+.student-schedule-request-summary {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+    padding: 1rem;
+    border: 1px solid rgba($secondary-color, .34);
+    border-radius: 8px;
+    background: rgba($secondary-color, .08);
+
+    > strong {
+        color: $secondary-color;
+        font-size: $font-size-normal;
+    }
+
+    dl {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .75rem;
+        margin: 0;
+
+        div {
+            padding: .75rem;
+            border-radius: 6px;
+            background: rgba($primary-color, .2);
+        }
+
+        dt {
+            margin-bottom: .3rem;
+            color: $color-text-secondary;
+            font-size: $font-size-small;
+            font-weight: $font-weight-semibold;
+            text-transform: uppercase;
+        }
+
+        dd {
+            margin: 0;
+            color: $color-text;
+            font-size: $font-size-small;
+            line-height: 1.45;
+            text-transform: capitalize;
+        }
+    }
 }
 
 .student-schedule-request-actions {
@@ -297,6 +400,24 @@
     }
 
     .student-schedule-request-day-options {
+        grid-template-columns: 1fr;
+    }
+
+    .student-schedule-change-actions {
+        width: 100%;
+        justify-content: stretch;
+
+        button {
+            width: 100%;
+        }
+    }
+
+    .student-schedule-cancel-reason {
+        max-width: none;
+        text-align: left;
+    }
+
+    .student-schedule-request-summary dl {
         grid-template-columns: 1fr;
     }
 

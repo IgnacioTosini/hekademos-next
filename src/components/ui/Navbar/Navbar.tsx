@@ -4,12 +4,13 @@ import './_navbar.scss'
 
 type NavbarProps = {
     onToggleMobileMenu: () => void;
+    links: Array<{ label: string; href: string }>;
 };
 
-export const Navbar = ({ onToggleMobileMenu }: NavbarProps) => {
+export const Navbar = ({ onToggleMobileMenu, links }: NavbarProps) => {
     return (
         <nav className="navbar">
-            <NavbarLinks />
+            <NavbarLinks links={links} />
             <button
                 className="mobileMenuButton"
                 onClick={onToggleMobileMenu}

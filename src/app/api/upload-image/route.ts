@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { getCurrentAuthSession } from "@/lib/auth-session";
-import { uploadCloudinaryImage } from "@/lib/cloudinary";
+import { uploadCloudinaryImage, type CloudinaryUploadArea } from "@/lib/cloudinary";
+import { consumeRateLimit, getRateLimitMessage, rateLimitPolicies } from "@/lib/rate-limit";
 
 const maxImageSizeBytes = 5 * 1024 * 1024;
 
@@ -22,15 +23,35 @@ export async function POST(req: NextRequest) {
         );
     }
 
-    if (!process.env.CLOUDINARY_CLOUD_NAME || (!process.env.CLOUDINARY_UPLOAD_PRESET && (!process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET))) {
+    const rateLimit = await consumeRateLimit({
+        scope: "image-upload",
+        identifier: session.userId,
+        ...rateLimitPolicies.imageUpload,
+    });
+
+    if (!rateLimit.allowed) {
         return Response.json(
-            { success: false, error: "Faltan variables de Cloudinary. Configura CLOUDINARY_UPLOAD_PRESET o CLOUDINARY_API_KEY/API_SECRET." },
-            { status: 500 }
+            { success: false, error: getRateLimitMessage(rateLimit) },
+            {
+                status: 429,
+                headers: {
+                    "Retry-After": String(rateLimit.retryAfterSeconds),
+                },
+            }
         );
     }
 
     const incomingForm = await req.formData();
     const file = incomingForm.get("file");
+    const requestedArea = incomingForm.get("area");
+    const area: CloudinaryUploadArea = requestedArea === "site" ? "site" : "users";
+
+    if (area === "site" && session.role !== "ADMIN") {
+        return Response.json(
+            { success: false, error: "No tenés permiso para subir imágenes del sitio." },
+            { status: 403 }
+        );
+    }
 
     if (!isUploadableFile(file)) {
         return Response.json(
@@ -53,8 +74,15 @@ export async function POST(req: NextRequest) {
         );
     }
 
+    if (!process.env.CLOUDINARY_CLOUD_NAME || (!process.env.CLOUDINARY_UPLOAD_PRESET && (!process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET))) {
+        return Response.json(
+            { success: false, error: "Faltan variables de Cloudinary. Configura CLOUDINARY_UPLOAD_PRESET o CLOUDINARY_API_KEY/API_SECRET." },
+            { status: 500 }
+        );
+    }
+
     try {
-        const image = await uploadCloudinaryImage(file);
+        const image = await uploadCloudinaryImage(file, area);
 
         return Response.json({
             success: true,

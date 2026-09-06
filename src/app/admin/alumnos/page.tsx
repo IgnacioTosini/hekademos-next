@@ -2,7 +2,7 @@ import { getWeeklyClassSchedules } from '@/app/actions/class.actions';
 import { getCoaches } from '@/app/actions/coach.actions';
 import { getMembershipPlans } from '@/app/actions/membership.actions';
 import { getStudents } from '@/app/actions/student.actions';
-import { StudentsSection } from '@/components/admin/students';
+import { StudentsSection } from '@/components/admin/students/studentsSection/StudentsSection';
 import type { Metadata } from 'next';
 import './_alumnosPage.scss';
 

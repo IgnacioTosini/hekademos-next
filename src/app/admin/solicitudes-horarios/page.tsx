@@ -1,11 +1,11 @@
 import { getScheduleChangeRequests } from "@/app/actions/scheduleChangeRequest.actions";
-import { ScheduleRequestsSection } from "@/components/scheduleRequests";
+import { ScheduleRequestsSection } from "@/components/scheduleRequests/scheduleRequestsSection/ScheduleRequestsSection";
 import type { Metadata } from "next";
 import "./_solicitudesHorariosPage.scss";
 
 export const metadata: Metadata = {
-    title: "Solicitudes de horario",
-    description: "Revision de solicitudes de cambio de horario de Hekademos.",
+    title: "Cambios de horario",
+    description: "Historial de cambios automáticos de horario de Hekademos.",
 };
 
 export default async function SolicitudesHorariosPage() {

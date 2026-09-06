@@ -22,6 +22,8 @@ type CoachFormState = {
     status: UserStatus;
     specialty: string;
     instagram: string;
+    paymentAlias: string;
+    paymentAccountHolder: string;
     bio: string;
     isActive: boolean;
 };
@@ -34,6 +36,8 @@ const getInitialState = (coach: UserWithRelations | null): CoachFormState => ({
     status: coach?.status ?? 'ACTIVE',
     specialty: coach?.coach?.specialty ?? '',
     instagram: coach?.coach?.instagram ?? '',
+    paymentAlias: coach?.coach?.paymentAlias ?? '',
+    paymentAccountHolder: coach?.coach?.paymentAccountHolder ?? '',
     bio: coach?.coach?.bio ?? '',
     isActive: coach?.coach?.isActive ?? true,
 });
@@ -91,6 +95,8 @@ export const CoachForm = ({ coach, onClose }: Props) => {
                             status: form.status,
                             specialty: form.specialty.trim() || null,
                             instagram: form.instagram.trim().replace(/^@/, '') || null,
+                            paymentAlias: form.paymentAlias.trim().toLowerCase() || null,
+                            paymentAccountHolder: form.paymentAccountHolder.trim() || null,
                             bio: form.bio.trim() || null,
                             isActive: form.isActive,
                             image: resolvedImage,
@@ -214,6 +220,32 @@ export const CoachForm = ({ coach, onClose }: Props) => {
                         <option value="INACTIVE">Inactivo</option>
                         <option value="SUSPENDED">Suspendido</option>
                     </select>
+                </div>
+            </div>
+
+            <div className="form-row">
+                <div className="form-group">
+                    <label htmlFor="coach-payment-alias">Alias de cobro</label>
+                    <input
+                        id="coach-payment-alias"
+                        value={form.paymentAlias}
+                        onChange={(event) => updateField('paymentAlias', event.target.value)}
+                        placeholder="ejemplo.alias.mp"
+                        maxLength={120}
+                        autoComplete="off"
+                        spellCheck={false}
+                    />
+                </div>
+
+                <div className="form-group">
+                    <label htmlFor="coach-payment-holder">Titular de la cuenta</label>
+                    <input
+                        id="coach-payment-holder"
+                        value={form.paymentAccountHolder}
+                        onChange={(event) => updateField('paymentAccountHolder', event.target.value)}
+                        placeholder="Nombre y apellido del titular"
+                        maxLength={160}
+                    />
                 </div>
             </div>
 

@@ -2,24 +2,26 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { FaRegTrashAlt } from 'react-icons/fa';
 import { GoPencil } from 'react-icons/go';
 import { toast } from 'react-toastify';
 import { deleteUser } from '@/app/actions/user.actions';
-import { EmptyState } from '@/components/ui';
-import type { WeeklyClassScheduleWithRelations } from '@/types/schema/classes';
+import { EmptyState } from '@/components/ui/emptyState/EmptyState';
+import type { WeeklyClassScheduleSummary } from '@/types/schema/classes';
 import type { MembershipPlan } from '@/types/schema/memberships';
 import type { UserWithRelations } from '@/types/schema/users';
-import { StudentModal } from '../studentModal/StudentModal';
 import '../../users/usersSection/_usersSection.scss';
+
+const StudentModal = dynamic(() => import('../studentModal/StudentModal').then((module) => module.StudentModal));
 
 type Props = {
     students: UserWithRelations[];
     coaches: UserWithRelations[];
     membershipPlans: MembershipPlan[];
-    weeklySchedules: WeeklyClassScheduleWithRelations[];
+    weeklySchedules: WeeklyClassScheduleSummary[];
 };
 
 const getFullName = (student: UserWithRelations) => {
@@ -100,14 +102,14 @@ export const StudentsSection = ({ students, coaches, membershipPlans, weeklySche
                 <button className="users-button" type="button" onClick={openCreate}>+ Nuevo alumno</button>
             </div>
 
-            <StudentModal
+            {isModalOpen && <StudentModal
                 isOpen={isModalOpen}
                 student={selectedStudent}
                 coaches={coaches}
                 membershipPlans={membershipPlans}
                 weeklySchedules={weeklySchedules}
                 onClose={closeModal}
-            />
+            />}
 
             <div className="users-table-wrapper">
                 <div className="users-table-toolbar">

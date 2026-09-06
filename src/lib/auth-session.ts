@@ -1,5 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
+import { cache } from "react";
+import { prisma } from "./prisma";
 import {
     authSessionCookieName,
     authSessionMaxAgeSeconds,
@@ -57,11 +59,36 @@ export const verifyAuthSessionToken = (token?: string | null): AuthSession | nul
     return session;
 };
 
-export const getCurrentAuthSession = async () => {
+export const getCurrentAuthSession = cache(async () => {
     const cookieStore = await cookies();
+    const session = verifyAuthSessionToken(cookieStore.get(authSessionCookieName)?.value);
 
-    return verifyAuthSessionToken(cookieStore.get(authSessionCookieName)?.value);
-};
+    if (!session) return null;
+
+    const currentUser = await prisma.user.findUnique({
+        where: {
+            id: session.userId,
+        },
+        select: {
+            email: true,
+            role: true,
+            status: true,
+            sessionVersion: true,
+        },
+    });
+
+    if (
+        !currentUser
+        || currentUser.status !== "ACTIVE"
+        || currentUser.role !== session.role
+        || currentUser.email.trim().toLowerCase() !== session.email.trim().toLowerCase()
+        || currentUser.sessionVersion !== session.sessionVersion
+    ) {
+        return null;
+    }
+
+    return session;
+});
 
 export const setAuthSessionCookie = async (session: Omit<AuthSession, "expiresAt">) => {
     const cookieStore = await cookies();

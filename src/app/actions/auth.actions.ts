@@ -2,10 +2,17 @@
 
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { headers } from "next/headers";
+import { getConfiguredAppBaseUrl } from "@/lib/app-url";
 import { clearAuthSessionCookie, getCurrentAuthSession, setAuthSessionCookie } from "@/lib/auth-session";
 import { buildEmailMessage, sendEmail } from "@/lib/email";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
+import {
+    consumeRateLimit,
+    getClientIp,
+    getRateLimitMessage,
+    rateLimitPolicies,
+} from "@/lib/rate-limit";
 import type { Role } from "@/types/schema/users";
 import { normalizeEmail, type ActionResponse } from "./_shared";
 
@@ -63,8 +70,9 @@ const hashResetToken = (token: string) => (
 );
 
 const getRequestBaseUrl = async () => {
-    if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
-    if (process.env.AUTH_BASE_URL) return process.env.AUTH_BASE_URL;
+    const configuredBaseUrl = getConfiguredAppBaseUrl();
+
+    if (configuredBaseUrl) return configuredBaseUrl;
 
     const requestHeaders = await headers();
     const host = requestHeaders.get("host");
@@ -86,25 +94,6 @@ const buildResetUrl = async (token: string) => {
     return `${baseUrl}/auth/restablecer?token=${encodeURIComponent(token)}`;
 };
 
-const getBootstrapAdmin = (email: string, password: string): LoginResult | null => {
-    const adminEmail = process.env.ADMIN_EMAIL;
-    const adminPassword = process.env.ADMIN_PASSWORD;
-
-    if (!adminEmail || !adminPassword) return null;
-    if (normalizeEmail(email) !== normalizeEmail(adminEmail)) return null;
-    if (password !== adminPassword) return null;
-
-    return {
-        user: {
-            id: "env-admin",
-            email: normalizeEmail(adminEmail),
-            name: "Admin",
-            role: "ADMIN",
-        },
-        redirectTo: "/admin",
-    };
-};
-
 export const login = async (
     input: LoginInput
 ): Promise<ActionResponse<LoginResult | null>> => {
@@ -120,19 +109,26 @@ export const login = async (
             };
         }
 
-        const bootstrapAdmin = getBootstrapAdmin(email, password);
+        const clientIp = getClientIp(await headers());
+        const loginLimits = await Promise.all([
+            consumeRateLimit({
+                scope: "auth-login-ip",
+                identifier: clientIp,
+                ...rateLimitPolicies.loginIp,
+            }),
+            consumeRateLimit({
+                scope: "auth-login-identity",
+                identifier: `${clientIp}:${email}`,
+                ...rateLimitPolicies.loginIdentity,
+            }),
+        ]);
+        const exceededLoginLimit = loginLimits.find((result) => !result.allowed);
 
-        if (bootstrapAdmin) {
-            await setAuthSessionCookie({
-                userId: bootstrapAdmin.user.id,
-                email: bootstrapAdmin.user.email,
-                name: bootstrapAdmin.user.name,
-                role: bootstrapAdmin.user.role,
-            });
-
+        if (exceededLoginLimit) {
             return {
-                ok: true,
-                data: bootstrapAdmin,
+                ok: false,
+                data: null,
+                error: getRateLimitMessage(exceededLoginLimit),
             };
         }
 
@@ -180,6 +176,7 @@ export const login = async (
             email: authUser.email,
             name: authUser.name,
             role: authUser.role,
+            sessionVersion: user.sessionVersion,
         });
 
         return {
@@ -222,6 +219,29 @@ export const requestPasswordReset = async (
                 ok: false,
                 data: null,
                 error: "El email es obligatorio",
+            };
+        }
+
+        const clientIp = getClientIp(await headers());
+        const resetRequestLimits = await Promise.all([
+            consumeRateLimit({
+                scope: "password-reset-request-ip",
+                identifier: clientIp,
+                ...rateLimitPolicies.passwordResetRequestIp,
+            }),
+            consumeRateLimit({
+                scope: "password-reset-request-identity",
+                identifier: `${clientIp}:${email}`,
+                ...rateLimitPolicies.passwordResetRequestIdentity,
+            }),
+        ]);
+
+        if (resetRequestLimits.some((result) => !result.allowed)) {
+            return {
+                ok: true,
+                data: {
+                    sent: true,
+                },
             };
         }
 
@@ -342,6 +362,29 @@ export const resetPassword = async (
         }
 
         const tokenHash = hashResetToken(token);
+        const clientIp = getClientIp(await headers());
+        const resetLimits = await Promise.all([
+            consumeRateLimit({
+                scope: "password-reset-complete-ip",
+                identifier: clientIp,
+                ...rateLimitPolicies.passwordResetCompleteIp,
+            }),
+            consumeRateLimit({
+                scope: "password-reset-complete-identity",
+                identifier: `${clientIp}:${tokenHash}`,
+                ...rateLimitPolicies.passwordResetCompleteIdentity,
+            }),
+        ]);
+        const exceededResetLimit = resetLimits.find((result) => !result.allowed);
+
+        if (exceededResetLimit) {
+            return {
+                ok: false,
+                data: null,
+                error: getRateLimitMessage(exceededResetLimit),
+            };
+        }
+
         const [passwordResetToken] = await prisma.$queryRaw<PasswordResetTokenRow[]>`
             SELECT
                 prt."id",
@@ -378,6 +421,9 @@ export const resetPassword = async (
                 },
                 data: {
                     passwordHash,
+                    sessionVersion: {
+                        increment: 1,
+                    },
                 },
             });
 

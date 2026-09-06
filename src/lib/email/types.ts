@@ -39,8 +39,9 @@ export type ScheduleChangeRequestEmailData = {
     requestTypeLabel: string;
     currentSchedulesLabel: string;
     requestedSchedulesLabel: string;
+    requestedDateLabel?: string | null;
     reason: string;
-    reviewUrl: string;
+    detailsUrl: string;
 };
 
 export type ScheduleChangeRequestReviewEmailData = {
@@ -48,6 +49,7 @@ export type ScheduleChangeRequestReviewEmailData = {
     statusLabel: "aprobada" | "rechazada";
     requestTypeLabel: string;
     requestedSchedulesLabel: string;
+    requestedDateLabel?: string | null;
     reviewNotes?: string | null;
     profileUrl: string;
 };

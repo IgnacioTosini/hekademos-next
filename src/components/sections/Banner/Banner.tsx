@@ -3,9 +3,12 @@
 import { useEffect, useRef } from 'react'
 import { FaArrowRight } from "react-icons/fa"
 import { handleScrollTo } from '@/utils'
+import type { HomePageContent } from '@/lib/home-page-content'
 import './_banner.scss'
 
-export const Banner = () => {
+type Props = { content: HomePageContent['banner'] }
+
+export const Banner = ({ content }: Props) => {
     const bannerRef = useRef<HTMLDivElement>(null)
     const scrollFrameRef = useRef<number | null>(null)
 
@@ -41,19 +44,26 @@ export const Banner = () => {
         }
     }, [])
 
+    const handleAction = (href: string) => {
+        const sectionId = href.startsWith('/#') || href.startsWith('#') ? href.split('#')[1] : ''
+        if (sectionId) return handleScrollTo(sectionId)
+        if (/^https?:\/\//i.test(href)) return window.open(href, '_blank', 'noopener,noreferrer')
+        window.location.href = href
+    }
+
     return (
         <div className="bannerParallax" ref={bannerRef} id='inicio'>
-            <div className="parallaxBg"></div>
+            <div className="parallaxBg" style={{ backgroundImage: `url("${content.background.url}")` }} role="img" aria-label={content.background.alt}></div>
             <div className="bannerContent">
-                <h1 className="bannerTitle">Bienvenido a Hekademos</h1>
-                <p className="bannerSubtitle">Entrenamientos conscientes para ganar fuerza, movilidad y presencia.</p>
+                <h1 className="bannerTitle">{content.title}</h1>
+                <p className="bannerSubtitle">{content.subtitle}</p>
 
                 <div className="bannerActions">
-                    <button className="button" onClick={() => handleScrollTo('clases')}>
-                        Conocé nuestras clases <FaArrowRight />
+                    <button className="button" onClick={() => handleAction(content.primaryAction.href)}>
+                        {content.primaryAction.label} <FaArrowRight />
                     </button>
-                    <button className="button buttonSecondary" onClick={() => handleScrollTo('filosofia')}>
-                        Nuestra Filosofía
+                    <button className="button buttonSecondary" onClick={() => handleAction(content.secondaryAction.href)}>
+                        {content.secondaryAction.label}
                     </button>
                 </div>
             </div>

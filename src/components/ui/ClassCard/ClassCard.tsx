@@ -1,14 +1,16 @@
 import Image from 'next/image'
 import './_classCard.scss'
+import { YoutubeVideoButton } from '../YoutubeVideoButton'
 
 type ClassCardProps = {
     title: string
     description: string
     list: string[]
     image?: string
+    videoUrl?: string
 }
 
-export const ClassCard = ({ title, description, list, image }: ClassCardProps) => {
+export const ClassCard = ({ title, description, list, image, videoUrl }: ClassCardProps) => {
     return (
         <div className='classCard'>
             <picture className='imgContainer'>
@@ -32,6 +34,7 @@ export const ClassCard = ({ title, description, list, image }: ClassCardProps) =
                     <li key={index} className='classCardListItem'>{item}</li>
                 ))}
             </ul>
+            <YoutubeVideoButton videoUrl={videoUrl} title={title} />
         </div>
     )
 }

@@ -9,40 +9,43 @@ import { Philosophy } from '../Philosophy/Philosophy';
 import { Teachers } from '../Teachers/Teachers';
 import { TrainingSchedule } from '../TrainingSchedule/TrainingSchedule';
 import { HomeAnimations } from './HomeAnimations';
+import { getHomePageContent } from '@/lib/site-content';
 import './_homePage.scss';
 
-export const HomePage = () => {
+export const HomePage = async () => {
+    const content = await getHomePageContent();
+
     return (
         <HomeAnimations>
             <div className="banner">
-                <Banner />
+                <Banner content={content.banner} />
             </div>
             <div className="about-us-section">
-                <AboutUs />
+                <AboutUs content={content.about} />
             </div>
             <div className="teachers-section">
-                <Teachers />
+                <Teachers content={content.teachers} />
             </div>
             <div className="classes-section">
-                <Classes />
+                <Classes content={content.classes} />
             </div>
             <div className="training-schedule-section">
-                <TrainingSchedule />
+                <TrainingSchedule content={content.trainingSchedule} />
             </div>
             <div className="membership-plans-section">
-                <MembershipPlans />
+                <MembershipPlans content={content.membershipPlans} />
             </div>
             <div className="comunity-section">
-                <Comunity />
+                <Comunity content={content.community} />
             </div>
             <div className="philosophy-section">
-                <Philosophy />
+                <Philosophy content={content.philosophy} />
             </div>
             <div className="faq-section">
-                <FAQ />
+                <FAQ content={content.faq} />
             </div>
             <div className="contact-section">
-                <Contact />
+                <Contact content={content.contact} />
             </div>
         </HomeAnimations>
     );

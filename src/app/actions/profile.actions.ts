@@ -1,17 +1,19 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
+import { Prisma } from "@/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { writeAuditLog } from "@/lib/audit-log";
 import { getCurrentAuthSession, setAuthSessionCookie } from "@/lib/auth-session";
-import { buildEmailMessage, sendEmail } from "@/lib/email";
-import { isDeliverableEmail, isValidBirthDate, isValidOptionalPhone, isValidOptionalUrl } from "@/lib/form-validation";
-import type { ScheduleChangeRequestType } from "@/types/schema/classes";
+import { isValidBirthDate, isValidOptionalPhone, isValidOptionalUrl } from "@/lib/form-validation";
+import { getEffectiveScheduleStudentIds, getOneTimeScheduleChangesForDate } from "@/lib/one-time-schedule-change";
+import { sendAutomaticScheduleChangeNotification } from "@/services/schedule-change-notification";
+import type { ScheduleChangeRequestType, WeeklyClassSchedule } from "@/types/schema/classes";
+import { getClassCategoryLabel } from "@/utils/class-category";
 import type { PrismaDate } from "@/types/schema/common";
 import type { CreateUserImageInput } from "@/types/schema/users";
-import { addMinutesToTime, dayLabels, dayOrderIndex } from "@/utils/schedule";
-import { getStudentName } from "@/utils/student";
+import { getLocalDayRange, getOneTimeScheduleDates } from "@/utils/schedule";
 import {
     adminStudentsPath,
     normalizeEmail,
@@ -36,9 +38,9 @@ export type UpdateStudentRoutineInput = {
 
 export type CreateStudentScheduleChangeRequestInput = {
     type: ScheduleChangeRequestType;
+    currentScheduleId?: string | null;
     requestedScheduleIds: string[];
     reason: string;
-    requestedDate?: PrismaDate | null;
 };
 
 export type UpdateCoachProfileInput = {
@@ -48,156 +50,14 @@ export type UpdateCoachProfileInput = {
     bio?: string | null;
     specialty?: string | null;
     instagram?: string | null;
+    paymentAlias?: string | null;
+    paymentAccountHolder?: string | null;
     image?: CreateUserImageInput | null;
 };
 
 const profilePath = "/perfil";
 const coachDashboardPath = "/coach/dashboard";
 const scheduleRequestsPath = "/admin/solicitudes-horarios";
-
-const getAppBaseUrl = () => (
-    process.env.NEXT_PUBLIC_APP_URL
-    || process.env.AUTH_BASE_URL
-    || "http://localhost:3000"
-);
-
-const getScheduleRequestReviewUrl = (path: string) => (
-    `${getAppBaseUrl()}${path}`
-);
-
-const scheduleRequestTypeLabels: Record<ScheduleChangeRequestType, string> = {
-    ONE_TIME: "Solo por esta clase",
-    PERMANENT: "Cambio permanente",
-};
-
-type ScheduleNotificationRecipient = {
-    email: string;
-    name?: string | null;
-    reviewUrl: string;
-};
-
-type ScheduleNotificationResult = {
-    status: "SENT" | "FAILED" | "PARTIAL_FAILED" | "SKIPPED_NO_RECIPIENT";
-    recipients: string[];
-};
-
-const normalizeOptionalEmail = (value?: string | null) => value?.trim().toLowerCase() || null;
-
-const getAdminNotificationEmail = () => normalizeOptionalEmail(process.env.ADMIN_NOTIFICATION_EMAIL);
-
-const getScheduleLabel = (schedule: {
-    dayOfWeek: keyof typeof dayLabels;
-    startTime: string;
-    durationMinutes: number;
-}) => {
-    const endsAt = addMinutesToTime(schedule.startTime, schedule.durationMinutes);
-
-    return `${dayLabels[schedule.dayOfWeek]} ${schedule.startTime}${endsAt ? ` a ${endsAt}` : ""}`;
-};
-
-const formatScheduleLabels = async (scheduleIds: string[]) => {
-    if (scheduleIds.length === 0) return "Sin turnos asignados";
-
-    const schedules = await prisma.weeklyClassSchedule.findMany({
-        where: {
-            id: {
-                in: scheduleIds,
-            },
-        },
-    });
-    const orderedSchedules = schedules.sort((first, second) => (
-        dayOrderIndex[first.dayOfWeek] - dayOrderIndex[second.dayOfWeek]
-        || first.startTime.localeCompare(second.startTime)
-    ));
-
-    return orderedSchedules.map(getScheduleLabel).join("\n") || "Sin turnos asignados";
-};
-
-const getScheduleRequestRecipients = () => {
-    const recipients = new Map<string, ScheduleNotificationRecipient>();
-    const adminEmail = getAdminNotificationEmail();
-
-    if (adminEmail && isDeliverableEmail(adminEmail)) {
-        recipients.set(adminEmail, {
-            email: adminEmail,
-            name: "Admin",
-            reviewUrl: getScheduleRequestReviewUrl(scheduleRequestsPath),
-        });
-    }
-
-    return Array.from(recipients.values());
-};
-
-const sendScheduleChangeRequestNotification = async ({
-    student,
-    type,
-    currentScheduleIds,
-    requestedScheduleIds,
-    reason,
-}: {
-    student: {
-        user: {
-            email: string;
-            name: string | null;
-        };
-        firstName: string | null;
-        lastName: string | null;
-        coach?: {
-            user?: {
-                email: string;
-                name: string | null;
-            };
-        } | null;
-    };
-    type: ScheduleChangeRequestType;
-    currentScheduleIds: string[];
-    requestedScheduleIds: string[];
-    reason: string;
-}): Promise<ScheduleNotificationResult> => {
-    const recipients = getScheduleRequestRecipients();
-
-    if (recipients.length === 0) {
-        return {
-            status: "SKIPPED_NO_RECIPIENT",
-            recipients: [],
-        };
-    }
-
-    const studentName = getStudentName(student);
-    const currentSchedulesLabel = await formatScheduleLabels(currentScheduleIds);
-    const requestedSchedulesLabel = await formatScheduleLabels(requestedScheduleIds);
-    let sentCount = 0;
-
-    for (const recipient of recipients) {
-        const emailMessage = buildEmailMessage({
-            type: "SCHEDULE_CHANGE_REQUEST",
-            to: {
-                email: recipient.email,
-                name: recipient.name,
-            },
-            data: {
-                studentName,
-                requestTypeLabel: scheduleRequestTypeLabels[type],
-                currentSchedulesLabel,
-                requestedSchedulesLabel,
-                reason,
-                reviewUrl: recipient.reviewUrl,
-            },
-        });
-
-        try {
-            await sendEmail(emailMessage);
-            sentCount += 1;
-        } catch (error) {
-            console.error(`Error al enviar la notificacion de solicitud de horario a ${recipient.email}:`, error);
-        }
-    }
-
-    return {
-        status: sentCount === recipients.length ? "SENT" : sentCount > 0 ? "PARTIAL_FAILED" : "FAILED",
-        recipients: recipients.map((recipient) => recipient.email),
-    };
-};
 
 const getProfileErrorMessage = (error: unknown, fallback: string) => {
     if (!(error instanceof Error)) return fallback;
@@ -208,13 +68,20 @@ const getProfileErrorMessage = (error: unknown, fallback: string) => {
     if (error.message === "La cantidad de turnos supera lo permitido por tu plan") return error.message;
     if (error.message === "Uno de los turnos seleccionados ya no existe") return error.message;
     if (error.message === "Uno de los turnos seleccionados no tiene cupos disponibles") return error.message;
+    if (error.message === "Uno de los turnos seleccionados no corresponde a la categoria de tu plan") return error.message;
     if (error.message === "No podes elegir dos turnos el mismo dia") return error.message;
     if (error.message === "Necesitas una membresia activa para elegir turnos") return error.message;
     if (error.message === "Selecciona el tipo de cambio de horario") return error.message;
-    if (error.message === "Agrega una justificacion para solicitar el cambio") return error.message;
-    if (error.message === "Selecciona al menos un turno para solicitar el cambio") return error.message;
+    if (error.message === "Agrega una justificacion para confirmar el cambio") return error.message;
+    if (error.message === "Selecciona al menos un turno para confirmar el cambio") return error.message;
+    if (error.message === "Para un cambio puntual selecciona un solo turno nuevo") return error.message;
+    if (error.message === "Selecciona el turno actual que queres reemplazar") return error.message;
+    if (error.message === "El turno de reemplazo ya es uno de tus turnos fijos") return error.message;
     if (error.message === "Los turnos seleccionados son iguales a tus turnos actuales") return error.message;
-    if (error.message === "Ya tenes una solicitud de horario pendiente") return error.message;
+    if (error.message === "Ya tenes un cambio puntual activo") return error.message;
+    if (error.message === "El cambio temporal ya no esta activo") return error.message;
+    if (error.message === "La primera clase involucrada ya comenzo") return error.message;
+    if (error.message === "Tu lugar en el horario habitual ya fue ocupado") return error.message;
     if (error.message === "Solo los coaches pueden editar este perfil") return error.message;
     if (error.message === "No se encontro el perfil del coach") return error.message;
     if (error.message === "Revisa los telefonos ingresados") return error.message;
@@ -224,8 +91,16 @@ const getProfileErrorMessage = (error: unknown, fallback: string) => {
     return fallback;
 };
 
-const getCurrentActiveStudentMembership = async (studentId: string) => (
-    prisma.studentMembership.findFirst({
+type ScheduleValidationClient = Pick<
+    Prisma.TransactionClient,
+    "scheduleChangeRequest" | "studentMembership" | "weeklyClassSchedule"
+>;
+
+const getCurrentActiveStudentMembership = async (
+    database: ScheduleValidationClient,
+    studentId: string
+) => (
+    database.studentMembership.findFirst({
         where: {
             studentId,
             status: "ACTIVE",
@@ -244,19 +119,26 @@ const validateStudentScheduleSelection = async (
         id: string;
         coachId: string | null;
     },
-    scheduleIds: string[]
+    scheduleIds: string[],
+    type: ScheduleChangeRequestType,
+    database: ScheduleValidationClient = prisma,
+    oneTimeSourceSchedule?: Pick<WeeklyClassSchedule, "dayOfWeek" | "startTime"> | null,
+    referenceDate = new Date()
 ) => {
     const uniqueScheduleIds = Array.from(new Set(scheduleIds.filter(Boolean)));
-    const activeMembership = await getCurrentActiveStudentMembership(student.id);
+    const activeMembership = await getCurrentActiveStudentMembership(database, student.id);
 
-    if (uniqueScheduleIds.length === 0) throw new Error("Selecciona al menos un turno para solicitar el cambio");
+    if (uniqueScheduleIds.length === 0) throw new Error("Selecciona al menos un turno para confirmar el cambio");
+    if (type === "ONE_TIME" && uniqueScheduleIds.length !== 1) {
+        throw new Error("Para un cambio puntual selecciona un solo turno nuevo");
+    }
     if (!activeMembership) throw new Error("Necesitas una membresia activa para elegir turnos");
 
     if (uniqueScheduleIds.length > activeMembership.plan.trainingDaysPerWeek) {
         throw new Error("La cantidad de turnos supera lo permitido por tu plan");
     }
 
-    const selectedSchedules = await prisma.weeklyClassSchedule.findMany({
+    const selectedSchedules = await database.weeklyClassSchedule.findMany({
         where: {
             id: {
                 in: uniqueScheduleIds,
@@ -280,21 +162,51 @@ const validateStudentScheduleSelection = async (
         throw new Error("Uno de los turnos seleccionados ya no existe");
     }
 
+    if (selectedSchedules.some((schedule) => (
+        getClassCategoryLabel(schedule.classCategory) !== getClassCategoryLabel(activeMembership.plan.classCategory)
+    ))) {
+        throw new Error("Uno de los turnos seleccionados no corresponde a la categoria de tu plan");
+    }
+
     const selectedDays = selectedSchedules.map((schedule) => schedule.dayOfWeek);
 
     if (new Set(selectedDays).size !== selectedDays.length) {
         throw new Error("No podes elegir dos turnos el mismo dia");
     }
 
-    const hasFullSchedule = selectedSchedules.some((schedule) => (
-        schedule.capacity !== null && schedule.studentAssignments.length >= schedule.capacity
-    ));
+    if (type === "ONE_TIME" && !oneTimeSourceSchedule) {
+        throw new Error("Selecciona el turno actual que queres reemplazar");
+    }
+
+    const requestedDate = type === "ONE_TIME" && oneTimeSourceSchedule
+        ? getOneTimeScheduleDates(oneTimeSourceSchedule, selectedSchedules[0], referenceDate).requestedDate
+        : null;
+    const oneTimeChanges = requestedDate
+        ? await getOneTimeScheduleChangesForDate(requestedDate, database)
+        : [];
+    const hasFullSchedule = selectedSchedules.some((schedule) => {
+        if (schedule.capacity === null) return false;
+
+        const occupiedStudentIds = requestedDate
+            ? getEffectiveScheduleStudentIds({
+                scheduleId: schedule.id,
+                fixedStudentIds: schedule.studentAssignments.map((assignment) => assignment.studentId),
+                changes: oneTimeChanges,
+            }).filter((studentId) => studentId !== student.id)
+            : schedule.studentAssignments;
+
+        return occupiedStudentIds.length >= schedule.capacity;
+    });
 
     if (hasFullSchedule) {
         throw new Error("Uno de los turnos seleccionados no tiene cupos disponibles");
     }
 
-    return uniqueScheduleIds;
+    return {
+        activeMembershipId: activeMembership.id,
+        requestedDate,
+        scheduleIds: uniqueScheduleIds,
+    };
 };
 
 const areStringArraysEqual = (first: string[], second: string[]) => {
@@ -412,6 +324,7 @@ export const updateStudentProfile = async (
             email: updatedUser.email,
             name: updatedUser.name,
             role: updatedUser.role,
+            sessionVersion: updatedUser.sessionVersion,
         });
 
         revalidatePath(profilePath);
@@ -518,7 +431,7 @@ export const createStudentScheduleChangeRequest = async (
 
         const reason = input.reason.trim();
 
-        if (reason.length < 5) throw new Error("Agrega una justificacion para solicitar el cambio");
+        if (reason.length < 5) throw new Error("Agrega una justificacion para confirmar el cambio");
 
         const student = await prisma.student.findUnique({
             where: {
@@ -544,77 +457,183 @@ export const createStudentScheduleChangeRequest = async (
 
         if (!student) throw new Error("No se encontro el perfil del alumno");
 
-        const pendingRequests = await prisma.$queryRaw<Array<{ id: string }>>`
-            SELECT "id"
-            FROM "ScheduleChangeRequest"
-            WHERE "studentId" = ${student.id}
-              AND "status" = 'PENDING'
-            LIMIT 1
-        `;
-
-        if (pendingRequests.length > 0) throw new Error("Ya tenes una solicitud de horario pendiente");
-
         const currentScheduleIds = student.schedules.map((schedule) => schedule.weeklyScheduleId);
-        const requestedScheduleIds = await validateStudentScheduleSelection(student, input.requestedScheduleIds);
-
-        if (areStringArraysEqual(currentScheduleIds, requestedScheduleIds)) {
-            throw new Error("Los turnos seleccionados son iguales a tus turnos actuales");
-        }
-
         const now = new Date();
         const requestId = randomUUID();
-        const requestedDate = input.requestedDate ? new Date(input.requestedDate) : null;
+        let requestCurrentScheduleIds = currentScheduleIds;
+        let requestedDate: Date | null = null;
+        let requestedScheduleIds: string[] = [];
 
-        await prisma.$executeRaw`
-            INSERT INTO "ScheduleChangeRequest" (
-                "id",
-                "studentId",
-                "type",
-                "status",
-                "currentScheduleIds",
-                "requestedScheduleIds",
-                "requestedDate",
-                "reason",
-                "createdAt",
-                "updatedAt"
-            )
-            VALUES (
-                ${requestId},
-                ${student.id},
-                ${input.type}::"ScheduleChangeRequestType",
-                'PENDING'::"ScheduleChangeRequestStatus",
-                ${currentScheduleIds}::text[],
-                ${requestedScheduleIds}::text[],
-                ${requestedDate},
-                ${reason},
-                ${now},
-                ${now}
-            )
-        `;
-        const notification = await sendScheduleChangeRequestNotification({
+        await prisma.$transaction(async (tx) => {
+            let oneTimeSourceSchedule: Pick<WeeklyClassSchedule, "dayOfWeek" | "startTime"> | null = null;
+
+            if (input.type === "ONE_TIME") {
+                if (!input.currentScheduleId || !currentScheduleIds.includes(input.currentScheduleId)) {
+                    throw new Error("Selecciona el turno actual que queres reemplazar");
+                }
+                if (input.requestedScheduleIds.some((scheduleId) => currentScheduleIds.includes(scheduleId))) {
+                    throw new Error("El turno de reemplazo ya es uno de tus turnos fijos");
+                }
+
+                const { start: todayStart } = getLocalDayRange(now);
+                const activeOneTimeChange = await tx.scheduleChangeRequest.findFirst({
+                    where: {
+                        studentId: student.id,
+                        type: "ONE_TIME",
+                        status: "APPROVED",
+                        requestedDate: {
+                            gte: todayStart,
+                        },
+                    },
+                    select: {
+                        id: true,
+                    },
+                });
+
+                if (activeOneTimeChange) throw new Error("Ya tenes un cambio puntual activo");
+
+                requestCurrentScheduleIds = [input.currentScheduleId];
+                oneTimeSourceSchedule = await tx.weeklyClassSchedule.findUnique({
+                    where: {
+                        id: input.currentScheduleId,
+                    },
+                    select: {
+                        dayOfWeek: true,
+                        startTime: true,
+                    },
+                });
+            }
+
+            const validation = await validateStudentScheduleSelection(
+                student,
+                input.requestedScheduleIds,
+                input.type,
+                tx,
+                oneTimeSourceSchedule,
+                now
+            );
+            const activeMembershipId = validation.activeMembershipId;
+
+            requestedDate = validation.requestedDate;
+            requestedScheduleIds = validation.scheduleIds;
+
+            if (areStringArraysEqual(requestCurrentScheduleIds, requestedScheduleIds)) {
+                throw new Error("Los turnos seleccionados son iguales a tus turnos actuales");
+            }
+
+            if (input.type === "PERMANENT") {
+                const { start: todayStart } = getLocalDayRange(now);
+
+                await tx.scheduleChangeRequest.updateMany({
+                    where: {
+                        studentId: student.id,
+                        type: "ONE_TIME",
+                        status: "APPROVED",
+                        requestedDate: {
+                            gte: todayStart,
+                        },
+                    },
+                    data: {
+                        status: "CANCELLED",
+                        reviewNotes: "Cancelada por un cambio permanente posterior",
+                        updatedAt: now,
+                    },
+                });
+
+                await tx.studentScheduleAssignment.updateMany({
+                    where: {
+                        studentId: student.id,
+                        isActive: true,
+                        weeklyScheduleId: {
+                            notIn: requestedScheduleIds,
+                        },
+                    },
+                    data: {
+                        isActive: false,
+                    },
+                });
+
+                await Promise.all(requestedScheduleIds.map((scheduleId) => (
+                    tx.studentScheduleAssignment.upsert({
+                        where: {
+                            studentId_weeklyScheduleId: {
+                                studentId: student.id,
+                                weeklyScheduleId: scheduleId,
+                            },
+                        },
+                        update: {
+                            isActive: true,
+                            studentMembershipId: activeMembershipId,
+                        },
+                        create: {
+                            studentId: student.id,
+                            weeklyScheduleId: scheduleId,
+                            studentMembershipId: activeMembershipId,
+                        },
+                    })
+                )));
+            }
+
+            await tx.$executeRaw`
+                INSERT INTO "ScheduleChangeRequest" (
+                    "id",
+                    "studentId",
+                    "type",
+                    "status",
+                    "currentScheduleIds",
+                    "requestedScheduleIds",
+                    "requestedDate",
+                    "reason",
+                    "reviewNotes",
+                    "reviewedAt",
+                    "createdAt",
+                    "updatedAt"
+                )
+                VALUES (
+                    ${requestId},
+                    ${student.id},
+                    ${input.type}::"ScheduleChangeRequestType",
+                    'APPROVED'::"ScheduleChangeRequestStatus",
+                    ${requestCurrentScheduleIds}::text[],
+                    ${requestedScheduleIds}::text[],
+                    ${requestedDate},
+                    ${reason},
+                    ${"Aprobada automáticamente"},
+                    ${now},
+                    ${now},
+                    ${now}
+                )
+            `;
+        }, {
+            isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        });
+        const confirmedRequestedDate = requestedDate as Date | null;
+        const notification = await sendAutomaticScheduleChangeNotification({
             student,
             type: input.type,
-            currentScheduleIds,
             requestedScheduleIds,
-            reason,
+            requestedDate: confirmedRequestedDate,
         });
 
         revalidatePath(profilePath);
         revalidatePath(scheduleRequestsPath);
+        revalidatePath(coachDashboardPath);
         revalidatePath(adminStudentsPath);
         revalidatePath(`${adminStudentsPath}/${student.id}`);
         await writeAuditLog({
-            action: "SCHEDULE_CHANGE_REQUEST_CREATE",
+            action: "SCHEDULE_CHANGE_REQUEST_AUTO_APPROVE",
             entityType: "ScheduleChangeRequest",
             entityId: requestId,
             metadata: {
                 studentId: student.id,
                 type: input.type,
-                currentScheduleIds,
+                currentScheduleIds: requestCurrentScheduleIds,
                 requestedScheduleIds,
-                requestedDate: requestedDate?.toISOString() ?? null,
+                requestedDate: confirmedRequestedDate?.toISOString() ?? null,
+                permanentScheduleUpdated: input.type === "PERMANENT",
                 notificationStatus: notification.status,
                 notificationRecipients: notification.recipients,
+                whatsappNotificationStatus: notification.whatsappStatus,
             },
         });
 
@@ -625,12 +644,164 @@ export const createStudentScheduleChangeRequest = async (
             },
         };
     } catch (error) {
-        console.error("Error al crear la solicitud de cambio de horario:", error);
+        console.error("Error al confirmar el cambio automatico de horario:", error);
 
         return {
             ok: false,
             data: null,
-            error: getProfileErrorMessage(error, "No se pudo solicitar el cambio de horario"),
+            error: getProfileErrorMessage(error, "No se pudo confirmar el cambio de horario"),
+        };
+    }
+};
+
+export const cancelStudentOneTimeScheduleChange = async (
+    requestId: string
+): Promise<ActionResponse<{ requestId: string } | null>> => {
+    try {
+        const session = await getCurrentAuthSession();
+
+        if (!session) throw new Error("Necesitas iniciar sesion");
+        if (session.role !== "STUDENT") throw new Error("Solo los alumnos pueden editar este perfil");
+
+        const student = await prisma.student.findUnique({
+            where: {
+                userId: session.userId,
+            },
+            select: {
+                id: true,
+            },
+        });
+
+        if (!student) throw new Error("No se encontro el perfil del alumno");
+
+        const now = new Date();
+        const cancellation = await prisma.$transaction(async (tx) => {
+            const request = await tx.scheduleChangeRequest.findFirst({
+                where: {
+                    id: requestId,
+                    studentId: student.id,
+                    type: "ONE_TIME",
+                    status: "APPROVED",
+                },
+                select: {
+                    id: true,
+                    currentScheduleIds: true,
+                    requestedScheduleIds: true,
+                    requestedDate: true,
+                    createdAt: true,
+                },
+            });
+
+            if (
+                !request
+                || request.currentScheduleIds.length !== 1
+                || request.requestedScheduleIds.length !== 1
+                || !request.requestedDate
+            ) {
+                throw new Error("El cambio temporal ya no esta activo");
+            }
+
+            const sourceScheduleId = request.currentScheduleIds[0];
+            const sourceSchedule = await tx.weeklyClassSchedule.findUnique({
+                where: {
+                    id: sourceScheduleId,
+                },
+                include: {
+                    studentAssignments: {
+                        where: {
+                            isActive: true,
+                        },
+                        select: {
+                            studentId: true,
+                        },
+                    },
+                },
+            });
+
+            if (!sourceSchedule) throw new Error("El cambio temporal ya no esta activo");
+
+            const sourceDate = getOneTimeScheduleDates(
+                sourceSchedule,
+                sourceSchedule,
+                request.createdAt
+            ).sourceDate;
+            const firstAffectedDate = sourceDate < request.requestedDate
+                ? sourceDate
+                : request.requestedDate;
+
+            if (firstAffectedDate <= now) {
+                throw new Error("La primera clase involucrada ya comenzo");
+            }
+
+            const oneTimeChanges = await getOneTimeScheduleChangesForDate(sourceDate, tx);
+            const effectiveStudentIds = getEffectiveScheduleStudentIds({
+                scheduleId: sourceSchedule.id,
+                fixedStudentIds: sourceSchedule.studentAssignments.map((assignment) => assignment.studentId),
+                changes: oneTimeChanges,
+            });
+            const occupiedAfterCancellation = new Set([...effectiveStudentIds, student.id]).size;
+
+            if (sourceSchedule.capacity !== null && occupiedAfterCancellation > sourceSchedule.capacity) {
+                throw new Error("Tu lugar en el horario habitual ya fue ocupado");
+            }
+
+            const updateResult = await tx.scheduleChangeRequest.updateMany({
+                where: {
+                    id: request.id,
+                    status: "APPROVED",
+                },
+                data: {
+                    status: "CANCELLED",
+                    reviewNotes: "Cancelada por el alumno desde su perfil",
+                    updatedAt: now,
+                },
+            });
+
+            if (updateResult.count !== 1) throw new Error("El cambio temporal ya no esta activo");
+
+            return {
+                requestId: request.id,
+                sourceScheduleId,
+                requestedScheduleId: request.requestedScheduleIds[0],
+                sourceDate,
+                requestedDate: request.requestedDate,
+            };
+        }, {
+            isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        });
+
+        revalidatePath(profilePath);
+        revalidatePath(scheduleRequestsPath);
+        revalidatePath(coachDashboardPath);
+        revalidatePath(adminStudentsPath);
+        revalidatePath(`${adminStudentsPath}/${student.id}`);
+        await writeAuditLog({
+            action: "SCHEDULE_CHANGE_REQUEST_CANCEL",
+            entityType: "ScheduleChangeRequest",
+            entityId: cancellation.requestId,
+            metadata: {
+                studentId: student.id,
+                type: "ONE_TIME",
+                sourceScheduleId: cancellation.sourceScheduleId,
+                requestedScheduleId: cancellation.requestedScheduleId,
+                sourceDate: cancellation.sourceDate.toISOString(),
+                requestedDate: cancellation.requestedDate.toISOString(),
+            },
+        });
+
+        return {
+            ok: true,
+            data: {
+                requestId: cancellation.requestId,
+            },
+        };
+    } catch (error) {
+        console.error("Error al cancelar el cambio temporal de horario:", error);
+
+        return {
+            ok: false,
+            data: null,
+            error: getProfileErrorMessage(error, "No se pudo cancelar el cambio temporal"),
         };
     }
 };
@@ -691,6 +862,8 @@ export const updateCoachProfile = async (
                 bio: input.bio?.trim() || null,
                 specialty: input.specialty?.trim() || null,
                 instagram: input.instagram?.trim() || null,
+                paymentAlias: input.paymentAlias?.trim().toLowerCase() || null,
+                paymentAccountHolder: input.paymentAccountHolder?.trim() || null,
             },
         });
 
@@ -724,6 +897,7 @@ export const updateCoachProfile = async (
             email: updatedUser.email,
             name: updatedUser.name,
             role: updatedUser.role,
+            sessionVersion: updatedUser.sessionVersion,
         });
 
         revalidatePath(coachDashboardPath);

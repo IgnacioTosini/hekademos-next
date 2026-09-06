@@ -3,8 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getAdminActionErrorMessage, logAdminActionError, requireAdminSession } from "@/lib/admin-session";
 import { writeAuditLog } from "@/lib/audit-log";
-import { buildEmailMessage, sendEmail } from "@/lib/email";
-import { isDeliverableEmail } from "@/lib/form-validation";
+import { sendPaymentReminders, type PaymentReminderResult } from "@/services/payment-reminders";
 import { prisma } from "@/lib/prisma";
 import type {
     Payment,
@@ -13,12 +12,11 @@ import type {
     PaymentOverviewStatus,
     SavePaymentDetailsInput,
 } from "@/types/schema/payments";
-import { formatCurrency, formatDate } from "@/utils/format";
 import { getActiveMembership, getMembershipAmountCents } from "@/utils/membership";
 import {
     getAmountWithLateSurcharge,
-    getPaymentForPeriod,
     getPaymentMonthRange,
+    getPaymentPeriodStart,
     getPaymentReminderTypeForDate,
     LATE_SURCHARGE_PERCENT,
     type PaymentReminderType,
@@ -49,14 +47,7 @@ export type SendPaymentReminderEmailsInput = PaymentOverviewPeriodInput & {
     reminderType?: PaymentReminderType;
 };
 
-export type SendPaymentReminderEmailsResult = {
-    reminderType: PaymentReminderType;
-    sentCount: number;
-    failedCount: number;
-    alreadyPaidCount: number;
-    invalidEmailCount: number;
-    skippedCount: number;
-};
+export type SendPaymentReminderEmailsResult = PaymentReminderResult;
 
 export type DashboardPendingPaymentStatus = Extract<PaymentOverviewStatus, "PENDING" | "NO_MEMBERSHIP">;
 
@@ -415,7 +406,8 @@ export const markCurrentMonthPaymentPaid = async (
 
         const today = new Date();
         const selectedPeriodDate = getSelectedPeriodDate(input);
-        const { start, end, dueDate } = getPaymentMonthRange(selectedPeriodDate);
+        const { dueDate } = getPaymentMonthRange(selectedPeriodDate);
+        const periodStart = getPaymentPeriodStart(selectedPeriodDate);
 
         const student = await prisma.student.findUnique({
             where: {
@@ -451,60 +443,50 @@ export const markCurrentMonthPaymentPaid = async (
             };
         }
 
-        const existingPayment = await prisma.payment.findFirst({
+        const existingPayment = await prisma.payment.findUnique({
             where: {
-                studentId: student.id,
-                studentMembershipId: activeMembership.id,
-                OR: [
-                    {
-                        dueDate: {
-                            gte: start,
-                            lt: end,
-                        },
-                    },
-                    {
-                        paidAt: {
-                            gte: start,
-                            lt: end,
-                        },
-                    },
-                ],
-            },
-            orderBy: {
-                createdAt: "desc",
+                studentId_periodStart: {
+                    studentId: student.id,
+                    periodStart,
+                },
             },
         });
 
         const baseAmountCents = getMembershipAmountCents(activeMembership);
-        const amountCents = getAmountWithLateSurcharge(
-            baseAmountCents,
-            shouldApplyLateSurcharge(today, dueDate)
-        );
-
-        const payment = existingPayment
-            ? await prisma.payment.update({
-                where: {
-                    id: existingPayment.id,
-                },
-                data: {
-                    amountCents,
-                    currency: activeMembership.plan.currency,
-                    status: "PAID",
-                    paidAt: today,
-                    dueDate,
-                },
-            })
-            : await prisma.payment.create({
-                data: {
+        const amountCents = existingPayment?.status === "PAID"
+            ? existingPayment.amountCents
+            : getAmountWithLateSurcharge(
+                baseAmountCents,
+                shouldApplyLateSurcharge(today, dueDate)
+            );
+        const paidAt = existingPayment?.status === "PAID"
+            ? existingPayment.paidAt ?? today
+            : today;
+        const payment = await prisma.payment.upsert({
+            where: {
+                studentId_periodStart: {
                     studentId: student.id,
-                    studentMembershipId: activeMembership.id,
-                    amountCents,
-                    currency: activeMembership.plan.currency,
-                    status: "PAID",
-                    dueDate,
-                    paidAt: today,
+                    periodStart,
                 },
-            });
+            },
+            update: {
+                amountCents,
+                currency: activeMembership.plan.currency,
+                status: "PAID",
+                paidAt,
+                dueDate,
+            },
+            create: {
+                studentId: student.id,
+                studentMembershipId: activeMembership.id,
+                periodStart,
+                amountCents,
+                currency: activeMembership.plan.currency,
+                status: "PAID",
+                dueDate,
+                paidAt,
+            },
+        });
 
         revalidatePath(adminPaymentsPath);
         revalidatePath(adminStudentsPath);
@@ -546,28 +528,15 @@ export const markCurrentMonthPaymentPending = async (
         await requireAdminSession();
 
         const selectedPeriodDate = getSelectedPeriodDate(input);
-        const { start, end, dueDate } = getPaymentMonthRange(selectedPeriodDate);
+        const { dueDate } = getPaymentMonthRange(selectedPeriodDate);
+        const periodStart = getPaymentPeriodStart(selectedPeriodDate);
 
-        const payment = await prisma.payment.findFirst({
+        const payment = await prisma.payment.findUnique({
             where: {
-                studentId,
-                OR: [
-                    {
-                        dueDate: {
-                            gte: start,
-                            lt: end,
-                        },
-                    },
-                    {
-                        paidAt: {
-                            gte: start,
-                            lt: end,
-                        },
-                    },
-                ],
-            },
-            orderBy: {
-                createdAt: "desc",
+                studentId_periodStart: {
+                    studentId,
+                    periodStart,
+                },
             },
         });
 
@@ -630,7 +599,8 @@ export const savePaymentDetails = async (
 
         const today = new Date();
         const selectedPeriodDate = getSelectedPeriodDate(input);
-        const { start, end, dueDate } = getPaymentMonthRange(selectedPeriodDate);
+        const { dueDate } = getPaymentMonthRange(selectedPeriodDate);
+        const periodStart = getPaymentPeriodStart(selectedPeriodDate);
         const student = await prisma.student.findUnique({
             where: {
                 id: studentId,
@@ -665,27 +635,12 @@ export const savePaymentDetails = async (
             };
         }
 
-        const existingPayment = await prisma.payment.findFirst({
+        const existingPayment = await prisma.payment.findUnique({
             where: {
-                studentId: student.id,
-                studentMembershipId: activeMembership.id,
-                OR: [
-                    {
-                        dueDate: {
-                            gte: start,
-                            lt: end,
-                        },
-                    },
-                    {
-                        paidAt: {
-                            gte: start,
-                            lt: end,
-                        },
-                    },
-                ],
-            },
-            orderBy: {
-                createdAt: "desc",
+                studentId_periodStart: {
+                    studentId: student.id,
+                    periodStart,
+                },
             },
         });
         const reference = input.reference?.trim() || null;
@@ -697,29 +652,30 @@ export const savePaymentDetails = async (
                 baseAmountCents,
                 shouldApplyLateSurcharge(today, dueDate, existingPayment?.status)
             );
-        const payment = existingPayment
-            ? await prisma.payment.update({
-                where: {
-                    id: existingPayment.id,
-                },
-                data: {
-                    reference,
-                    notes,
-                    dueDate,
-                },
-            })
-            : await prisma.payment.create({
-                data: {
+        const payment = await prisma.payment.upsert({
+            where: {
+                studentId_periodStart: {
                     studentId: student.id,
-                    studentMembershipId: activeMembership.id,
-                    amountCents,
-                    currency: activeMembership.plan.currency,
-                    status: "PENDING",
-                    dueDate,
-                    reference,
-                    notes,
+                    periodStart,
                 },
-            });
+            },
+            update: {
+                reference,
+                notes,
+                dueDate,
+            },
+            create: {
+                studentId: student.id,
+                studentMembershipId: activeMembership.id,
+                periodStart,
+                amountCents,
+                currency: activeMembership.plan.currency,
+                status: "PENDING",
+                dueDate,
+                reference,
+                notes,
+            },
+        });
 
         revalidatePath(adminPaymentsPath);
         revalidatePath(adminStudentsPath);
@@ -759,128 +715,21 @@ export const sendPaymentReminderEmails = async (
 ): Promise<ActionResponse<SendPaymentReminderEmailsResult>> => {
     try {
         await requireAdminSession();
-
-        const today = new Date();
         const selectedPeriodDate = getSelectedPeriodDate(input);
-        const reminderType = input?.reminderType ?? getPaymentReminderTypeForDate(today) ?? "MONTHLY";
-        const { start, end, dueDate } = getPaymentMonthRange(selectedPeriodDate);
-        const students = await prisma.student.findMany({
-            include: {
-                user: true,
-                memberships: {
-                    orderBy: {
-                        createdAt: "desc",
-                    },
-                    include: {
-                        plan: true,
-                        payments: {
-                            orderBy: {
-                                createdAt: "desc",
-                            },
-                        },
-                    },
-                },
-                payments: {
-                    orderBy: {
-                        createdAt: "desc",
-                    },
-                },
-            },
+        const data = await sendPaymentReminders({
+            year: selectedPeriodDate.getFullYear(),
+            month: selectedPeriodDate.getMonth() + 1,
+            reminderType: input?.reminderType ?? getPaymentReminderTypeForDate(new Date()) ?? "MONTHLY",
         });
-        let sentCount = 0;
-        let failedCount = 0;
-        let alreadyPaidCount = 0;
-        let invalidEmailCount = 0;
-        let skippedCount = 0;
-
-        for (const student of students) {
-            const activeMembership = getActiveMembership(student.memberships, dueDate);
-
-            if (!activeMembership || student.user.status !== "ACTIVE") {
-                skippedCount += 1;
-                continue;
-            }
-
-            if (!isDeliverableEmail(student.user.email)) {
-                invalidEmailCount += 1;
-                continue;
-            }
-
-            const currentMonthPayment = getPaymentForPeriod(
-                [...activeMembership.payments, ...student.payments],
-                start,
-                end
-            );
-
-            if (currentMonthPayment?.status === "PAID") {
-                alreadyPaidCount += 1;
-                continue;
-            }
-
-            const baseAmountCents = getMembershipAmountCents(activeMembership);
-            const isLate = shouldApplyLateSurcharge(today, dueDate, currentMonthPayment?.status);
-            const currentAmountCents = getAmountWithLateSurcharge(baseAmountCents, isLate);
-            const increasedAmountCents = getAmountWithLateSurcharge(baseAmountCents, true);
-            const studentName = getStudentName(student);
-            const emailMessage = buildEmailMessage({
-                type: "PAYMENT_REMINDER",
-                to: {
-                    email: student.user.email,
-                    name: studentName,
-                },
-                data: {
-                    name: studentName,
-                    amountLabel: formatCurrency(currentAmountCents, activeMembership.plan.currency),
-                    dueDateLabel: formatDate(dueDate),
-                    reminderType,
-                    surchargePercent: LATE_SURCHARGE_PERCENT,
-                    increasedAmountLabel: formatCurrency(increasedAmountCents, activeMembership.plan.currency),
-                },
-            });
-
-            try {
-                await sendEmail(emailMessage);
-                sentCount += 1;
-            } catch (error) {
-                failedCount += 1;
-                console.error(`Error al enviar el recordatorio de pago a ${student.user.email}:`, error);
-            }
-        }
-
         await writeAuditLog({
-            action: "PAYMENT_REMINDER_EMAILS",
+            action: "PAYMENT_REMINDERS",
             entityType: "Payment",
             entityId: "payment-reminders",
-            metadata: {
-                reminderType,
-                sentCount,
-                failedCount,
-                alreadyPaidCount,
-                invalidEmailCount,
-                skippedCount,
-                periodMonth: selectedPeriodDate.getMonth() + 1,
-                periodYear: selectedPeriodDate.getFullYear(),
-            },
+            metadata: { ...data, periodMonth: selectedPeriodDate.getMonth() + 1, periodYear: selectedPeriodDate.getFullYear() },
         });
-
-        return {
-            ok: true,
-            data: {
-                reminderType,
-                sentCount,
-                failedCount,
-                alreadyPaidCount,
-                invalidEmailCount,
-                skippedCount,
-            },
-        };
+        return { ok: true, data };
     } catch (error) {
-        logAdminActionError("Error al enviar los emails de recordatorio de pago:", error);
-
-        return {
-            ok: false,
-            data: null,
-            error: getAdminActionErrorMessage(error, "No se pudieron enviar los recordatorios de pago"),
-        };
+        logAdminActionError("Error al enviar recordatorios de pago:", error);
+        return { ok: false, data: null, error: getAdminActionErrorMessage(error, "No se pudieron enviar los recordatorios de pago") };
     }
 };

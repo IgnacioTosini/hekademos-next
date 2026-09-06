@@ -1,10 +1,14 @@
 import { redirect } from 'next/navigation';
 import { getCoachTodayAttendance } from '@/app/actions/attendance.actions';
-import { ChangePasswordButton } from '@/components/account';
-import { LogoutIconButton } from '@/components/auth';
-import { CoachDashboard, CoachProfileEditor, type CoachDashboardStudent } from '@/components/platform/coach';
+import { getCommunityFeed } from '@/app/actions/community.actions';
+import { ChangePasswordButton } from '@/components/account/changePasswordButton/ChangePasswordButton';
+import { LogoutIconButton } from '@/components/auth/logoutIconButton/LogoutIconButton';
+import { CommunityFeed } from '@/components/community/CommunityFeed';
+import { CoachDashboard, type CoachDashboardStudent } from '@/components/platform/coach/coachDashboard/CoachDashboard';
+import { CoachProfileEditor } from '@/components/platform/coach/coachProfileEditor/CoachProfileEditor';
 import { getCurrentAuthSession } from '@/lib/auth-session';
 import { prisma } from '@/lib/prisma';
+import { getClassCategoryLabel } from '@/utils/class-category';
 import { formatCurrency } from '@/utils/format';
 import { getActiveMembership, getMembershipAmountCents } from '@/utils/membership';
 import { getAmountWithLateSurcharge, getPaymentForPeriod, getPaymentMonthRange, shouldApplyLateSurcharge } from '@/utils/payment';
@@ -27,7 +31,7 @@ export default async function CoachDashboardPage() {
         redirect('/perfil');
     }
 
-    const [coach, attendanceResponse] = await Promise.all([
+    const [coach, attendanceResponse, communityResponse] = await Promise.all([
         prisma.coach.findUnique({
         where: {
             userId: session.userId,
@@ -87,6 +91,7 @@ export default async function CoachDashboardPage() {
         },
         }),
         getCoachTodayAttendance(),
+        getCommunityFeed(),
     ]);
 
     if (!coach) {
@@ -119,7 +124,7 @@ export default async function CoachDashboardPage() {
                 const schedule = scheduleAssignment.weeklySchedule;
                 const endsAt = addMinutesToTime(schedule.startTime, schedule.durationMinutes);
 
-                return `${dayLabels[schedule.dayOfWeek]} ${schedule.startTime}${endsAt ? ` a ${endsAt}` : ''}`;
+                return `${getClassCategoryLabel(schedule.classCategory)} · ${dayLabels[schedule.dayOfWeek]} ${schedule.startTime}${endsAt ? ` a ${endsAt}` : ''}`;
             });
 
         return {
@@ -158,6 +163,8 @@ export default async function CoachDashboardPage() {
                                 bio: coach.bio,
                                 specialty: coach.specialty,
                                 instagram: coach.instagram,
+                                paymentAlias: coach.paymentAlias,
+                                paymentAccountHolder: coach.paymentAccountHolder,
                                 image: coach.user.image,
                             }}
                         />
@@ -165,6 +172,7 @@ export default async function CoachDashboardPage() {
                     </>
                 )}
             />
+            {communityResponse.ok && <CommunityFeed data={communityResponse.data} embedded />}
         </main>
     )
 }

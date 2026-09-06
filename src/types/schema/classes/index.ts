@@ -1,4 +1,6 @@
-import type { TimestampFields, PrismaDate } from '../common';
+import type { ClassCategory, TimestampFields, PrismaDate } from '../common';
+
+export type { ClassCategory } from '../common';
 import type { StudentMembership } from '../memberships';
 import type { Coach, CoachWithRelations, Student } from '../users';
 
@@ -22,6 +24,7 @@ export type ScheduleChangeRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 
 export type WeeklyClassSchedule = TimestampFields & {
     id: string;
     dayOfWeek: DayOfWeek;
+    classCategory: ClassCategory;
     startTime: string;
     durationMinutes: number;
     capacity: number | null;
@@ -52,6 +55,7 @@ export type Attendance = TimestampFields & {
 
 export type CreateWeeklyClassScheduleInput = {
     dayOfWeek: DayOfWeek;
+    classCategory: ClassCategory;
     startTime: string;
     durationMinutes?: number;
     capacity?: number | null;
@@ -77,6 +81,15 @@ export type WeeklyClassScheduleWithRelations = WeeklyClassSchedule & {
     studentAssignments?: StudentScheduleAssignment[];
     occupiedSpots?: number;
     availableSpots?: number | null;
+};
+
+export type WeeklyClassScheduleSummary = Pick<
+    WeeklyClassSchedule,
+    "id" | "dayOfWeek" | "classCategory" | "startTime" | "durationMinutes" | "capacity" | "coachId"
+> & {
+    coachName: string | null;
+    occupiedSpots: number;
+    availableSpots: number | null;
 };
 
 export type ClassSessionWithRelations = ClassSession & {

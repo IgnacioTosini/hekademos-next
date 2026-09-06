@@ -1,10 +1,13 @@
 import { createHash } from "node:crypto";
 
-const getCloudinaryConfig = () => {
+export type CloudinaryUploadArea = "users" | "site";
+
+const getCloudinaryConfig = (area: CloudinaryUploadArea) => {
     const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
     const apiKey = process.env.CLOUDINARY_API_KEY;
     const apiSecret = process.env.CLOUDINARY_API_SECRET;
-    const uploadFolder = process.env.CLOUDINARY_UPLOAD_FOLDER ?? "Hekademos/users";
+    const uploadRootFolder = (process.env.CLOUDINARY_UPLOAD_FOLDER ?? "Hekademos").replace(/\/+$/, "");
+    const uploadFolder = `${uploadRootFolder}/${area}`;
 
     if (!cloudName || !apiKey || !apiSecret) {
         throw new Error("Faltan variables CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET");
@@ -33,9 +36,10 @@ function buildSignature(
 }
 
 export async function uploadCloudinaryImage(
-    file: File
+    file: File,
+    area: CloudinaryUploadArea = "users"
 ) {
-    const { cloudName, apiKey, apiSecret, uploadFolder } = getCloudinaryConfig();
+    const { cloudName, apiKey, apiSecret, uploadFolder } = getCloudinaryConfig(area);
     const timestamp = Math.floor(Date.now() / 1000);
 
     const signature = buildSignature({
@@ -74,7 +78,7 @@ export async function uploadCloudinaryImage(
 export async function deleteCloudinaryImage(
     publicId: string
 ) {
-    const { cloudName, apiKey, apiSecret } = getCloudinaryConfig();
+    const { cloudName, apiKey, apiSecret } = getCloudinaryConfig("users");
     const timestamp = Math.floor(Date.now() / 1000);
 
     const signature = buildSignature({

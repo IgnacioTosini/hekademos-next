@@ -7,13 +7,16 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { FaArrowRight } from 'react-icons/fa';
 import './_asideNavbar.scss';
+import type { HomePageContent } from '@/lib/home-page-content';
 
 type AsideNavbarProps = {
     isOpen: boolean;
     onClose: () => void;
+    content: HomePageContent['header'];
+    links: HomePageContent['navigation']['menuLinks'];
 };
 
-export const AsideNavbar = ({ isOpen, onClose }: AsideNavbarProps) => {
+export const AsideNavbar = ({ isOpen, onClose, content, links }: AsideNavbarProps) => {
     useEffect(() => {
         if (isOpen) {
             document.body.style.overflow = 'hidden';
@@ -30,8 +33,8 @@ export const AsideNavbar = ({ isOpen, onClose }: AsideNavbarProps) => {
                 <div className='headerLogoAside'>
                     <Link href='/' className='logo'>
                         <Image
-                            src="/LogoHekademos.png"
-                            alt="Logo"
+                            src={content.logo.url}
+                            alt={content.logo.alt}
                             width={80}
                             height={80}
                             priority={true}
@@ -40,10 +43,10 @@ export const AsideNavbar = ({ isOpen, onClose }: AsideNavbarProps) => {
                     </Link>
                     <IoCloseSharp onClick={onClose} />
                 </div>
-                <NavbarLinks isAsideBar onClose={onClose} />
+                <NavbarLinks isAsideBar onClose={onClose} links={links} />
 
-                <Link href="/#contacto" className="asideCta" onClick={onClose}>
-                    Sumate a Hekademos <FaArrowRight />
+                <Link href={content.ctaHref} className="asideCta" onClick={onClose}>
+                    {content.ctaLabel} <FaArrowRight />
                 </Link>
 
                 {/*<h2 className='asideNavbarTitle'>Mi Cuenta</h2>

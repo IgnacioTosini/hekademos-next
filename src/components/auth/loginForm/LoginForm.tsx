@@ -13,6 +13,7 @@ export const LoginForm = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isPending, startTransition] = useTransition();
+    const passwordChanged = searchParams.get('passwordChanged') === '1';
 
     const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -75,6 +76,11 @@ export const LoginForm = () => {
                 />
             </div>
 
+            {passwordChanged && !error && (
+                <p className="login-form-message">
+                    Contraseña actualizada. Cerramos tus sesiones por seguridad; volvé a ingresar.
+                </p>
+            )}
             {error && <p className="login-form-error">{error}</p>}
 
             <button type="submit" disabled={isPending}>

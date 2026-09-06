@@ -25,7 +25,8 @@
             text-transform: uppercase;
         }
 
-        input {
+        input,
+        select {
             width: 100%;
             padding: .8rem .9rem;
             border: 1px solid rgba($secondary-color, .28);
@@ -42,6 +43,17 @@
                 outline: 2px solid rgba($secondary-color, .42);
                 border-color: $secondary-color;
             }
+        }
+
+        select option {
+            background: $primary-color;
+            color: $color-text;
+        }
+
+        small {
+            color: $color-text-secondary;
+            font-size: $font-size-small;
+            line-height: 1.4;
         }
     }
 
@@ -62,6 +74,216 @@
         input {
             accent-color: $secondary-color;
         }
+    }
+
+    .class-category-manager {
+        display: flex;
+        flex-direction: column;
+        gap: .75rem;
+    }
+
+    .class-category-manager-toggle {
+        width: fit-content;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: $secondary-color;
+        cursor: pointer;
+        font: inherit;
+        font-weight: $font-weight-semibold;
+    }
+
+    .class-category-manager-panel {
+        display: flex;
+        flex-direction: column;
+        gap: .85rem;
+        padding: 1rem;
+        border: 1px solid rgba($secondary-color, .22);
+        border-radius: 8px;
+        background: rgba($quinary-color, .36);
+    }
+
+    .class-category-manager-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+
+        > div {
+            display: flex;
+            flex-direction: column;
+            gap: .2rem;
+        }
+
+        strong {
+            color: $color-text;
+        }
+
+        small {
+            color: $color-text-secondary;
+            line-height: 1.35;
+        }
+
+        button {
+            flex: 0 0 auto;
+            padding: .45rem .7rem;
+            border: 1px solid rgba($secondary-color, .4);
+            border-radius: 6px;
+            background: transparent;
+            color: $secondary-color;
+            cursor: pointer;
+            font: inherit;
+            font-weight: $font-weight-semibold;
+        }
+    }
+
+    .class-category-manager-list {
+        display: flex;
+        flex-direction: column;
+        max-height: 180px;
+        overflow-y: auto;
+        border-block: 1px solid rgba($secondary-color, .14);
+
+        > p {
+            padding: .8rem 0;
+            color: $color-text-secondary;
+            font-size: $font-size-small;
+        }
+    }
+
+    .class-category-manager-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+        min-height: 44px;
+        padding: .45rem .1rem;
+        border-bottom: 1px solid rgba($secondary-color, .1);
+
+        &:last-child {
+            border-bottom: 0;
+        }
+
+        > div:first-child {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: .45rem;
+            min-width: 0;
+            color: $color-text;
+        }
+
+        em {
+            padding: .15rem .4rem;
+            border-radius: 999px;
+            background: rgba($secondary-color, .16);
+            color: $secondary-color;
+            font-size: .72rem;
+            font-style: normal;
+            font-weight: $font-weight-semibold;
+            text-transform: uppercase;
+        }
+    }
+
+    .class-category-manager-item-actions {
+        display: flex;
+        gap: .35rem;
+
+        button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border: 1px solid rgba($secondary-color, .22);
+            border-radius: 6px;
+            background: transparent;
+            color: $color-text-secondary;
+            cursor: pointer;
+
+            &:hover {
+                border-color: rgba($secondary-color, .55);
+                color: $secondary-color;
+            }
+        }
+    }
+
+    .class-category-manager-editor {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: end;
+        gap: .65rem 1rem;
+
+        > label:first-child {
+            grid-column: 1 / -1;
+            color: $color-text-secondary;
+            font-size: $font-size-small;
+            font-weight: $font-weight-semibold;
+            text-transform: uppercase;
+        }
+
+        > input {
+            width: 100%;
+            padding: .7rem .8rem;
+            border: 1px solid rgba($secondary-color, .28);
+            border-radius: 7px;
+            background: rgba($primary-color, .68);
+            color: $color-text;
+            font: inherit;
+
+            &:focus {
+                outline: 2px solid rgba($secondary-color, .42);
+                border-color: $secondary-color;
+            }
+        }
+    }
+
+    .class-category-manager-special {
+        display: inline-flex;
+        align-items: center;
+        gap: .5rem;
+        color: $color-text;
+        font-size: $font-size-small;
+        white-space: nowrap;
+
+        input {
+            accent-color: $secondary-color;
+        }
+    }
+
+    .class-category-manager-editor-actions {
+        grid-column: 1 / -1;
+        display: flex;
+        justify-content: flex-end;
+        gap: .5rem;
+
+        button {
+            padding: .55rem .75rem;
+            border: 1px solid rgba($secondary-color, .28);
+            border-radius: 6px;
+            background: transparent;
+            color: $color-text-secondary;
+            cursor: pointer;
+            font: inherit;
+            font-weight: $font-weight-semibold;
+        }
+
+        button:last-child {
+            border-color: $secondary-color;
+            background: $secondary-color;
+            color: $primary-color;
+        }
+    }
+
+    .class-category-manager-error {
+        color: $color-error;
+        font-size: $font-size-small;
+        font-weight: $font-weight-semibold;
+    }
+
+    .class-category-manager button:disabled {
+        cursor: not-allowed;
+        opacity: .6;
     }
 
     .membership-plan-form-error {
@@ -106,6 +328,19 @@
     @media (max-width: 640px) {
         .membership-plan-form-row {
             grid-template-columns: 1fr;
+        }
+
+        .class-category-manager-header {
+            flex-direction: column;
+
+            button {
+                align-self: stretch;
+            }
+        }
+
+        .class-category-manager-editor {
+            grid-template-columns: 1fr;
+            align-items: stretch;
         }
     }
 }

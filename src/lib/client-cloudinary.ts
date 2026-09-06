@@ -3,9 +3,12 @@ export type UploadedImage = {
     publicId: string;
 };
 
-export const uploadImage = async (file: File): Promise<UploadedImage> => {
+export type ImageUploadArea = "users" | "site";
+
+export const uploadImage = async (file: File, area: ImageUploadArea = "users"): Promise<UploadedImage> => {
     const formData = new FormData();
     formData.append("file", file);
+    formData.append("area", area);
 
     const response = await fetch("/api/upload-image", {
         method: "POST",

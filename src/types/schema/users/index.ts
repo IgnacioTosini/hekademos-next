@@ -14,6 +14,7 @@ export type User = TimestampFields & {
     name: string | null;
     phone: string | null;
     passwordHash: string | null;
+    sessionVersion: number;
     emailVerified: PrismaDate | null;
     role: Role;
     status: UserStatus;
@@ -46,6 +47,8 @@ export type Coach = TimestampFields & {
     bio: string | null;
     specialty: string | null;
     instagram: string | null;
+    paymentAlias: string | null;
+    paymentAccountHolder: string | null;
     isActive: boolean;
 };
 
@@ -153,6 +156,8 @@ export type CreateCoachUserInput = CreateUserInput & {
     bio?: string | null;
     specialty?: string | null;
     instagram?: string | null;
+    paymentAlias?: string | null;
+    paymentAccountHolder?: string | null;
     isActive?: boolean;
 };
 
@@ -160,5 +165,7 @@ export type UpdateCoachUserInput = UpdateUserInput & {
     bio?: string | null;
     specialty?: string | null;
     instagram?: string | null;
+    paymentAlias?: string | null;
+    paymentAccountHolder?: string | null;
     isActive?: boolean;
 };

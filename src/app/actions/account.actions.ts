@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getCurrentAuthSession } from "@/lib/auth-session";
+import { clearAuthSessionCookie, getCurrentAuthSession } from "@/lib/auth-session";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
 import type { ActionResponse } from "./_shared";
@@ -66,8 +66,13 @@ export const changeCurrentUserPassword = async (
             },
             data: {
                 passwordHash: await hashPassword(newPassword),
+                sessionVersion: {
+                    increment: 1,
+                },
             },
         });
+
+        await clearAuthSessionCookie();
 
         revalidatePath("/perfil");
         revalidatePath("/coach/dashboard");

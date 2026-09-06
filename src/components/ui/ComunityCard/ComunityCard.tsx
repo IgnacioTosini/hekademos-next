@@ -4,30 +4,33 @@ import { IoPeopleSharp } from "react-icons/io5";
 import { FaRegHeart } from "react-icons/fa";
 import { FaArrowTrendUp } from "react-icons/fa6";
 import './_comunityCard.scss';
+import { YoutubeVideoButton } from '../YoutubeVideoButton';
 
 type ComunityCardProps = {
     title: string;
     description: string;
-    image: string;
+    icon: "people" | "heart" | "trend";
+    imageAlt: string;
     imageUrl: string;
+    videoUrl?: string;
 }
 
-export const ComunityCard = ({ title, description, image, imageUrl }: ComunityCardProps) => {
-    const iconMap: { [key: string]: JSX.Element } = {
-        "Respeto": <IoPeopleSharp className="icon" />,
-        "Compañerismo": <FaRegHeart className="icon" />,
-        "Progreso compartido": <FaArrowTrendUp className="icon" />
+export const ComunityCard = ({ title, description, icon, imageAlt, imageUrl, videoUrl }: ComunityCardProps) => {
+    const iconMap: Record<ComunityCardProps['icon'], JSX.Element> = {
+        people: <IoPeopleSharp className="icon" />,
+        heart: <FaRegHeart className="icon" />,
+        trend: <FaArrowTrendUp className="icon" />
     };
 
     return (
         <div className='comunityCard'>
             <picture className="comunityCardImage">
                 <div className="iconContainer">
-                    {iconMap[image]}
+                    {iconMap[icon]}
                 </div>
                 <Image
                     src={imageUrl}
-                    alt={image}
+                    alt={imageAlt}
                     width={300}
                     height={300}
                     quality={80}
@@ -38,6 +41,7 @@ export const ComunityCard = ({ title, description, image, imageUrl }: ComunityCa
             </picture>
             <h4 className="comunityCardTitle">{title}</h4>
             <p className="comunityCardDescription">{description}</p>
+            <YoutubeVideoButton videoUrl={videoUrl} title={title} />
         </div>
     )
 }

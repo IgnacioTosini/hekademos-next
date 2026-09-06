@@ -2,13 +2,17 @@
 
 import { revalidatePath } from "next/cache";
 import { getAdminActionErrorMessage, logAdminActionError, requireAdminSession } from "@/lib/admin-session";
+import { getExistingClassCategoryOption } from "@/lib/class-category";
 import { prisma } from "@/lib/prisma";
+import { toWeeklyClassScheduleSummary } from "@/lib/weekly-class-schedule-summary";
 import type {
     CreateWeeklyClassScheduleInput,
     UpdateWeeklyClassScheduleInput,
     WeeklyClassSchedule,
+    WeeklyClassScheduleSummary,
     WeeklyClassScheduleWithRelations,
 } from "@/types/schema/classes";
+import { getClassCategoryLabel, isClassCategory } from "@/utils/class-category";
 import { dayOrderIndex } from "@/utils/schedule";
 import {
     adminClassSchedulesPath,
@@ -23,6 +27,7 @@ const normalizeScheduleInput = (
     input: CreateWeeklyClassScheduleInput | UpdateWeeklyClassScheduleInput
 ) => ({
     dayOfWeek: input.dayOfWeek,
+    classCategory: input.classCategory,
     startTime: input.startTime?.trim(),
     durationMinutes: input.durationMinutes,
     capacity: input.capacity,
@@ -44,10 +49,12 @@ const validateScheduleInput = async (
         : null;
 
     const candidateDayOfWeek = input.dayOfWeek ?? currentSchedule?.dayOfWeek;
+    const candidateClassCategory = input.classCategory ?? currentSchedule?.classCategory;
     const candidateStartTime = input.startTime?.trim() ?? currentSchedule?.startTime;
     const candidateCoachId = input.coachId === undefined ? currentSchedule?.coachId ?? null : input.coachId || null;
 
     if (!candidateDayOfWeek) throw new Error("El dia del turno es obligatorio");
+    if (!isClassCategory(candidateClassCategory)) throw new Error("La categoria del turno es obligatoria");
     if (!candidateStartTime) throw new Error("El horario del turno es obligatorio");
 
     if (input.startTime !== undefined && !timePattern.test(input.startTime)) {
@@ -99,6 +106,10 @@ const validateScheduleInput = async (
 const getScheduleErrorMessage = (error: unknown, fallback: string) => {
     if (error instanceof Error) {
         if (error.message === "El dia del turno es obligatorio") return error.message;
+        if (error.message === "La categoria del turno es obligatoria") return error.message;
+        if (error.message === "La categoria debe tener entre 2 y 60 caracteres") return error.message;
+        if (error.message === "La categoria seleccionada no existe") return error.message;
+        if (error.message === "No se puede cambiar la categoria de un turno con alumnos asignados") return error.message;
         if (error.message === "El horario del turno es obligatorio") return error.message;
         if (error.message === "El horario debe tener formato HH:mm") return error.message;
         if (error.message === "La duracion debe ser de al menos 15 minutos") return error.message;
@@ -110,42 +121,48 @@ const getScheduleErrorMessage = (error: unknown, fallback: string) => {
     return getAdminActionErrorMessage(error, fallback);
 };
 
-export const getWeeklyClassSchedules = async (): Promise<ActionResponse<WeeklyClassScheduleWithRelations[]>> => {
+export const getWeeklyClassSchedules = async (): Promise<ActionResponse<WeeklyClassScheduleSummary[]>> => {
     try {
         const schedules = await prisma.weeklyClassSchedule.findMany({
             where: {
                 isActive: true,
             },
-            include: {
+            select: {
+                id: true,
+                dayOfWeek: true,
+                classCategory: true,
+                startTime: true,
+                durationMinutes: true,
+                capacity: true,
+                coachId: true,
                 coach: {
-                    include: {
-                        user: true,
+                    select: {
+                        user: {
+                            select: {
+                                name: true,
+                            },
+                        },
                     },
                 },
-                studentAssignments: {
-                    where: {
-                        isActive: true,
+                _count: {
+                    select: {
+                        studentAssignments: {
+                            where: {
+                                isActive: true,
+                            },
+                        },
                     },
                 },
             },
         });
-        const schedulesWithAvailability = schedules.map((schedule) => {
-            const occupiedSpots = schedule.studentAssignments.length;
-
-            return {
-                ...schedule,
-                occupiedSpots,
-                availableSpots: schedule.capacity === null
-                    ? null
-                    : Math.max(schedule.capacity - occupiedSpots, 0),
-            };
-        });
+        const scheduleSummaries = schedules.map(toWeeklyClassScheduleSummary);
 
         return {
             ok: true,
-            data: schedulesWithAvailability.sort((a, b) => (
+            data: scheduleSummaries.sort((a, b) => (
                 dayOrderIndex[a.dayOfWeek] - dayOrderIndex[b.dayOfWeek]
                 || a.startTime.localeCompare(b.startTime)
+                || a.classCategory.localeCompare(b.classCategory)
             )),
         };
     } catch (error) {
@@ -193,6 +210,7 @@ export const getAdminWeeklyClassSchedules = async (): Promise<ActionResponse<Wee
 
             return {
                 ...schedule,
+                classCategory: getClassCategoryLabel(schedule.classCategory),
                 occupiedSpots,
                 availableSpots: schedule.capacity === null
                     ? null
@@ -205,6 +223,7 @@ export const getAdminWeeklyClassSchedules = async (): Promise<ActionResponse<Wee
             data: schedulesWithAvailability.sort((a, b) => (
                 dayOrderIndex[a.dayOfWeek] - dayOrderIndex[b.dayOfWeek]
                 || a.startTime.localeCompare(b.startTime)
+                || a.classCategory.localeCompare(b.classCategory)
                 || (a.coach?.user?.name ?? "").localeCompare(b.coach?.user?.name ?? "")
             )),
         };
@@ -227,16 +246,21 @@ export const createWeeklyClassSchedule = async (
         await validateScheduleInput(input);
 
         const normalizedInput = normalizeScheduleInput(input);
-        const schedule = await prisma.weeklyClassSchedule.create({
-            data: {
-                dayOfWeek: normalizedInput.dayOfWeek!,
-                startTime: normalizedInput.startTime!,
-                durationMinutes: normalizedInput.durationMinutes ?? 90,
-                capacity: normalizedInput.capacity ?? null,
-                coachId: normalizedInput.coachId,
-                isActive: normalizedInput.isActive ?? true,
-                notes: normalizedInput.notes,
-            },
+        const schedule = await prisma.$transaction(async (tx) => {
+            const category = await getExistingClassCategoryOption(tx, normalizedInput.classCategory);
+
+            return tx.weeklyClassSchedule.create({
+                data: {
+                    dayOfWeek: normalizedInput.dayOfWeek!,
+                    classCategory: category.name,
+                    startTime: normalizedInput.startTime!,
+                    durationMinutes: normalizedInput.durationMinutes ?? 90,
+                    capacity: normalizedInput.capacity ?? null,
+                    coachId: normalizedInput.coachId,
+                    isActive: normalizedInput.isActive ?? true,
+                    notes: normalizedInput.notes,
+                },
+            });
         });
 
         revalidatePath(adminClassSchedulesPath);
@@ -267,19 +291,43 @@ export const updateWeeklyClassSchedule = async (
         await validateScheduleInput(input, id);
 
         const normalizedInput = normalizeScheduleInput(input);
-        const schedule = await prisma.weeklyClassSchedule.update({
-            where: {
-                id,
-            },
-            data: {
-                dayOfWeek: normalizedInput.dayOfWeek,
-                startTime: normalizedInput.startTime,
-                durationMinutes: normalizedInput.durationMinutes,
-                capacity: normalizedInput.capacity,
-                coachId: input.coachId === undefined ? undefined : normalizedInput.coachId,
-                isActive: normalizedInput.isActive,
-                notes: input.notes === undefined ? undefined : normalizedInput.notes,
-            },
+        const schedule = await prisma.$transaction(async (tx) => {
+            const currentSchedule = await tx.weeklyClassSchedule.findUnique({
+                where: { id },
+                select: { classCategory: true },
+            });
+            const category = normalizedInput.classCategory === undefined
+                ? null
+                : await getExistingClassCategoryOption(tx, normalizedInput.classCategory);
+
+            if (currentSchedule && category && currentSchedule.classCategory !== category.name) {
+                const occupiedSpots = await tx.studentScheduleAssignment.count({
+                    where: {
+                        weeklyScheduleId: id,
+                        isActive: true,
+                    },
+                });
+
+                if (occupiedSpots > 0) {
+                    throw new Error("No se puede cambiar la categoria de un turno con alumnos asignados");
+                }
+            }
+
+            return tx.weeklyClassSchedule.update({
+                where: {
+                    id,
+                },
+                data: {
+                    dayOfWeek: normalizedInput.dayOfWeek,
+                    classCategory: category?.name,
+                    startTime: normalizedInput.startTime,
+                    durationMinutes: normalizedInput.durationMinutes,
+                    capacity: normalizedInput.capacity,
+                    coachId: input.coachId === undefined ? undefined : normalizedInput.coachId,
+                    isActive: normalizedInput.isActive,
+                    notes: input.notes === undefined ? undefined : normalizedInput.notes,
+                },
+            });
         });
 
         revalidatePath(adminClassSchedulesPath);

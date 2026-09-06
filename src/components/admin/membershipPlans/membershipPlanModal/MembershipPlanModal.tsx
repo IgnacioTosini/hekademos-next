@@ -1,6 +1,7 @@
 'use client';
 
 import { IoMdClose } from 'react-icons/io';
+import type { ClassCategoryOption } from '@/types/schema/common';
 import type { MembershipPlanWithRelations } from '@/types/schema/memberships';
 import { MembershipPlanForm } from '../membershipPlanForm/MembershipPlanForm';
 import './_membershipPlanModal.scss';
@@ -8,10 +9,11 @@ import './_membershipPlanModal.scss';
 type Props = {
     isOpen: boolean;
     plan: MembershipPlanWithRelations | null;
+    categories: ClassCategoryOption[];
     onClose: () => void;
 };
 
-export const MembershipPlanModal = ({ isOpen, plan, onClose }: Props) => {
+export const MembershipPlanModal = ({ isOpen, plan, categories, onClose }: Props) => {
     if (!isOpen) return null;
 
     return (
@@ -24,7 +26,7 @@ export const MembershipPlanModal = ({ isOpen, plan, onClose }: Props) => {
                     </button>
                 </div>
 
-                <MembershipPlanForm plan={plan} onClose={onClose} />
+                <MembershipPlanForm plan={plan} categories={categories} onClose={onClose} />
             </div>
         </div>
     );

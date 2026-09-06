@@ -3,42 +3,20 @@
 import { useState } from 'react'
 import { FaChevronDown } from 'react-icons/fa'
 import './_faq.scss'
+import type { HomePageContent } from '@/lib/home-page-content'
 
-const faqs = [
-    {
-        question: '¿Necesito experiencia previa?',
-        answer: 'No. Adaptamos las progresiones a tu nivel actual para que entrenes con seguridad y puedas avanzar paso a paso.',
-    },
-    {
-        question: '¿Pueden sumarse principiantes?',
-        answer: 'Sí. La propuesta está pensada para acompañar tanto a quienes recién empiezan como a quienes ya tienen experiencia entrenando.',
-    },
-    {
-        question: '¿Qué tengo que llevar?',
-        answer: 'Ropa cómoda, agua y ganas de moverte. Nosotros te orientamos con el resto durante la clase.',
-    },
-    {
-        question: '¿Puedo recuperar clases perdidas?',
-        answer: 'Podés coordinar la recuperación según disponibilidad de cupos y horarios. Lo vemos caso por caso para cuidar la organización del grupo.',
-    },
-    {
-        question: '¿Cómo me inscribo?',
-        answer: 'Escribinos desde el formulario o por WhatsApp y te ayudamos a elegir el plan y horario que mejor se adapte a tu rutina.',
-    },
-]
+type Props = { content: HomePageContent['faq'] }
 
-export const FAQ = () => {
+export const FAQ = ({ content }: Props) => {
     const [openIndex, setOpenIndex] = useState(0)
 
     return (
         <div className="faqSection" id="preguntas-frecuentes">
-            <h2 className="faqTitle animate-on-scroll">Preguntas frecuentes</h2>
-            <p className="faqDescription animate-on-scroll">
-                Respuestas simples para que puedas empezar con claridad y confianza.
-            </p>
+            <h2 className="faqTitle animate-on-scroll">{content.title}</h2>
+            <p className="faqDescription animate-on-scroll">{content.subtitle}</p>
 
             <div className="faqList">
-                {faqs.map((faq, index) => {
+                {content.items.map((faq, index) => {
                     const isOpen = openIndex === index
                     const contentId = `faq-answer-${index}`
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { IoMdClose } from 'react-icons/io';
-import type { WeeklyClassScheduleWithRelations } from '@/types/schema/classes';
+import type { WeeklyClassScheduleSummary } from '@/types/schema/classes';
 import type { MembershipPlan } from '@/types/schema/memberships';
 import type { UserWithRelations } from '@/types/schema/users';
 import { StudentForm } from '../studentForm/StudentForm';
@@ -12,7 +12,7 @@ type Props = {
     student: UserWithRelations | null;
     coaches: UserWithRelations[];
     membershipPlans: MembershipPlan[];
-    weeklySchedules: WeeklyClassScheduleWithRelations[];
+    weeklySchedules: WeeklyClassScheduleSummary[];
     onClose: () => void;
 };
 

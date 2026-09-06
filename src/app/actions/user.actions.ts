@@ -246,6 +246,7 @@ export const updateUser = async (
         validateUserInput(input);
 
         const passwordHash = input.password ? await hashPassword(input.password) : input.passwordHash;
+        const passwordIsChanging = Boolean(input.password) || input.passwordHash !== undefined;
 
         const user = await prisma.user.update({
             where: {
@@ -256,6 +257,7 @@ export const updateUser = async (
                 name: input.name,
                 phone: input.phone,
                 passwordHash,
+                sessionVersion: passwordIsChanging ? { increment: 1 } : undefined,
                 emailVerified: toDate(input.emailVerified),
                 role: input.role,
                 status: input.status,

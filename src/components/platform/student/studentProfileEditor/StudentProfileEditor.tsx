@@ -6,7 +6,7 @@ import { FaPencilAlt } from "react-icons/fa";
 import { IoMdClose } from "react-icons/io";
 import { toast } from "react-toastify";
 import { updateStudentProfile } from "@/app/actions/profile.actions";
-import { saveWithResolvedUserImage, UserImageField, type UserImageValue } from "@/components/admin/users";
+import { saveWithResolvedUserImage, UserImageField, type UserImageValue } from "@/components/admin/users/userImageField/UserImageField";
 import { isValidBirthDate, isValidOptionalPhone } from "@/lib/form-validation";
 import type { AdminStudentProfile } from "@/types/schema/users";
 import { toDateInputValue } from "@/utils/date";

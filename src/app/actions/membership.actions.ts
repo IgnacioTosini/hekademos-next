@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getAdminActionErrorMessage, logAdminActionError, requireAdminSession } from "@/lib/admin-session";
+import { getExistingClassCategoryOption } from "@/lib/class-category";
 import { prisma } from "@/lib/prisma";
 import type {
     CreateMembershipPlanInput,
@@ -9,7 +10,9 @@ import type {
     MembershipPlanWithRelations,
     UpdateMembershipPlanInput,
 } from "@/types/schema/memberships";
+import { getClassCategoryLabel, isClassCategory } from "@/utils/class-category";
 import {
+    adminClassSchedulesPath,
     adminMembershipPlansPath,
     adminPaymentsPath,
     adminStudentsPath,
@@ -19,6 +22,7 @@ import {
 
 const normalizePlanInput = (input: CreateMembershipPlanInput | UpdateMembershipPlanInput) => ({
     name: input.name?.trim(),
+    classCategory: input.classCategory,
     trainingDaysPerWeek: input.trainingDaysPerWeek,
     priceCents: input.priceCents,
     currency: input.currency?.trim().toUpperCase() || undefined,
@@ -28,6 +32,10 @@ const normalizePlanInput = (input: CreateMembershipPlanInput | UpdateMembershipP
 
 const validatePlanInput = (input: CreateMembershipPlanInput | UpdateMembershipPlanInput, isCreate: boolean) => {
     if (isCreate && !input.name?.trim()) throw new Error("El nombre del plan es obligatorio");
+    if (isCreate && !isClassCategory(input.classCategory)) throw new Error("La categoria del plan es obligatoria");
+    if (input.classCategory !== undefined && !isClassCategory(input.classCategory)) {
+        throw new Error("La categoria del plan no es valida");
+    }
     if (input.trainingDaysPerWeek !== undefined && input.trainingDaysPerWeek < 1) {
         throw new Error("Los dias por semana deben ser mayores a cero");
     }
@@ -39,6 +47,11 @@ const validatePlanInput = (input: CreateMembershipPlanInput | UpdateMembershipPl
 const getPlanErrorMessage = (error: unknown, fallback: string) => {
     if (error instanceof Error) {
         if (error.message === "El nombre del plan es obligatorio") return error.message;
+        if (error.message === "La categoria del plan es obligatoria") return error.message;
+        if (error.message === "La categoria del plan no es valida") return error.message;
+        if (error.message === "La categoria debe tener entre 2 y 60 caracteres") return error.message;
+        if (error.message === "La categoria seleccionada no existe") return error.message;
+        if (error.message === "No se puede cambiar la categoria de un plan con alumnos activos") return error.message;
         if (error.message === "Los dias por semana deben ser mayores a cero") return error.message;
         if (error.message === "El precio mensual no puede ser negativo") return error.message;
     }
@@ -59,7 +72,10 @@ export const getMembershipPlans = async (): Promise<ActionResponse<MembershipPla
 
         return {
             ok: true,
-            data: plans,
+            data: plans.map((plan) => ({
+                ...plan,
+                classCategory: getClassCategoryLabel(plan.classCategory),
+            })),
         };
     } catch (error) {
         logAdminActionError("Error al obtener los planes:", error);
@@ -92,7 +108,10 @@ export const getAdminMembershipPlans = async (): Promise<ActionResponse<Membersh
 
         return {
             ok: true,
-            data: plans,
+            data: plans.map((plan) => ({
+                ...plan,
+                classCategory: getClassCategoryLabel(plan.classCategory),
+            })),
         };
     } catch (error) {
         logAdminActionError("Error al obtener los planes de administracion:", error);
@@ -113,18 +132,24 @@ export const createMembershipPlan = async (
         validatePlanInput(input, true);
 
         const normalizedInput = normalizePlanInput(input);
-        const plan = await prisma.membershipPlan.create({
-            data: {
-                name: normalizedInput.name!,
-                trainingDaysPerWeek: normalizedInput.trainingDaysPerWeek!,
-                priceCents: normalizedInput.priceCents!,
-                currency: normalizedInput.currency ?? "ARS",
-                isRecommended: normalizedInput.isRecommended ?? false,
-                isActive: normalizedInput.isActive ?? true,
-            },
+        const plan = await prisma.$transaction(async (tx) => {
+            const category = await getExistingClassCategoryOption(tx, normalizedInput.classCategory);
+
+            return tx.membershipPlan.create({
+                data: {
+                    name: normalizedInput.name!,
+                    classCategory: category.name,
+                    trainingDaysPerWeek: normalizedInput.trainingDaysPerWeek!,
+                    priceCents: normalizedInput.priceCents!,
+                    currency: normalizedInput.currency ?? "ARS",
+                    isRecommended: normalizedInput.isRecommended ?? false,
+                    isActive: normalizedInput.isActive ?? true,
+                },
+            });
         });
 
         revalidatePath(adminMembershipPlansPath);
+        revalidatePath(adminClassSchedulesPath);
         revalidatePath(adminStudentsPath);
         revalidatePath(publicHomePath);
 
@@ -152,21 +177,46 @@ export const updateMembershipPlan = async (
         validatePlanInput(input, false);
 
         const normalizedInput = normalizePlanInput(input);
-        const plan = await prisma.membershipPlan.update({
-            where: {
-                id,
-            },
-            data: {
-                name: normalizedInput.name,
-                trainingDaysPerWeek: normalizedInput.trainingDaysPerWeek,
-                priceCents: normalizedInput.priceCents,
-                currency: normalizedInput.currency,
-                isRecommended: normalizedInput.isRecommended,
-                isActive: normalizedInput.isActive,
-            },
+        const plan = await prisma.$transaction(async (tx) => {
+            const currentPlan = await tx.membershipPlan.findUnique({
+                where: { id },
+                select: { classCategory: true },
+            });
+            const category = normalizedInput.classCategory === undefined
+                ? null
+                : await getExistingClassCategoryOption(tx, normalizedInput.classCategory);
+
+            if (currentPlan && category && currentPlan.classCategory !== category.name) {
+                const activeMemberships = await tx.studentMembership.count({
+                    where: {
+                        planId: id,
+                        status: "ACTIVE",
+                    },
+                });
+
+                if (activeMemberships > 0) {
+                    throw new Error("No se puede cambiar la categoria de un plan con alumnos activos");
+                }
+            }
+
+            return tx.membershipPlan.update({
+                where: {
+                    id,
+                },
+                data: {
+                    name: normalizedInput.name,
+                    classCategory: category?.name,
+                    trainingDaysPerWeek: normalizedInput.trainingDaysPerWeek,
+                    priceCents: normalizedInput.priceCents,
+                    currency: normalizedInput.currency,
+                    isRecommended: normalizedInput.isRecommended,
+                    isActive: normalizedInput.isActive,
+                },
+            });
         });
 
         revalidatePath(adminMembershipPlansPath);
+        revalidatePath(adminClassSchedulesPath);
         revalidatePath(adminStudentsPath);
         revalidatePath(adminPaymentsPath);
         revalidatePath(publicHomePath);

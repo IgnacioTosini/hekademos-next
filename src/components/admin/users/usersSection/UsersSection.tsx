@@ -1,18 +1,20 @@
 'use client';
 
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { FaRegTrashAlt } from 'react-icons/fa';
 import { GoPencil } from 'react-icons/go';
 import { toast } from 'react-toastify';
 import { deleteUser } from '@/app/actions/user.actions';
-import { EmptyState } from '@/components/ui';
+import { EmptyState } from '@/components/ui/emptyState/EmptyState';
 import type { UserWithRelations } from '@/types/schema/users';
 import { formatDate } from '@/utils/format';
 import { getInitials } from '@/utils/strings';
-import { UserModal } from '../userModal/UserModal';
 import './_usersSection.scss';
+
+const UserModal = dynamic(() => import('../userModal/UserModal').then((module) => module.UserModal));
 
 type Props = {
     users: UserWithRelations[];
@@ -97,7 +99,7 @@ export const UsersSection = ({ users }: Props) => {
                 <button className="users-button" type="button" onClick={openCreate}>+ Nuevo usuario</button>
             </div>
 
-            <UserModal isOpen={isModalOpen} user={selectedUser} onClose={closeModal} />
+            {isModalOpen && <UserModal isOpen user={selectedUser} onClose={closeModal} />}
 
             <div className="users-table-wrapper">
                 <div className="users-table-toolbar">

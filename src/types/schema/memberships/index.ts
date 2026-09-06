@@ -1,4 +1,4 @@
-import type { TimestampFields, PrismaDate } from '../common';
+import type { ClassCategory, TimestampFields, PrismaDate } from '../common';
 import type { Payment } from '../payments';
 import type { Student } from '../users';
 
@@ -7,6 +7,7 @@ export type MembershipStatus = 'ACTIVE' | 'EXPIRED' | 'CANCELLED';
 export type MembershipPlan = TimestampFields & {
     id: string;
     name: string;
+    classCategory: ClassCategory;
     trainingDaysPerWeek: number;
     priceCents: number;
     currency: string;
@@ -16,6 +17,7 @@ export type MembershipPlan = TimestampFields & {
 
 export type CreateMembershipPlanInput = {
     name: string;
+    classCategory: ClassCategory;
     trainingDaysPerWeek: number;
     priceCents: number;
     currency?: string;

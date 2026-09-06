@@ -8,6 +8,7 @@ export type Payment = TimestampFields & {
     id: string;
     studentId: string;
     studentMembershipId: string | null;
+    periodStart: PrismaDate;
     amountCents: number;
     currency: string;
     status: PaymentStatus;

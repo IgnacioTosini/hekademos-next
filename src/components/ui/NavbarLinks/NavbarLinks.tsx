@@ -10,10 +10,12 @@ type NavbarLinksProps = {
     isFooter?: boolean;
     isAsideBar?: boolean;
     onClose?: () => void;
+    links?: Array<{ label: string; href: string }>;
 }
 
-export const NavbarLinks = ({ isFooter, isAsideBar, onClose }: NavbarLinksProps) => {
+export const NavbarLinks = ({ isFooter, isAsideBar, onClose, links }: NavbarLinksProps) => {
     const pathname = usePathname()
+    const resolvedLinks = links?.map((link) => ({ name: link.label, href: link.href })) ?? (isAsideBar ? navLinks : primaryNavLinks)
 
     const handleLinkClick = (event: MouseEvent<HTMLAnchorElement>, href: string) => {
         if (href === '/' && pathname === '/') {
@@ -38,9 +40,10 @@ export const NavbarLinks = ({ isFooter, isAsideBar, onClose }: NavbarLinksProps)
     }
 
     if (isFooter) {
-        const midIndex = Math.ceil(navLinks.length / 2)
-        const firstColumn = navLinks.slice(0, midIndex)
-        const secondColumn = navLinks.slice(midIndex)
+        const footerLinks = links?.map((link) => ({ name: link.label, href: link.href })) ?? navLinks
+        const midIndex = Math.ceil(footerLinks.length / 2)
+        const firstColumn = footerLinks.slice(0, midIndex)
+        const secondColumn = footerLinks.slice(midIndex)
 
         return (
             <div className="navbarLinks footerLinks">
@@ -69,7 +72,7 @@ export const NavbarLinks = ({ isFooter, isAsideBar, onClose }: NavbarLinksProps)
 
     return (
         <div className={`navbarLinks ${isAsideBar ? 'asideBarLinks' : ''}`}>
-            {(isAsideBar ? navLinks : primaryNavLinks).map((link) => (
+            {resolvedLinks.map((link) => (
                 <div key={link.name} className="navbarLink">
                     <Link href={link.href} onClick={(event) => handleLinkClick(event, link.href)}>
                         {link.name}

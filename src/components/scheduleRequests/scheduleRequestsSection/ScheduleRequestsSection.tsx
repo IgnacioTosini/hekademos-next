@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useMemo, useState, useTransition } from "react";
-import { FaCheck, FaClock, FaTimes } from "react-icons/fa";
+import { FaCheck, FaTimes } from "react-icons/fa";
 import { IoMdClose } from "react-icons/io";
 import { toast } from "react-toastify";
 import {
@@ -9,10 +9,10 @@ import {
     rejectScheduleChangeRequest,
     type ScheduleChangeRequestReviewItem,
 } from "@/app/actions/scheduleChangeRequest.actions";
-import { EmptyState } from "@/components/ui";
+import { EmptyState } from "@/components/ui/emptyState/EmptyState";
 import type { ScheduleChangeRequestStatus, WeeklyClassScheduleWithRelations } from "@/types/schema/classes";
 import { formatDateTime } from "@/utils/format";
-import { addMinutesToTime, dayLabels, dayOrderIndex } from "@/utils/schedule";
+import { dayOrderIndex, getScheduleLabel as getBaseScheduleLabel } from "@/utils/schedule";
 import { getInitials } from "@/utils/strings";
 import "./_scheduleRequestsSection.scss";
 
@@ -46,10 +46,9 @@ const getStudentName = (request: ScheduleChangeRequestReviewItem) => {
 };
 
 const getScheduleLabel = (schedule: WeeklyClassScheduleWithRelations) => {
-    const endsAt = addMinutesToTime(schedule.startTime, schedule.durationMinutes);
     const coachName = schedule.coach?.user?.name || schedule.coach?.user?.email || "Sin coach";
 
-    return `${dayLabels[schedule.dayOfWeek]} ${schedule.startTime}${endsAt ? ` a ${endsAt}` : ""} - ${coachName}`;
+    return `${getBaseScheduleLabel(schedule)} - ${coachName}`;
 };
 
 const getCapacityLabel = (schedule: WeeklyClassScheduleWithRelations) => {
@@ -170,9 +169,15 @@ export const ScheduleRequestsSection = ({ errorMessage, requests }: Props) => {
                     <strong>{studentCoach}</strong>
                     <span>Creada</span>
                     <strong>{formatDateTime(request.createdAt)}</strong>
+                    {request.type === "ONE_TIME" && request.requestedDate && (
+                        <>
+                            <span>Clase temporal</span>
+                            <strong>{formatDateTime(request.requestedDate, { weekday: "long" })}</strong>
+                        </>
+                    )}
                     {request.reviewedAt && (
                         <>
-                            <span>Revisada</span>
+                            <span>{request.status === "APPROVED" && !request.reviewedByUserId ? "Confirmada" : "Revisada"}</span>
                             <strong>{formatDateTime(request.reviewedAt)}</strong>
                         </>
                     )}
@@ -212,7 +217,7 @@ export const ScheduleRequestsSection = ({ errorMessage, requests }: Props) => {
 
                 {request.reviewNotes && (
                     <div className="schedule-request-note">
-                        <span>Nota de revisión</span>
+                        <span>{request.reviewedByUserId ? "Nota de revisión" : "Procesamiento"}</span>
                         <p>{request.reviewNotes}</p>
                     </div>
                 )}
@@ -237,14 +242,14 @@ export const ScheduleRequestsSection = ({ errorMessage, requests }: Props) => {
         <section className="schedule-requests-section">
             <div className="schedule-requests-header">
                 <div>
-                    <h1>Solicitudes de horario</h1>
-                    <p>Revisá pedidos de cambio de horario y respondé al alumno desde el panel administrativo.</p>
+                    <h1>Cambios de horario</h1>
+                    <p>Los nuevos pedidos se validan y confirman automáticamente. Consultá acá el historial de cambios.</p>
                 </div>
 
                 <div className="schedule-requests-counter">
-                    <FaClock />
-                    <strong>{pendingRequests.length}</strong>
-                    <span>pendientes</span>
+                    <FaCheck />
+                    <strong>{requests.length}</strong>
+                    <span>registrados</span>
                 </div>
             </div>
 
@@ -263,22 +268,17 @@ export const ScheduleRequestsSection = ({ errorMessage, requests }: Props) => {
                 />
             </div>
 
-            <div className="schedule-requests-group">
-                <h2>Pendientes</h2>
-                {pendingRequests.length > 0 ? (
+            {pendingRequests.length > 0 && (
+                <div className="schedule-requests-group">
+                    <h2>Solicitudes anteriores pendientes</h2>
                     <div className="schedule-requests-list">
                         {pendingRequests.map(renderRequestCard)}
                     </div>
-                ) : (
-                    <EmptyState
-                        title="Sin solicitudes pendientes"
-                        description="Cuando un alumno pida cambiar horario, va a aparecer acá."
-                    />
-                )}
-            </div>
+                </div>
+            )}
 
             <div className="schedule-requests-group">
-                <h2>Historial reciente</h2>
+                <h2>Historial</h2>
                 {reviewedRequests.length > 0 ? (
                     <div className="schedule-requests-list">
                         {reviewedRequests.map(renderRequestCard)}
@@ -286,7 +286,7 @@ export const ScheduleRequestsSection = ({ errorMessage, requests }: Props) => {
                 ) : (
                     <EmptyState
                         title="Sin historial"
-                        description="Todavía no hay solicitudes aprobadas o rechazadas."
+                        description="Todavía no hay cambios de horario registrados."
                     />
                 )}
             </div>

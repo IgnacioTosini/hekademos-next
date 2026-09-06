@@ -40,6 +40,33 @@ export const formatDateTime = (
     }).format(new Date(value))
 );
 
+const communityMonthNames = [
+    "ene", "feb", "mar", "abr", "may", "jun",
+    "jul", "ago", "sept", "oct", "nov", "dic",
+];
+
+const communityDatePartsFormatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+});
+
+export const formatCommunityDateTime = (value: Date | string) => {
+    const parts = Object.fromEntries(
+        communityDatePartsFormatter
+            .formatToParts(new Date(value))
+            .filter((part) => part.type !== "literal")
+            .map((part) => [part.type, part.value])
+    );
+    const monthName = communityMonthNames[Number(parts.month) - 1] ?? parts.month;
+
+    return `${parts.day} ${monthName} ${parts.year} · ${parts.hour}:${parts.minute}`;
+};
+
 export const parsePesosToCents = (value: string) => {
     const normalizedValue = value.trim().replace(",", ".");
     if (!normalizedValue) return null;

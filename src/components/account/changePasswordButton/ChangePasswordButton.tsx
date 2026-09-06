@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import { IoMdClose } from 'react-icons/io';
 import { FaKey } from 'react-icons/fa';
@@ -20,6 +21,7 @@ const initialForm: ChangePasswordForm = {
 };
 
 export const ChangePasswordButton = () => {
+    const router = useRouter();
     const [isOpen, setIsOpen] = useState(false);
     const [form, setForm] = useState<ChangePasswordForm>(initialForm);
     const [error, setError] = useState('');
@@ -56,8 +58,9 @@ export const ChangePasswordButton = () => {
             const result = await changeCurrentUserPassword(form);
 
             if (result.ok) {
-                toast.success('Contraseña actualizada');
                 closeModal();
+                router.replace('/auth/login?passwordChanged=1');
+                router.refresh();
                 return;
             }
 

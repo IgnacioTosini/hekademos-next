@@ -27,8 +27,13 @@ export const getPaymentMonthRange = (date = new Date(), dueDay = PAYMENT_DUE_DAY
     };
 };
 
+export const getPaymentPeriodStart = (date = new Date()) => (
+    new Date(Date.UTC(date.getFullYear(), date.getMonth(), 1))
+);
+
 export const getPaymentForPeriod = <
     PaymentItem extends {
+        periodStart?: Date | string | null;
         dueDate: Date | string | null;
         paidAt: Date | string | null;
     }
@@ -37,8 +42,11 @@ export const getPaymentForPeriod = <
     start: Date,
     end: Date
 ) => {
+    const periodStart = getPaymentPeriodStart(start).getTime();
+
     return payments?.find((payment) => (
-        isDateInRange(payment.dueDate, start, end)
+        (payment.periodStart ? new Date(payment.periodStart).getTime() === periodStart : false)
+        || isDateInRange(payment.dueDate, start, end)
         || isDateInRange(payment.paidAt, start, end)
     )) ?? null;
 };

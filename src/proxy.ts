@@ -43,5 +43,6 @@ export const config = {
         "/perfil",
         "/coach/:path*",
         "/student/:path*",
+        "/comunidad",
     ],
 };

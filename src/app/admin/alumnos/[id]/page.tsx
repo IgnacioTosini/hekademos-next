@@ -3,7 +3,7 @@ import { getWeeklyClassSchedules } from "@/app/actions/class.actions";
 import { getCoaches } from "@/app/actions/coach.actions";
 import { getMembershipPlans } from "@/app/actions/membership.actions";
 import { getStudentById } from "@/app/actions/student.actions";
-import { StudentProfileSection } from "@/components/admin/students";
+import { StudentProfileSection } from "@/components/admin/students/studentProfile/studentProfileSection/StudentProfileSection";
 import type { Metadata } from "next";
 import type { StudentWithRelations, UserWithRelations } from "@/types/schema/users";
 import "./_studentProfilePage.scss";

@@ -3,6 +3,7 @@
 import { getAdminActionErrorMessage, logAdminActionError, requireAdminSession } from "@/lib/admin-session";
 import { prisma } from "@/lib/prisma";
 import type { DayOfWeek } from "@/types/schema/classes";
+import { getClassCategoryLabel } from "@/utils/class-category";
 import { getCurrentMonthRange } from "@/utils/date";
 import { getPaymentDueDate, PAYMENT_DUE_DAY } from "@/utils/payment";
 import { getStudentName, type StudentNameSource } from "@/utils/student";
@@ -278,6 +279,7 @@ export const getAdminAlerts = async (): Promise<ActionResponse<AdminAlert[]>> =>
                 select: {
                     id: true,
                     startTime: true,
+                    classCategory: true,
                     coach: {
                         select: {
                             user: {
@@ -398,7 +400,7 @@ export const getAdminAlerts = async (): Promise<ActionResponse<AdminAlert[]>> =>
                 count: schedulesWithoutAttendanceCount,
                 items: schedulesWithoutAttendanceItems.map((schedule) => ({
                     id: schedule.id,
-                    title: `${schedule.startTime} · ${schedule.coach?.user?.name || schedule.coach?.user?.email || "Sin coach asignado"}`,
+                    title: `${schedule.startTime} · ${getClassCategoryLabel(schedule.classCategory)} · ${schedule.coach?.user?.name || schedule.coach?.user?.email || "Sin coach asignado"}`,
                     description: `${schedule.studentAssignments.length} alumnos sin asistencia marcada`,
                     href: "/admin/asistencia",
                 })),

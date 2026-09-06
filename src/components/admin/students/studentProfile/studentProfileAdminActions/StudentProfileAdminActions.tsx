@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import { FaCheck, FaUndo } from 'react-icons/fa';
 import { markCurrentMonthPaymentPaid, markCurrentMonthPaymentPending } from '@/app/actions/payment.actions';
-import type { WeeklyClassScheduleWithRelations } from '@/types/schema/classes';
+import type { WeeklyClassScheduleSummary } from '@/types/schema/classes';
 import type { MembershipPlan } from '@/types/schema/memberships';
 import type { PaymentOverviewStatus } from '@/types/schema/payments';
 import type { UserWithRelations } from '@/types/schema/users';
@@ -17,7 +17,7 @@ type Props = {
     student: UserWithRelations;
     coaches: UserWithRelations[];
     membershipPlans: MembershipPlan[];
-    weeklySchedules: WeeklyClassScheduleWithRelations[];
+    weeklySchedules: WeeklyClassScheduleSummary[];
     paymentStatus: PaymentOverviewStatus;
     hasActiveMembership: boolean;
 };

@@ -1,10 +1,16 @@
 "use server";
 
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 import { getAdminActionErrorMessage, logAdminActionError, requireAdminSession } from "@/lib/admin-session";
 import { writeAuditLog } from "@/lib/audit-log";
 import { getCurrentAuthSession } from "@/lib/auth-session";
+import {
+    getEffectiveScheduleStudentIds,
+    getOneTimeScheduleChangesForDate,
+    isStudentInScheduleForDate,
+    type OneTimeScheduleChange,
+} from "@/lib/one-time-schedule-change";
 import { prisma } from "@/lib/prisma";
 import type {
     AdminAttendanceSchedule,
@@ -13,6 +19,7 @@ import type {
     CoachTodayAttendanceSchedule,
     DayOfWeek,
 } from "@/types/schema/classes";
+import { getClassCategoryLabel } from "@/utils/class-category";
 import { addMinutesToTime as addMinutesToTimeValue, dayLabels } from "@/utils/schedule";
 import { getStudentName } from "@/utils/student";
 import type { ActionResponse } from "./_shared";
@@ -89,6 +96,43 @@ const getScheduleStartsAt = (date: Date, startTime: string) => {
     return new Date(date.getFullYear(), date.getMonth(), date.getDate(), hours, minutes);
 };
 
+type ScheduledClassSessionInput = {
+    scheduleId: string;
+    coachId: string | null;
+    startsAt: Date;
+    endsAt: Date;
+    capacity: number | null;
+};
+
+const upsertScheduledClassSession = ({
+    scheduleId,
+    coachId,
+    startsAt,
+    endsAt,
+    capacity,
+}: ScheduledClassSessionInput) => prisma.classSession.upsert({
+    where: {
+        scheduleId_startsAt: {
+            scheduleId,
+            startsAt,
+        },
+    },
+    update: {
+        coachId,
+        endsAt,
+        capacity,
+        status: "SCHEDULED",
+    },
+    create: {
+        scheduleId,
+        coachId,
+        startsAt,
+        endsAt,
+        capacity,
+        status: "SCHEDULED",
+    },
+});
+
 const getCurrentCoachId = async () => {
     const session = await getCurrentAuthSession();
 
@@ -140,6 +184,54 @@ type MonthlyAttendanceSummaryRow = {
     lastAttendanceAt: Date | null;
 };
 
+type AttendanceRosterStudent = {
+    id: string;
+    firstName: string | null;
+    lastName: string | null;
+    user: {
+        email: string;
+        name: string | null;
+        image: {
+            url: string;
+        } | null;
+    };
+};
+
+const getOneTimeChangeStudents = async (changes: OneTimeScheduleChange[]) => {
+    const studentIds = Array.from(new Set(changes.map((change) => change.studentId)));
+
+    if (studentIds.length === 0) return [];
+
+    return prisma.student.findMany({
+        where: {
+            id: {
+                in: studentIds,
+            },
+        },
+        include: {
+            user: {
+                include: {
+                    image: true,
+                },
+            },
+        },
+    });
+};
+
+const getRosterStudentMap = (
+    schedules: Array<{ studentAssignments: Array<{ student: AttendanceRosterStudent }> }>,
+    oneTimeStudents: AttendanceRosterStudent[]
+) => {
+    const students = new Map<string, AttendanceRosterStudent>();
+
+    schedules.forEach((schedule) => {
+        schedule.studentAssignments.forEach(({ student }) => students.set(student.id, student));
+    });
+    oneTimeStudents.forEach((student) => students.set(student.id, student));
+
+    return students;
+};
+
 const toNumber = (value: number | bigint) => Number(value);
 
 export const getCoachTodayAttendance = async (): Promise<ActionResponse<CoachTodayAttendanceSchedule[]>> => {
@@ -151,48 +243,53 @@ export const getCoachTodayAttendance = async (): Promise<ActionResponse<CoachTod
         const today = new Date();
         const { start, end } = getTodayRange(today);
         const dayOfWeek = dateDayToDayOfWeek[today.getDay()];
-        const schedules = await prisma.weeklyClassSchedule.findMany({
-            where: {
-                coachId,
-                dayOfWeek,
-                isActive: true,
-            },
-            orderBy: {
-                startTime: "asc",
-            },
-            include: {
-                sessions: {
-                    where: {
-                        startsAt: {
-                            gte: start,
-                            lt: end,
+        const [schedules, oneTimeChanges] = await Promise.all([
+            prisma.weeklyClassSchedule.findMany({
+                where: {
+                    coachId,
+                    dayOfWeek,
+                    isActive: true,
+                },
+                orderBy: {
+                    startTime: "asc",
+                },
+                include: {
+                    sessions: {
+                        where: {
+                            startsAt: {
+                                gte: start,
+                                lt: end,
+                            },
+                        },
+                        include: {
+                            attendance: true,
                         },
                     },
-                    include: {
-                        attendance: true,
-                    },
-                },
-                studentAssignments: {
-                    where: {
-                        isActive: true,
-                    },
-                    include: {
-                        student: {
-                            include: {
-                                user: {
-                                    include: {
-                                        image: true,
+                    studentAssignments: {
+                        where: {
+                            isActive: true,
+                        },
+                        include: {
+                            student: {
+                                include: {
+                                    user: {
+                                        include: {
+                                            image: true,
+                                        },
                                     },
                                 },
                             },
                         },
-                    },
-                    orderBy: {
-                        createdAt: "asc",
+                        orderBy: {
+                            createdAt: "asc",
+                        },
                     },
                 },
-            },
-        });
+            }),
+            getOneTimeScheduleChangesForDate(today),
+        ]);
+        const oneTimeStudents = await getOneTimeChangeStudents(oneTimeChanges);
+        const studentById = getRosterStudentMap(schedules, oneTimeStudents);
 
         const attendanceSchedules = schedules.map((schedule): CoachTodayAttendanceSchedule => {
             const session = schedule.sessions[0] ?? null;
@@ -204,19 +301,25 @@ export const getCoachTodayAttendance = async (): Promise<ActionResponse<CoachTod
             return {
                 scheduleId: schedule.id,
                 sessionId: session?.id ?? null,
-                label: `${dayLabels[schedule.dayOfWeek]} ${schedule.startTime}${endTime ? ` a ${endTime}` : ""}`,
+                label: `${getClassCategoryLabel(schedule.classCategory)} · ${dayLabels[schedule.dayOfWeek]} ${schedule.startTime}${endTime ? ` a ${endTime}` : ""}`,
                 startTime: schedule.startTime,
                 endTime,
-                students: schedule.studentAssignments.map((assignment) => {
-                    const student = assignment.student;
+                students: getEffectiveScheduleStudentIds({
+                    scheduleId: schedule.id,
+                    fixedStudentIds: schedule.studentAssignments.map((assignment) => assignment.studentId),
+                    changes: oneTimeChanges,
+                }).flatMap((studentId) => {
+                    const student = studentById.get(studentId);
 
-                    return {
+                    if (!student) return [];
+
+                    return [{
                         studentId: student.id,
                         name: getStudentName(student),
                         email: student.user.email,
                         imageUrl: student.user.image?.url ?? null,
                         status: attendanceByStudent.get(student.id)?.status ?? null,
-                    };
+                    }];
                 }),
             };
         });
@@ -247,7 +350,6 @@ export const markCoachStudentAttendance = async (
         if (!coachId) throw new Error("Necesitas iniciar sesion como coach");
 
         const today = new Date();
-        const { start, end } = getTodayRange(today);
         const schedule = await prisma.weeklyClassSchedule.findFirst({
             where: {
                 id: scheduleId,
@@ -268,45 +370,26 @@ export const markCoachStudentAttendance = async (
         });
 
         if (!schedule) throw new Error("No se encontro el turno");
-        if (schedule.studentAssignments.length === 0) throw new Error("El alumno no pertenece a este turno");
+
+        const oneTimeChanges = await getOneTimeScheduleChangesForDate(today);
+        const belongsToSchedule = isStudentInScheduleForDate({
+            studentId,
+            scheduleId: schedule.id,
+            hasFixedAssignment: schedule.studentAssignments.length > 0,
+            changes: oneTimeChanges,
+        });
+
+        if (!belongsToSchedule) throw new Error("El alumno no pertenece a este turno");
 
         const startsAt = getScheduleStartsAt(today, schedule.startTime);
         const endsAt = addMinutesToDate(startsAt, schedule.durationMinutes);
-        const existingSession = await prisma.classSession.findFirst({
-            where: {
-                scheduleId: schedule.id,
-                startsAt: {
-                    gte: start,
-                    lt: end,
-                },
-            },
-            orderBy: {
-                createdAt: "desc",
-            },
+        const session = await upsertScheduledClassSession({
+            scheduleId: schedule.id,
+            coachId,
+            startsAt,
+            endsAt,
+            capacity: schedule.capacity,
         });
-        const session = existingSession
-            ? await prisma.classSession.update({
-                where: {
-                    id: existingSession.id,
-                },
-                data: {
-                    coachId,
-                    startsAt,
-                    endsAt,
-                    capacity: schedule.capacity,
-                    status: "SCHEDULED",
-                },
-            })
-            : await prisma.classSession.create({
-                data: {
-                    scheduleId: schedule.id,
-                    coachId,
-                    startsAt,
-                    endsAt,
-                    capacity: schedule.capacity,
-                    status: "SCHEDULED",
-                },
-            });
         const attendance = await prisma.attendance.upsert({
             where: {
                 sessionId_studentId: {
@@ -394,55 +477,60 @@ export const getAdminAttendanceOverview = async (
         const selectedDate = getDateFromInput(input.date);
         const { start, end } = getDateRange(selectedDate);
         const dayOfWeek = dateDayToDayOfWeek[selectedDate.getDay()];
-        const schedules = await prisma.weeklyClassSchedule.findMany({
-            where: {
-                dayOfWeek,
-                isActive: true,
-                coachId: input.coachId && input.coachId !== "all" ? input.coachId : undefined,
-            },
-            orderBy: [
-                {
-                    startTime: "asc",
+        const [schedules, oneTimeChanges] = await Promise.all([
+            prisma.weeklyClassSchedule.findMany({
+                where: {
+                    dayOfWeek,
+                    isActive: true,
+                    coachId: input.coachId && input.coachId !== "all" ? input.coachId : undefined,
                 },
-            ],
-            include: {
-                coach: {
-                    include: {
-                        user: true,
+                orderBy: [
+                    {
+                        startTime: "asc",
                     },
-                },
-                sessions: {
-                    where: {
-                        startsAt: {
-                            gte: start,
-                            lt: end,
+                ],
+                include: {
+                    coach: {
+                        include: {
+                            user: true,
                         },
                     },
-                    include: {
-                        attendance: true,
+                    sessions: {
+                        where: {
+                            startsAt: {
+                                gte: start,
+                                lt: end,
+                            },
+                        },
+                        include: {
+                            attendance: true,
+                        },
                     },
-                },
-                studentAssignments: {
-                    where: {
-                        isActive: true,
-                    },
-                    include: {
-                        student: {
-                            include: {
-                                user: {
-                                    include: {
-                                        image: true,
+                    studentAssignments: {
+                        where: {
+                            isActive: true,
+                        },
+                        include: {
+                            student: {
+                                include: {
+                                    user: {
+                                        include: {
+                                            image: true,
+                                        },
                                     },
                                 },
                             },
                         },
-                    },
-                    orderBy: {
-                        createdAt: "asc",
+                        orderBy: {
+                            createdAt: "asc",
+                        },
                     },
                 },
-            },
-        });
+            }),
+            getOneTimeScheduleChangesForDate(selectedDate),
+        ]);
+        const oneTimeStudents = await getOneTimeChangeStudents(oneTimeChanges);
+        const studentById = getRosterStudentMap(schedules, oneTimeStudents);
 
         const attendanceSchedules = schedules.map((schedule): AdminAttendanceSchedule => {
             const session = schedule.sessions[0] ?? null;
@@ -456,19 +544,25 @@ export const getAdminAttendanceOverview = async (
                 sessionId: session?.id ?? null,
                 coachId: schedule.coachId,
                 coachName: schedule.coach?.user?.name || schedule.coach?.user?.email || "Sin coach asignado",
-                label: `${dayLabels[schedule.dayOfWeek]} ${schedule.startTime}${endTime ? ` a ${endTime}` : ""}`,
+                label: `${getClassCategoryLabel(schedule.classCategory)} · ${dayLabels[schedule.dayOfWeek]} ${schedule.startTime}${endTime ? ` a ${endTime}` : ""}`,
                 startTime: schedule.startTime,
                 endTime,
-                students: schedule.studentAssignments.map((assignment) => {
-                    const student = assignment.student;
+                students: getEffectiveScheduleStudentIds({
+                    scheduleId: schedule.id,
+                    fixedStudentIds: schedule.studentAssignments.map((assignment) => assignment.studentId),
+                    changes: oneTimeChanges,
+                }).flatMap((studentId) => {
+                    const student = studentById.get(studentId);
 
-                    return {
+                    if (!student) return [];
+
+                    return [{
                         studentId: student.id,
                         name: getStudentName(student),
                         email: student.user.email,
                         imageUrl: student.user.image?.url ?? null,
                         status: attendanceByStudent.get(student.id)?.status ?? null,
-                    };
+                    }];
                 }),
             };
         });
@@ -624,7 +718,6 @@ export const markAdminStudentAttendance = async (
         await requireAdminSession();
 
         const selectedDate = getDateFromInput(date);
-        const { start, end } = getDateRange(selectedDate);
         const schedule = await prisma.weeklyClassSchedule.findFirst({
             where: {
                 id: scheduleId,
@@ -644,45 +737,26 @@ export const markAdminStudentAttendance = async (
         });
 
         if (!schedule) throw new Error("No se encontro el turno");
-        if (schedule.studentAssignments.length === 0) throw new Error("El alumno no pertenece a este turno");
+
+        const oneTimeChanges = await getOneTimeScheduleChangesForDate(selectedDate);
+        const belongsToSchedule = isStudentInScheduleForDate({
+            studentId,
+            scheduleId: schedule.id,
+            hasFixedAssignment: schedule.studentAssignments.length > 0,
+            changes: oneTimeChanges,
+        });
+
+        if (!belongsToSchedule) throw new Error("El alumno no pertenece a este turno");
 
         const startsAt = getScheduleStartsAt(selectedDate, schedule.startTime);
         const endsAt = addMinutesToDate(startsAt, schedule.durationMinutes);
-        const existingSession = await prisma.classSession.findFirst({
-            where: {
-                scheduleId: schedule.id,
-                startsAt: {
-                    gte: start,
-                    lt: end,
-                },
-            },
-            orderBy: {
-                createdAt: "desc",
-            },
+        const session = await upsertScheduledClassSession({
+            scheduleId: schedule.id,
+            coachId: schedule.coachId,
+            startsAt,
+            endsAt,
+            capacity: schedule.capacity,
         });
-        const session = existingSession
-            ? await prisma.classSession.update({
-                where: {
-                    id: existingSession.id,
-                },
-                data: {
-                    coachId: schedule.coachId,
-                    startsAt,
-                    endsAt,
-                    capacity: schedule.capacity,
-                    status: "SCHEDULED",
-                },
-            })
-            : await prisma.classSession.create({
-                data: {
-                    scheduleId: schedule.id,
-                    coachId: schedule.coachId,
-                    startsAt,
-                    endsAt,
-                    capacity: schedule.capacity,
-                    status: "SCHEDULED",
-                },
-            });
         const attendance = await prisma.attendance.upsert({
             where: {
                 sessionId_studentId: {

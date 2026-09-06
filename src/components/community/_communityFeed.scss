@@ -1,0 +1,84 @@
+@use '@/styles/variables' as *;
+
+.community-feed { width: min(100% - 2rem, 920px); min-height: calc(100dvh - 160px); margin: 0 auto; padding: 7.5rem 0 4rem; color: $color-text; }
+.community-feed-hero { margin-bottom: 2rem; text-align: center;
+    > span { color: $secondary-color; font-size: $font-size-small; font-weight: $font-weight-bold; letter-spacing: .14em; text-transform: uppercase; }
+    h1 { margin-top: .4rem; font-family: $font-family-display; font-size: clamp(2.4rem, 7vw, 4.4rem); line-height: 1; }
+    p { max-width: 680px; margin: .9rem auto 0; color: $color-text-secondary; font-size: $font-size-medium; line-height: 1.55; }
+}
+.community-feed-list { display: grid; gap: 1.25rem; }
+.community-feed-post { padding: 1.5rem; border: 1px solid rgba($secondary-color, .2); border-radius: 14px; background: rgba($tertiary-color, .36); box-shadow: 0 14px 45px rgba(0,0,0,.12);
+    > h2 { margin-top: 1rem; font-family: $font-family-display; font-size: clamp(1.45rem, 4vw, 2rem); line-height: 1.25; }
+    > .youtube-video-trigger { margin-top: 1rem; }
+}
+.community-feed-post-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    time { color: $color-text-secondary; font-size: $font-size-small; }
+}
+.community-feed-type { display: inline-flex; align-items: center; gap: .45rem; padding: .35rem .65rem; border-radius: 999px; color: $secondary-color; background: rgba($secondary-color, .13); font-size: $font-size-small; font-weight: $font-weight-bold; }
+.community-feed-author { display: flex; align-items: center; gap: .7rem; margin-top: 1rem;
+    > div:last-child { display: grid; gap: .1rem; }
+    span, small { color: $color-text-secondary; font-size: $font-size-xsmall; }
+    strong { font-size: $font-size-normal; }
+}
+.community-feed-author-avatar { display: grid; place-items: center; flex: 0 0 auto; width: 40px; height: 40px; overflow: hidden; border: 1px solid rgba($secondary-color, .28); border-radius: 50%; background: rgba($secondary-color, .16); color: $secondary-color; font-size: $font-size-small; font-weight: $font-weight-bold;
+    img { width: 100%; height: 100%; object-fit: cover; }
+}
+.community-feed-post-content { margin-top: .75rem; color: $color-text-secondary; font-size: $font-size-medium; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
+.community-feed-comments-heading { display: flex; align-items: center; gap: .4rem; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid rgba($secondary-color, .14); color: $color-text-secondary; font-size: $font-size-small;
+    svg, strong { color: $secondary-color; }
+}
+.community-feed-comments { display: grid; gap: .75rem; margin-top: .85rem; }
+.community-feed-comment { position: relative; display: flex; align-items: flex-start; gap: .75rem; padding: .85rem; border-radius: 10px; background: rgba($quinary-color, .7); }
+.community-feed-avatar { display: grid; place-items: center; flex: 0 0 auto; width: 42px; height: 42px; overflow: hidden; border-radius: 50%; background: rgba($secondary-color, .2); color: $secondary-color; font-size: $font-size-small; font-weight: $font-weight-bold;
+    img { width: 100%; height: 100%; object-fit: cover; }
+}
+.community-feed-comment-body { min-width: 0; flex: 1;
+    strong { font-size: $font-size-normal; }
+    time { color: $color-text-secondary; font-size: $font-size-xsmall; }
+    p { margin-top: .45rem; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+}
+.community-feed-comment-heading { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; }
+.community-feed-comment-role { display: inline-block; margin-left: .3rem; padding: .12rem .38rem; border-radius: 999px; background: rgba($secondary-color, .13); color: $secondary-color; font-size: $font-size-xsmall; font-weight: $font-weight-semibold; }
+.community-feed-comment-actions { display: flex; flex: 0 0 auto; gap: .35rem;
+    button { display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent; color: $color-text-secondary; cursor: pointer; }
+    button:hover { background: rgba($secondary-color, .1); color: $secondary-color; }
+    button:last-child:hover { background: rgba($color-error, .1); color: $color-error; }
+}
+.community-feed-inline-edit { display: grid; gap: .55rem; margin-top: .55rem;
+    textarea { width: 100%; padding: .7rem .8rem; border: 1px solid rgba($secondary-color, .24); border-radius: 8px; outline: none; resize: vertical; background: $primary-color; color: $color-text; font: inherit; line-height: 1.45;
+        &:focus { border-color: $secondary-color; }
+    }
+    > div { display: flex; justify-content: flex-end; gap: .45rem; }
+    button { min-height: 36px; padding: .5rem .7rem; border: 1px solid rgba($secondary-color, .25); border-radius: 7px; background: transparent; color: $color-text; cursor: pointer; }
+    button:last-child { border-color: $secondary-color; background: $secondary-color; font-weight: $font-weight-semibold; }
+    button:disabled { opacity: .6; cursor: wait; }
+}
+.community-feed-comment-actions button:last-child {
+    &:hover { background: rgba($color-error, .1); color: $color-error; }
+}
+.community-feed-empty-comments, .community-feed-readonly { color: $color-text-secondary; font-size: $font-size-normal; line-height: 1.5; }
+.community-feed-comment-form { display: grid; gap: .5rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba($secondary-color, .14);
+    label { color: $color-text; font-size: $font-size-normal; font-weight: $font-weight-semibold; }
+    textarea { width: 100%; padding: .8rem .9rem; border: 1px solid rgba($secondary-color, .24); border-radius: 10px; outline: none; resize: vertical; background: rgba($quinary-color, .72); color: $color-text; font: inherit; line-height: 1.5;
+        &::placeholder { color: rgba($color-text-secondary, .78); }
+        &:focus { border-color: $secondary-color; box-shadow: 0 0 0 2px rgba($secondary-color, .12); }
+    }
+    > div { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+    small { color: $color-text-secondary; }
+    button { min-height: 40px; padding: .65rem .95rem; border: 0; border-radius: 8px; background: $secondary-color; color: $color-text; cursor: pointer; font-weight: $font-weight-semibold;
+        &:disabled { opacity: .6; cursor: wait; }
+    }
+}
+
+.community-feed-embedded { width: 100%; min-height: auto; margin-top: 3rem; padding: 2.5rem 0 1rem; border-top: 1px solid rgba($secondary-color, .2);
+    .community-feed-hero h1 { font-size: clamp(2.2rem, 5vw, 3.6rem); }
+}
+
+@media (max-width: 600px) {
+    .community-feed { padding-top: 6.5rem; }
+    .community-feed-embedded { margin-top: 2rem; padding-top: 2rem; }
+    .community-feed-post { padding: 1rem; }
+    .community-feed-post-heading, .community-feed-comment-heading { align-items: flex-start; flex-direction: column; gap: .35rem; }
+    .community-feed-comment { gap: .6rem; }
+    .community-feed-avatar { width: 36px; height: 36px; }
+}

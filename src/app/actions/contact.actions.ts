@@ -1,7 +1,14 @@
 "use server";
 
+import { headers } from "next/headers";
 import { buildEmailMessage, sendEmail } from "@/lib/email";
 import { isDeliverableEmail } from "@/lib/form-validation";
+import {
+    consumeRateLimit,
+    getClientIp,
+    getRateLimitMessage,
+    rateLimitPolicies,
+} from "@/lib/rate-limit";
 import type { ActionResponse } from "./_shared";
 
 export type SendContactMessageInput = {
@@ -40,6 +47,30 @@ export const sendContactMessage = async (
         if (name.length < 2 || name.length > 80) throw new Error("Ingresa un nombre valido");
         if (!isDeliverableEmail(email)) throw new Error("Ingresa un email valido");
         if (message.length < 10 || message.length > 1200) throw new Error("El mensaje debe tener entre 10 y 1200 caracteres");
+
+        const clientIp = getClientIp(await headers());
+        const contactLimits = await Promise.all([
+            consumeRateLimit({
+                scope: "contact-ip",
+                identifier: clientIp,
+                ...rateLimitPolicies.contactIp,
+            }),
+            consumeRateLimit({
+                scope: "contact-identity",
+                identifier: `${clientIp}:${email}`,
+                ...rateLimitPolicies.contactIdentity,
+            }),
+        ]);
+        const exceededContactLimit = contactLimits.find((result) => !result.allowed);
+
+        if (exceededContactLimit) {
+            return {
+                ok: false,
+                data: null,
+                error: getRateLimitMessage(exceededContactLimit),
+            };
+        }
+
         if (!recipientEmail || !isDeliverableEmail(recipientEmail)) {
             throw new Error("El formulario de contacto no tiene un destinatario configurado");
         }

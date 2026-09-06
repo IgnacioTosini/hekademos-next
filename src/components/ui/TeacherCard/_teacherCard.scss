@@ -26,6 +26,22 @@
         .instagramIcon {
             color: $primary-color;
         }
+
+        .instagramLink {
+            border-color: rgba($primary-color, .55);
+            background: rgba($primary-color, .12);
+        }
+
+        .youtube-video-trigger {
+            border-color: rgba($primary-color, .65);
+            background: rgba($primary-color, .14);
+            color: $primary-color;
+
+            &:hover {
+                background: $primary-color;
+                color: $color-text;
+            }
+        }
     }
 
     .imgContainer {
@@ -56,16 +72,51 @@
         margin: 0 1rem 1rem 1rem;
     }
 
-    .instagramIcon {
-        color: $color-button;
-        width: 24px;
-        height: 24px;
-        margin-bottom: 1rem;
-        transition: filter 0.3s ease;
+    .teacherCardActions {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: .75rem;
+        width: 100%;
+        margin-top: auto;
+        padding: 0 1rem 1rem;
+    }
+
+    .instagramLink {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        width: 36px;
+        height: 36px;
+        border: 1px solid rgba($secondary-color, .7);
+        border-radius: 50%;
+        background: rgba($secondary-color, .12);
+        transition: transform .2s ease, background .2s ease, border-color .2s ease;
 
         &:hover {
-            filter: brightness(0.8);
-            cursor: pointer;
+            transform: translateY(-1px);
+            background: $secondary-color;
+        }
+    }
+
+    .instagramIcon {
+        color: $color-button;
+        width: 20px;
+        height: 20px;
+        transition: color .2s ease;
+    }
+
+    .teacherCardActions > .youtube-video-trigger {
+        margin-top: 0;
+        margin-bottom: 0;
+    }
+
+    &:hover .instagramLink:hover {
+        background: $primary-color;
+
+        .instagramIcon {
+            color: $color-text;
         }
     }
 }

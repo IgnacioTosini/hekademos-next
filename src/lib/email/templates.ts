@@ -125,28 +125,31 @@ export const buildScheduleChangeRequestEmail = ({
     requestTypeLabel,
     currentSchedulesLabel,
     requestedSchedulesLabel,
+    requestedDateLabel,
     reason,
-    reviewUrl,
+    detailsUrl,
 }: ScheduleChangeRequestEmailData): EmailTemplateResult => {
-    const subject = "Nueva solicitud de cambio de horario";
+    const subject = "Cambio de horario confirmado automáticamente";
     const html = renderLayout(subject, `
-        <h1 style="margin:0 0 12px;font-size:26px;line-height:1.2;">Solicitud de horario</h1>
-        <p style="margin:0 0 10px;color:#CBD5E1;line-height:1.6;">${escapeHtml(studentName)} solicitó un cambio de horario.</p>
+        <h1 style="margin:0 0 12px;font-size:26px;line-height:1.2;">Cambio de horario confirmado</h1>
+        <p style="margin:0 0 10px;color:#CBD5E1;line-height:1.6;">El cambio de horario de ${escapeHtml(studentName)} fue validado y confirmado automáticamente.</p>
         <p style="margin:0 0 10px;color:#CBD5E1;line-height:1.6;"><strong style="color:#F8FAFC;">Tipo:</strong> ${escapeHtml(requestTypeLabel)}</p>
         <p style="margin:0 0 10px;color:#CBD5E1;line-height:1.6;"><strong style="color:#F8FAFC;">Turnos actuales:</strong><br />${escapeHtml(currentSchedulesLabel).replace(/\n/g, "<br />")}</p>
         <p style="margin:0 0 10px;color:#CBD5E1;line-height:1.6;"><strong style="color:#F8FAFC;">Turnos solicitados:</strong><br />${escapeHtml(requestedSchedulesLabel).replace(/\n/g, "<br />")}</p>
+        ${requestedDateLabel ? `<p style="margin:0 0 10px;color:#CBD5E1;line-height:1.6;"><strong style="color:#F8FAFC;">Fecha:</strong> ${escapeHtml(requestedDateLabel)}</p>` : ""}
         <p style="margin:0;color:#CBD5E1;line-height:1.6;"><strong style="color:#F8FAFC;">Justificación:</strong><br />${escapeHtml(reason)}</p>
-        ${renderButton(reviewUrl, "Revisar solicitud")}
+        ${renderButton(detailsUrl, "Abrir panel")}
     `);
     const text = [
         subject,
-        `${studentName} solicitó un cambio de horario.`,
+        `El cambio de horario de ${studentName} fue validado y confirmado automáticamente.`,
         `Tipo: ${requestTypeLabel}`,
         `Turnos actuales:\n${currentSchedulesLabel}`,
         `Turnos solicitados:\n${requestedSchedulesLabel}`,
+        requestedDateLabel ? `Fecha: ${requestedDateLabel}` : null,
         `Justificación:\n${reason}`,
-        reviewUrl,
-    ].join("\n\n");
+        detailsUrl,
+    ].filter(Boolean).join("\n\n");
 
     return { subject, html, text };
 };
@@ -156,6 +159,7 @@ export const buildScheduleChangeRequestReviewEmail = ({
     statusLabel,
     requestTypeLabel,
     requestedSchedulesLabel,
+    requestedDateLabel,
     reviewNotes,
     profileUrl,
 }: ScheduleChangeRequestReviewEmailData): EmailTemplateResult => {
@@ -169,6 +173,7 @@ export const buildScheduleChangeRequestReviewEmail = ({
         <p style="margin:0 0 10px;color:#CBD5E1;line-height:1.6;">Hola ${escapeHtml(studentName)}, tu solicitud de horario fue ${escapeHtml(statusLabel)}.</p>
         <p style="margin:0 0 10px;color:#CBD5E1;line-height:1.6;"><strong style="color:#F8FAFC;">Tipo:</strong> ${escapeHtml(requestTypeLabel)}</p>
         <p style="margin:0 0 10px;color:#CBD5E1;line-height:1.6;"><strong style="color:#F8FAFC;">Turnos solicitados:</strong><br />${escapeHtml(requestedSchedulesLabel).replace(/\n/g, "<br />")}</p>
+        ${requestedDateLabel ? `<p style="margin:0 0 10px;color:#CBD5E1;line-height:1.6;"><strong style="color:#F8FAFC;">Fecha:</strong> ${escapeHtml(requestedDateLabel)}</p>` : ""}
         ${reviewText}
         <p style="margin:0;color:#CBD5E1;line-height:1.6;">${isApproved ? "Ya podés revisar tu perfil para ver el estado de tus horarios." : "Si necesitás otro cambio, podés enviar una nueva solicitud desde tu perfil."}</p>
         ${renderButton(profileUrl, "Ver mi perfil")}
@@ -178,6 +183,7 @@ export const buildScheduleChangeRequestReviewEmail = ({
         `Hola ${studentName}, tu solicitud de horario fue ${statusLabel}.`,
         `Tipo: ${requestTypeLabel}`,
         `Turnos solicitados:\n${requestedSchedulesLabel}`,
+        requestedDateLabel ? `Fecha: ${requestedDateLabel}` : null,
         reviewNotes?.trim() ? `Nota:\n${reviewNotes.trim()}` : null,
         isApproved
             ? "Ya podés revisar tu perfil para ver el estado de tus horarios."

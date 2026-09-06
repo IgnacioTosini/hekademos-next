@@ -5,10 +5,19 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
-    "build:vercel": "prisma generate && prisma migrate deploy && npm run prisma:seed:admin && next build",
-    "build:deploy": "prisma generate && prisma migrate deploy && npm run prisma:seed:admin && next build",
-    "start": "next start",
+    "build:vercel": "npm run validate:env:production && prisma generate && prisma migrate deploy && npm run prisma:seed:admin && next build",
+    "build:deploy": "npm run validate:env:production && prisma generate && prisma migrate deploy && npm run prisma:seed:admin && next build",
+    "start": "npm run validate:env:production && next start",
+    "validate:env:production": "node --no-warnings --experimental-strip-types scripts/validate-production-env.mjs",
     "lint": "eslint",
+    "test": "node --no-warnings --experimental-strip-types --experimental-test-module-mocks --experimental-loader=./tests/ts-alias-loader.mjs --test --test-concurrency=1 tests/unit.test.mjs tests/schedule-notification.test.mjs tests/payment-reminders.test.mjs tests/payment-reminder-template.test.mjs",
+    "test:env": "node --no-warnings --experimental-strip-types --test --test-concurrency=1 tests/environment.test.mjs",
+    "test:db": "node -r dotenv/config --no-warnings --experimental-strip-types --test --test-concurrency=1 tests/database-integrity.test.mjs",
+    "test:rate": "node -r dotenv/config --no-warnings --experimental-strip-types --experimental-loader=./tests/ts-alias-loader.mjs --test --test-concurrency=1 tests/rate-limit.test.mjs",
+    "test:concurrency": "node -r dotenv/config --no-warnings --experimental-strip-types --experimental-loader=./tests/ts-alias-loader.mjs --test --test-concurrency=1 tests/concurrency.test.mjs",
+    "test:roles": "node -r dotenv/config --no-warnings --experimental-strip-types --test --test-concurrency=1 tests/role-access.test.mjs",
+    "test:browser": "node -r dotenv/config --no-warnings --experimental-strip-types --test --test-concurrency=1 tests/browser-flows.test.mjs",
+    "test:all": "npm run test && npm run test:env && npm run test:db && npm run test:rate && npm run test:concurrency && npm run test:roles && npm run test:browser",
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
@@ -16,28 +25,26 @@
     "prisma:seed:admin": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types prisma/seed-admin.ts"
   },
   "dependencies": {
-    "@prisma/client": "^6.19.0",
+    "@prisma/client": "6.19.3",
     "@vercel/analytics": "^2.0.1",
-    "formik": "^2.4.9",
     "gsap": "^3.14.2",
-    "next": "16.1.6",
+    "next": "^16.3.4",
     "nodemailer": "^9.0.3",
-    "prisma": "^6.19.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-icons": "^5.5.0",
     "react-toastify": "^11.1.0",
-    "sass": "^1.97.3",
-    "yup": "^1.7.1"
+    "sass": "^1.97.3"
   },
   "devDependencies": {
-    "@types/gsap": "^1.20.2",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.1.6",
+    "eslint-config-next": "^16.3.4",
+    "playwright-core": "^1.62.1",
+    "prisma": "6.19.3",
     "typescript": "^5"
   }
 }

@@ -13,7 +13,7 @@ import type {
     UserWithRelations,
 } from "@/types/schema/users";
 import { getActiveMembership, getMembershipAmountCents } from "@/utils/membership";
-import { getAmountWithLateSurcharge, getPaymentMonthRange } from "@/utils/payment";
+import { getAmountWithLateSurcharge, getPaymentMonthRange, getPaymentPeriodStart } from "@/utils/payment";
 import {
     adminCoachesPath,
     adminUsersPath,
@@ -135,6 +135,8 @@ export const createCoachUser = async (
                         bio: input.bio,
                         specialty: input.specialty,
                         instagram: input.instagram,
+                        paymentAlias: input.paymentAlias?.trim().toLowerCase() || null,
+                        paymentAccountHolder: input.paymentAccountHolder?.trim() || null,
                         isActive: input.isActive ?? true,
                     },
                 },
@@ -169,6 +171,7 @@ export const updateCoachUser = async (
         validateCoachUserInput(input);
 
         const passwordHash = input.password ? await hashPassword(input.password) : input.passwordHash;
+        const passwordIsChanging = Boolean(input.password) || input.passwordHash !== undefined;
 
         const user = await prisma.user.update({
             where: {
@@ -179,6 +182,7 @@ export const updateCoachUser = async (
                 name: input.name,
                 phone: input.phone,
                 passwordHash,
+                sessionVersion: passwordIsChanging ? { increment: 1 } : undefined,
                 emailVerified: toDate(input.emailVerified),
                 role: "COACH",
                 status: input.status,
@@ -188,12 +192,20 @@ export const updateCoachUser = async (
                             bio: input.bio,
                             specialty: input.specialty,
                             instagram: input.instagram,
+                            paymentAlias: input.paymentAlias?.trim().toLowerCase() || null,
+                            paymentAccountHolder: input.paymentAccountHolder?.trim() || null,
                             isActive: input.isActive ?? true,
                         },
                         update: {
                             bio: input.bio,
                             specialty: input.specialty,
                             instagram: input.instagram,
+                            paymentAlias: input.paymentAlias === undefined
+                                ? undefined
+                                : input.paymentAlias?.trim().toLowerCase() || null,
+                            paymentAccountHolder: input.paymentAccountHolder === undefined
+                                ? undefined
+                                : input.paymentAccountHolder?.trim() || null,
                             isActive: input.isActive,
                         },
                     },
@@ -327,7 +339,8 @@ export const markCoachStudentCurrentMonthPaymentPaid = async (
 ): Promise<ActionResponse<{ paymentId: string } | null>> => {
     try {
         const today = new Date();
-        const { start, end, dueDate: paymentDueDate } = getPaymentMonthRange(today);
+        const { dueDate: paymentDueDate } = getPaymentMonthRange(today);
+        const periodStart = getPaymentPeriodStart(today);
         const student = await getCoachStudentForSession(studentId);
 
         if (!student) {
@@ -348,57 +361,47 @@ export const markCoachStudentCurrentMonthPaymentPaid = async (
             };
         }
 
-        const existingPayment = await prisma.payment.findFirst({
+        const existingPayment = await prisma.payment.findUnique({
             where: {
-                studentId: student.id,
-                studentMembershipId: activeMembership.id,
-                OR: [
-                    {
-                        dueDate: {
-                            gte: start,
-                            lt: end,
-                        },
-                    },
-                    {
-                        paidAt: {
-                            gte: start,
-                            lt: end,
-                        },
-                    },
-                ],
-            },
-            orderBy: {
-                createdAt: "desc",
+                studentId_periodStart: {
+                    studentId: student.id,
+                    periodStart,
+                },
             },
         });
         const baseAmountCents = getMembershipAmountCents(activeMembership);
         const isLate = today.getTime() > paymentDueDate.getTime();
-        const amountCents = getAmountWithLateSurcharge(baseAmountCents, isLate);
-
-        const payment = existingPayment
-            ? await prisma.payment.update({
-                where: {
-                    id: existingPayment.id,
-                },
-                data: {
-                    amountCents,
-                    currency: activeMembership.plan.currency,
-                    status: "PAID",
-                    paidAt: today,
-                    dueDate: paymentDueDate,
-                },
-            })
-            : await prisma.payment.create({
-                data: {
+        const amountCents = existingPayment?.status === "PAID"
+            ? existingPayment.amountCents
+            : getAmountWithLateSurcharge(baseAmountCents, isLate);
+        const paidAt = existingPayment?.status === "PAID"
+            ? existingPayment.paidAt ?? today
+            : today;
+        const payment = await prisma.payment.upsert({
+            where: {
+                studentId_periodStart: {
                     studentId: student.id,
-                    studentMembershipId: activeMembership.id,
-                    amountCents,
-                    currency: activeMembership.plan.currency,
-                    status: "PAID",
-                    dueDate: paymentDueDate,
-                    paidAt: today,
+                    periodStart,
                 },
-            });
+            },
+            update: {
+                amountCents,
+                currency: activeMembership.plan.currency,
+                status: "PAID",
+                paidAt,
+                dueDate: paymentDueDate,
+            },
+            create: {
+                studentId: student.id,
+                studentMembershipId: activeMembership.id,
+                periodStart,
+                amountCents,
+                currency: activeMembership.plan.currency,
+                status: "PAID",
+                dueDate: paymentDueDate,
+                paidAt,
+            },
+        });
 
         revalidatePath(coachDashboardPath);
         revalidatePath("/admin/pagos");
@@ -437,7 +440,8 @@ export const markCoachStudentCurrentMonthPaymentPending = async (
 ): Promise<ActionResponse<{ paymentId: string } | null>> => {
     try {
         const selectedDate = new Date();
-        const { start, end, dueDate: paymentDueDate } = getPaymentMonthRange(selectedDate);
+        const { dueDate: paymentDueDate } = getPaymentMonthRange(selectedDate);
+        const periodStart = getPaymentPeriodStart(selectedDate);
         const student = await getCoachStudentForSession(studentId);
 
         if (!student) {
@@ -448,26 +452,12 @@ export const markCoachStudentCurrentMonthPaymentPending = async (
             };
         }
 
-        const payment = await prisma.payment.findFirst({
+        const payment = await prisma.payment.findUnique({
             where: {
-                studentId: student.id,
-                OR: [
-                    {
-                        dueDate: {
-                            gte: start,
-                            lt: end,
-                        },
-                    },
-                    {
-                        paidAt: {
-                            gte: start,
-                            lt: end,
-                        },
-                    },
-                ],
-            },
-            orderBy: {
-                createdAt: "desc",
+                studentId_periodStart: {
+                    studentId: student.id,
+                    periodStart,
+                },
             },
         });
 
@@ -499,8 +489,8 @@ export const markCoachStudentCurrentMonthPaymentPending = async (
             entityId: updatedPayment.id,
             metadata: {
                 studentId: student.id,
-                periodMonth: start.getMonth() + 1,
-                periodYear: start.getFullYear(),
+                periodMonth: selectedDate.getMonth() + 1,
+                periodYear: selectedDate.getFullYear(),
             },
         });
 

@@ -1,5 +1,5 @@
 import { getPaymentOverview } from '@/app/actions/payment.actions';
-import { PaymentsSection } from '@/components/admin/payments';
+import { PaymentsSection } from '@/components/admin/payments/paymentsSection/PaymentsSection';
 import type { Metadata } from 'next';
 import './_pagosPage.scss';
 

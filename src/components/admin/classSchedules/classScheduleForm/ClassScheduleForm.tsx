@@ -5,18 +5,22 @@ import { FormEvent, useState, useTransition } from 'react';
 import { toast } from 'react-toastify';
 import { createWeeklyClassSchedule, updateWeeklyClassSchedule } from '@/app/actions/class.actions';
 import type { DayOfWeek, WeeklyClassScheduleWithRelations } from '@/types/schema/classes';
+import type { ClassCategoryOption } from '@/types/schema/common';
 import type { UserWithRelations } from '@/types/schema/users';
+import { getClassCategoryLabel } from '@/utils/class-category';
 import { dayLabels, dayOrder } from '@/utils/schedule';
 import './_classScheduleForm.scss';
 
 type Props = {
     schedule: WeeklyClassScheduleWithRelations | null;
     coaches: UserWithRelations[];
+    categories: ClassCategoryOption[];
     onClose: () => void;
 };
 
 type ClassScheduleFormState = {
     dayOfWeek: DayOfWeek;
+    classCategory: string;
     startTime: string;
     durationMinutes: string;
     capacity: string;
@@ -25,8 +29,14 @@ type ClassScheduleFormState = {
     notes: string;
 };
 
-const getInitialState = (schedule: WeeklyClassScheduleWithRelations | null): ClassScheduleFormState => ({
+const getInitialState = (
+    schedule: WeeklyClassScheduleWithRelations | null,
+    categories: ClassCategoryOption[]
+): ClassScheduleFormState => ({
     dayOfWeek: schedule?.dayOfWeek ?? 'MONDAY',
+    classCategory: schedule
+        ? getClassCategoryLabel(schedule.classCategory)
+        : categories[0]?.name ?? '',
     startTime: schedule?.startTime ?? '16:00',
     durationMinutes: schedule ? String(schedule.durationMinutes) : '90',
     capacity: schedule?.capacity === null || schedule?.capacity === undefined ? '10' : String(schedule.capacity),
@@ -37,10 +47,10 @@ const getInitialState = (schedule: WeeklyClassScheduleWithRelations | null): Cla
 
 const getCoachName = (coach: UserWithRelations) => coach.name || coach.email;
 
-export const ClassScheduleForm = ({ schedule, coaches, onClose }: Props) => {
+export const ClassScheduleForm = ({ schedule, coaches, categories, onClose }: Props) => {
     const router = useRouter();
     const coachOptions = coaches.filter((coach) => coach.coach?.id);
-    const [form, setForm] = useState<ClassScheduleFormState>(() => getInitialState(schedule));
+    const [form, setForm] = useState<ClassScheduleFormState>(() => getInitialState(schedule, categories));
     const [error, setError] = useState('');
     const [isPending, startTransition] = useTransition();
     const isEditing = !!schedule;
@@ -64,6 +74,11 @@ export const ClassScheduleForm = ({ schedule, coaches, onClose }: Props) => {
             return;
         }
 
+        if (!form.classCategory) {
+            setError('Seleccioná una categoría. Podés crear categorías desde Planes.');
+            return;
+        }
+
         if (!Number.isInteger(durationMinutes) || durationMinutes < 15) {
             setError('La duracion debe ser de al menos 15 minutos.');
             return;
@@ -77,6 +92,7 @@ export const ClassScheduleForm = ({ schedule, coaches, onClose }: Props) => {
         startTransition(async () => {
             const payload = {
                 dayOfWeek: form.dayOfWeek,
+                classCategory: form.classCategory,
                 startTime: form.startTime,
                 durationMinutes,
                 capacity,
@@ -116,6 +132,28 @@ export const ClassScheduleForm = ({ schedule, coaches, onClose }: Props) => {
                     </select>
                 </div>
 
+                <div className="class-schedule-form-group">
+                    <label htmlFor="schedule-category">Categoría</label>
+                    <select
+                        id="schedule-category"
+                        value={form.classCategory}
+                        onChange={(event) => updateField('classCategory', event.target.value)}
+                        required
+                    >
+                        <option value="" disabled>Seleccioná una categoría</option>
+                        {categories.map((category) => (
+                            <option key={category.id} value={category.name}>
+                                {category.name}{category.isSpecialActivity ? ' · Evento' : ''}
+                            </option>
+                        ))}
+                    </select>
+                    <small>
+                        Las categorías se crean y editan desde Planes.
+                    </small>
+                </div>
+            </div>
+
+            <div className="class-schedule-form-row">
                 <div className="class-schedule-form-group">
                     <label htmlFor="schedule-start">Inicio</label>
                     <input

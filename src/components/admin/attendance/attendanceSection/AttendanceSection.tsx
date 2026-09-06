@@ -6,7 +6,7 @@ import { useMemo, useState, useTransition } from 'react';
 import { FaDownload } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { markAdminStudentAttendance } from '@/app/actions/attendance.actions';
-import { EmptyState } from '@/components/ui';
+import { EmptyState } from '@/components/ui/emptyState/EmptyState';
 import type { AdminAttendanceSchedule, AdminMonthlyAttendanceSummary, AttendanceStatus } from '@/types/schema/classes';
 import type { UserWithRelations } from '@/types/schema/users';
 import { formatDate } from '@/utils/format';

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { AuditLog } from "@/app/actions/audit.actions";
-import { EmptyState } from "@/components/ui";
+import { EmptyState } from "@/components/ui/emptyState/EmptyState";
 import { formatCurrency } from "@/utils/format";
 import "./_auditSection.scss";
 
@@ -21,17 +21,29 @@ const actionLabels: Record<string, string> = {
     ATTENDANCE_MARK_COACH: "Asistencia",
     ATTENDANCE_MARK_ADMIN: "Asistencia",
     SCHEDULE_CHANGE_REQUEST_APPROVE: "Solicitud aprobada",
+    SCHEDULE_CHANGE_REQUEST_AUTO_APPROVE: "Cambio automático de horario",
+    SCHEDULE_CHANGE_REQUEST_CANCEL: "Cambio temporal cancelado",
     SCHEDULE_CHANGE_REQUEST_CREATE: "Solicitud de horario",
     SCHEDULE_CHANGE_REQUEST_REJECT: "Solicitud rechazada",
     STUDENT_CREATE: "Alumno creado",
     STUDENT_UPDATE: "Alumno editado",
+    SITE_CONTENT_UPDATE: "Contenido web actualizado",
+    COMMUNITY_POST_CREATE: "Publicación creada",
+    COMMUNITY_POST_UPDATE: "Publicación editada",
+    COMMUNITY_POST_DELETE: "Publicación eliminada",
+    COMMUNITY_COMMENT_CREATE: "Aporte creado",
+    COMMUNITY_COMMENT_UPDATE: "Aporte editado",
+    COMMUNITY_COMMENT_DELETE: "Aporte eliminado",
 };
 
 const entityLabels: Record<string, string> = {
     Attendance: "Asistencia",
     Payment: "Pago",
-    ScheduleChangeRequest: "Solicitud de horario",
+    ScheduleChangeRequest: "Cambio de horario",
     Student: "Alumno",
+    SiteContent: "Contenido web",
+    CommunityPost: "Comunidad",
+    CommunityComment: "Aporte",
 };
 
 const roleLabels = {
@@ -197,6 +209,31 @@ const getAuditSummary = (log: AuditLog) => {
         return `Se solicitó un ${typeLabel} de horario.${notificationText}`;
     }
 
+    if (log.action === "SCHEDULE_CHANGE_REQUEST_AUTO_APPROVE") {
+        const type = getString(metadata, "type");
+        const typeLabel = type === "PERMANENT" ? "cambio permanente" : "cambio por una clase";
+        const updated = metadata.permanentScheduleUpdated ? " Se actualizaron los turnos fijos." : "";
+        const notificationStatus = getString(metadata, "notificationStatus");
+        const whatsappStatus = getString(metadata, "whatsappNotificationStatus");
+        const notificationText = whatsappStatus === "SENT"
+            ? " Se notificó al alumno por WhatsApp."
+            : notificationStatus === "SENT"
+                ? " Se notificó al alumno por email porque WhatsApp no estaba disponible."
+            : notificationStatus === "PARTIAL_FAILED"
+                ? " La notificación se completó parcialmente."
+                : notificationStatus === "FAILED"
+                    ? " No se pudo notificar al alumno."
+                    : notificationStatus === "SKIPPED_NO_RECIPIENT"
+                        ? " No había un destinatario válido para notificar."
+                        : "";
+
+        return `Se confirmó automáticamente un ${typeLabel} de horario.${updated}${notificationText}`;
+    }
+
+    if (log.action === "SCHEDULE_CHANGE_REQUEST_CANCEL") {
+        return "El alumno canceló el cambio temporal y volvió a su horario habitual.";
+    }
+
     if (log.action === "SCHEDULE_CHANGE_REQUEST_APPROVE") {
         const type = getString(metadata, "type");
         const typeLabel = type === "PERMANENT" ? "cambio permanente" : "cambio por una clase";
@@ -230,6 +267,20 @@ const getAuditSummary = (log: AuditLog) => {
 
     if (log.action === "STUDENT_CREATE") {
         return `Se creó el alumno${email ? ` ${email}` : ""}.`;
+    }
+
+    if (log.action === "SITE_CONTENT_UPDATE") {
+        return "Se actualizaron los textos, imágenes o enlaces de la portada.";
+    }
+
+    if (log.action.startsWith("COMMUNITY_POST_")) {
+        const title = getString(metadata, "title");
+        const verb = log.action.endsWith("CREATE") ? "creó" : log.action.endsWith("UPDATE") ? "actualizó" : "eliminó";
+        return `Se ${verb} una publicación${title ? `: ${title}` : ""}.`;
+    }
+
+    if (log.action.startsWith("COMMUNITY_COMMENT_")) {
+        return log.action.endsWith("CREATE") ? "Un alumno publicó un aporte en la comunidad." : "Se eliminó un aporte de la comunidad.";
     }
 
     if (log.action === "STUDENT_UPDATE") {

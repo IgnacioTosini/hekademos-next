@@ -181,6 +181,24 @@
         }
     }
 
+    .class-schedule-category {
+        display: inline-flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: .4rem;
+
+        em {
+            padding: .15rem .4rem;
+            border-radius: 999px;
+            background: rgba($secondary-color, .14);
+            color: $secondary-color;
+            font-size: .72rem;
+            font-style: normal;
+            font-weight: $font-weight-semibold;
+            text-transform: uppercase;
+        }
+    }
+
     .class-schedule-status {
         display: inline-flex;
         align-items: center;

@@ -8,7 +8,7 @@ import { IoMdClose } from "react-icons/io";
 import { updateCoachProfile } from "@/app/actions/profile.actions";
 import { isValidOptionalPhone } from "@/lib/form-validation";
 import type { UserImage } from "@/types/schema/users";
-import { saveWithResolvedUserImage, UserImageField, type UserImageValue } from "@/components/admin/users";
+import { saveWithResolvedUserImage, UserImageField, type UserImageValue } from "@/components/admin/users/userImageField/UserImageField";
 import "@/components/admin/users/userForm/_userForm.scss";
 import "./_coachProfileEditor.scss";
 
@@ -19,6 +19,8 @@ export type CoachProfileEditorAccount = {
     bio: string | null;
     specialty: string | null;
     instagram: string | null;
+    paymentAlias: string | null;
+    paymentAccountHolder: string | null;
     image?: UserImage | null;
 };
 
@@ -33,6 +35,8 @@ type FormState = {
     bio: string;
     specialty: string;
     instagram: string;
+    paymentAlias: string;
+    paymentAccountHolder: string;
 };
 
 const getInitialState = (account: CoachProfileEditorAccount): FormState => ({
@@ -42,6 +46,8 @@ const getInitialState = (account: CoachProfileEditorAccount): FormState => ({
     bio: account.bio ?? "",
     specialty: account.specialty ?? "",
     instagram: account.instagram ?? "",
+    paymentAlias: account.paymentAlias ?? "",
+    paymentAccountHolder: account.paymentAccountHolder ?? "",
 });
 
 export const CoachProfileEditor = ({ account }: Props) => {
@@ -92,6 +98,8 @@ export const CoachProfileEditor = ({ account }: Props) => {
                         bio: form.bio || null,
                         specialty: form.specialty || null,
                         instagram: form.instagram || null,
+                        paymentAlias: form.paymentAlias || null,
+                        paymentAccountHolder: form.paymentAccountHolder || null,
                         image: resolvedImage,
                     }),
                 });
@@ -203,6 +211,32 @@ export const CoachProfileEditor = ({ account }: Props) => {
                                     onChange={(event) => updateField("specialty", event.target.value)}
                                     placeholder="Entrenamiento funcional, fuerza, movilidad..."
                                 />
+                            </div>
+
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label htmlFor="coach-profile-payment-alias">Alias de cobro</label>
+                                    <input
+                                        id="coach-profile-payment-alias"
+                                        value={form.paymentAlias}
+                                        onChange={(event) => updateField("paymentAlias", event.target.value)}
+                                        placeholder="ejemplo.alias.mp"
+                                        maxLength={120}
+                                        autoComplete="off"
+                                        spellCheck={false}
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label htmlFor="coach-profile-payment-holder">Titular de la cuenta</label>
+                                    <input
+                                        id="coach-profile-payment-holder"
+                                        value={form.paymentAccountHolder}
+                                        onChange={(event) => updateField("paymentAccountHolder", event.target.value)}
+                                        placeholder="Nombre y apellido del titular"
+                                        maxLength={160}
+                                    />
+                                </div>
                             </div>
 
                             <div className="form-group">

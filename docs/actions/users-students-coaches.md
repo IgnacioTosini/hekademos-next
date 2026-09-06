@@ -107,6 +107,7 @@ Validaciones importantes:
 - telefonos opcionales con formato valido;
 - fecha de nacimiento razonable;
 - cantidad de turnos no mayor a los dias por semana del plan;
+- turnos de la misma categoria que el plan;
 - no permite dos turnos el mismo dia;
 - no permite turnos llenos.
 
@@ -123,6 +124,8 @@ Permisos: admin.
 Actualiza usuario y ficha de alumno. Puede cambiar coach, plan, precio mensual, turnos, datos personales, rutina, notas e imagen.
 
 Si `planId` viene vacio, cancela membresias activas. Si viene un plan, crea o actualiza la membresia activa.
+
+Al cambiar de plan, conserva solamente turnos compatibles con la nueva categoria y valida la seleccion antes de actualizar al alumno.
 
 Revalida: usuarios, alumnos, pagos y perfil del alumno.
 
@@ -224,12 +227,12 @@ Auditoria: `STUDENT_UPDATE`.
 
 Permisos: alumno autenticado.
 
-Crea una solicitud de cambio de horario desde el bloque "Turnos elegidos" del perfil del alumno.
+Valida y confirma automáticamente un cambio de horario desde el bloque "Turnos elegidos" del perfil del alumno, sin intervención de admin o coach.
 
 Tipos:
 
-- `ONE_TIME`: solo por esta clase; no modifica los horarios fijos.
-- `PERMANENT`: cambio permanente; queda pendiente de aprobacion por admin o coach.
+- `ONE_TIME`: reemplaza un unico turno para la proxima clase; no modifica los horarios fijos.
+- `PERMANENT`: cambio permanente; actualiza los turnos fijos en el momento.
 
 Siempre exige justificacion.
 
@@ -238,39 +241,42 @@ Validaciones:
 - alumno autenticado;
 - membresia activa;
 - al menos un turno solicitado;
+- para `ONE_TIME`, un unico turno actual y un unico turno de reemplazo;
+- no permite otro cambio puntual activo para el alumno;
 - turnos distintos a los actuales;
 - turnos activos del coach asignado;
+- turnos de la misma categoria que el plan activo;
 - turnos dentro del limite del plan;
 - sin dos turnos el mismo dia;
-- sin turnos llenos;
-- sin otra solicitud pendiente.
+- sin turnos llenos.
 
-No modifica `StudentScheduleAssignment`. Solo guarda `ScheduleChangeRequest` en estado `PENDING`.
+Resultado:
 
-Revision:
-
-- se revisa desde `/admin/solicitudes-horarios`;
-- pueden entrar administradores;
-- aprobar `ONE_TIME` deja registrada la autorizacion puntual sin cambiar turnos fijos;
-- aprobar `PERMANENT` actualiza los turnos activos del alumno;
-- rechazar deja la solicitud cerrada con nota opcional.
+- guarda `ScheduleChangeRequest` directamente en estado `APPROVED`, con fecha y nota de procesamiento automatico;
+- `ONE_TIME` guarda un turno de origen, un turno de destino y la fecha concreta; el destino se calcula a partir de la proxima clase original;
+- mientras esta vigente, el perfil reemplaza visualmente el turno original por el temporal y lo identifica como "Solo por esta clase";
+- las listas de asistencia quitan al alumno del turno original y lo agregan al temporal en las fechas correspondientes;
+- despues de la clase temporal, el perfil vuelve automaticamente a los turnos fijos;
+- `PERMANENT` sincroniza `StudentScheduleAssignment` dentro de la misma transaccion;
+- conserva las validaciones de membresia, plan, dias y cupos antes de aplicar el cambio.
 
 Notificaciones:
 
-- envia mail al email configurado en `ADMIN_NOTIFICATION_EMAIL`;
-- si falla el mail o no hay destinatario valido, la solicitud queda creada igual y auditoria guarda `notificationStatus`.
+- informa por mail al alumno, al coach asignado y al email configurado en `ADMIN_NOTIFICATION_EMAIL`;
+- el mensaje deja claro que el cambio ya fue confirmado y enlaza al panel correspondiente;
+- si falla el mail o no hay destinatario valido, el cambio queda confirmado igual y auditoria guarda `notificationStatus`.
 
-Revalida: `/perfil`, `/admin/solicitudes-horarios`, `/admin/alumnos` y perfil admin del alumno.
+Revalida: `/perfil`, `/coach/dashboard`, `/admin/solicitudes-horarios`, `/admin/alumnos` y perfil admin del alumno.
 
-Auditoria: `SCHEDULE_CHANGE_REQUEST_CREATE`.
+Auditoria: `SCHEDULE_CHANGE_REQUEST_AUTO_APPROVE`.
 
 ### `getScheduleChangeRequests()`
 
 Permisos: admin o coach.
 
-Lista las ultimas solicitudes de cambio de horario, con alumno, coach actual, turnos actuales, turnos solicitados, cupos y revisor si ya fue procesada.
+Lista los ultimos cambios de horario, con alumno, coach actual, turnos anteriores, turnos solicitados, cupos y datos de procesamiento.
 
-La pantalla que la consume es `/admin/solicitudes-horarios`.
+La pantalla que la consume es `/admin/solicitudes-horarios`, ahora presentada como historial. Los registros pendientes anteriores al cambio automatico todavia pueden resolverse desde ahi.
 
 ### `approveScheduleChangeRequest(input)`
 
@@ -283,6 +289,7 @@ Antes de aprobar vuelve a validar:
 - membresia activa;
 - limite de turnos del plan;
 - turnos activos;
+- turnos de la misma categoria que el plan activo;
 - sin dos turnos el mismo dia;
 - cupos disponibles.
 

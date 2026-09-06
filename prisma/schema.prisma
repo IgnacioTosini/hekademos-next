@@ -73,14 +73,15 @@ enum ScheduleChangeRequestStatus {
 }
 
 model User {
-  id            String     @id @default(cuid())
-  email         String     @unique
-  name          String?
-  phone         String?
-  passwordHash  String?
-  emailVerified DateTime?
-  role          Role       @default(STUDENT)
-  status        UserStatus @default(ACTIVE)
+  id             String     @id @default(cuid())
+  email          String     @unique
+  name           String?
+  phone          String?
+  passwordHash   String?
+  sessionVersion Int        @default(0)
+  emailVerified  DateTime?
+  role           Role       @default(STUDENT)
+  status         UserStatus @default(ACTIVE)
 
   student Student?
   coach   Coach?
@@ -139,6 +140,26 @@ model AuditLog {
   @@index([createdAt])
 }
 
+model RateLimitBucket {
+  key         String   @id
+  count       Int      @default(0)
+  windowStart DateTime
+  expiresAt   DateTime
+  updatedAt   DateTime @updatedAt
+
+  @@index([expiresAt])
+}
+
+model SiteContent {
+  key             String   @id
+  value           Json
+  updatedByUserId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([updatedAt])
+}
+
 model Student {
   id                    String    @id @default(cuid())
   userId                String    @unique
@@ -155,9 +176,11 @@ model Student {
   coach       Coach?              @relation(fields: [coachId], references: [id], onDelete: SetNull)
   memberships StudentMembership[]
   payments    Payment[]
+  paymentReminders PaymentReminderDelivery[]
   attendance  Attendance[]
   schedules   StudentScheduleAssignment[]
   scheduleChangeRequests ScheduleChangeRequest[]
+  communityComments CommunityComment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -165,18 +188,39 @@ model Student {
   @@index([coachId])
 }
 
+model PaymentReminderDelivery {
+  id           String   @id @default(cuid())
+  studentId    String
+  student      Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  periodStart  DateTime
+  reminderType String
+  status       String   @default("PROCESSING")
+  channel      String?
+  messageId    String?
+  sentAt       DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([studentId, periodStart, reminderType])
+  @@index([periodStart, status])
+}
+
 model Coach {
-  id        String  @id @default(cuid())
-  userId    String  @unique
-  bio       String?
-  specialty String?
-  instagram String?
-  isActive  Boolean @default(true)
+  id                   String  @id @default(cuid())
+  userId               String  @unique
+  bio                  String?
+  specialty            String?
+  instagram            String?
+  paymentAlias         String?
+  paymentAccountHolder String?
+  isActive             Boolean @default(true)
 
   user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   students        Student[]
   weeklySchedules WeeklyClassSchedule[]
   classSessions   ClassSession[]
+  communityPosts  CommunityPost[]
+  communityComments CommunityComment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -185,6 +229,7 @@ model Coach {
 model MembershipPlan {
   id                  String  @id @default(cuid())
   name                String  @unique
+  classCategory       String  @default("Calistenia")
   trainingDaysPerWeek Int
   priceCents          Int
   currency            String  @default("ARS")
@@ -224,6 +269,7 @@ model Payment {
   id                  String        @id @default(cuid())
   studentId           String
   studentMembershipId String?
+  periodStart         DateTime
   amountCents         Int
   currency            String        @default("ARS")
   status              PaymentStatus @default(PENDING)
@@ -239,6 +285,7 @@ model Payment {
   updatedAt DateTime @updatedAt
 
   @@index([studentId, status])
+  @@unique([studentId, periodStart])
   @@index([studentMembershipId])
   @@index([paidAt])
 }
@@ -246,6 +293,7 @@ model Payment {
 model WeeklyClassSchedule {
   id              String    @id @default(cuid())
   dayOfWeek       DayOfWeek
+  classCategory   String    @default("Calistenia")
   startTime       String
   durationMinutes Int       @default(90)
   capacity        Int?
@@ -261,8 +309,61 @@ model WeeklyClassSchedule {
   updatedAt DateTime @updatedAt
 
   @@unique([dayOfWeek, startTime, coachId])
+  @@index([classCategory])
   @@index([coachId])
   @@index([isActive])
+}
+
+model CommunityPost {
+  id             String             @id @default(cuid())
+  type           String
+  title          String
+  content        String
+  videoUrl       String?
+  isPublished    Boolean           @default(true)
+  authorCoachId  String?
+  createdByName  String?
+  createdByEmail String?
+  authorCoach    Coach?             @relation(fields: [authorCoachId], references: [id], onDelete: SetNull)
+  comments       CommunityComment[]
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([isPublished, createdAt])
+  @@index([type])
+  @@index([authorCoachId])
+}
+
+model CommunityComment {
+  id              String        @id @default(cuid())
+  postId          String
+  studentId       String?
+  coachId         String?
+  authorRole      Role          @default(STUDENT)
+  authorName      String?
+  createdByUserId String?
+  content         String
+  post            CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  student         Student?      @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  coach           Coach?        @relation(fields: [coachId], references: [id], onDelete: SetNull)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([postId, createdAt])
+  @@index([studentId])
+  @@index([coachId])
+  @@index([createdByUserId])
+}
+
+model ClassCategoryOption {
+  id                String   @id @default(cuid())
+  name              String
+  normalizedName    String   @unique
+  isSpecialActivity Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([name])
 }
 
 model StudentScheduleAssignment {
@@ -331,6 +432,7 @@ model ClassSession {
   updatedAt DateTime @updatedAt
 
   @@index([startsAt])
+  @@unique([scheduleId, startsAt])
   @@index([scheduleId])
   @@index([coachId])
   @@index([status])

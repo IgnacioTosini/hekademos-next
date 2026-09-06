@@ -8,14 +8,35 @@ export type AuthSession = {
     email: string;
     name: string | null;
     role: Role;
+    sessionVersion: number;
     expiresAt: number;
+};
+
+const validRoles = new Set<Role>(["ADMIN", "COACH", "STUDENT"]);
+
+const isAuthSession = (value: unknown): value is AuthSession => {
+    if (!value || typeof value !== "object") return false;
+
+    const session = value as Partial<AuthSession>;
+
+    return typeof session.userId === "string"
+        && session.userId.length > 0
+        && typeof session.email === "string"
+        && session.email.length > 0
+        && (typeof session.name === "string" || session.name === null)
+        && typeof session.role === "string"
+        && validRoles.has(session.role as Role)
+        && Number.isInteger(session.sessionVersion)
+        && (session.sessionVersion ?? -1) >= 0
+        && typeof session.expiresAt === "number"
+        && Number.isFinite(session.expiresAt);
 };
 
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
 
 export const getAuthSessionSecret = () => {
-    const secret = process.env.AUTH_SESSION_SECRET ?? process.env.ADMIN_SESSION_SECRET;
+    const secret = process.env.AUTH_SESSION_SECRET;
 
     if (secret) return secret;
     if (process.env.NODE_ENV !== "production") return "hekademos-dev-session-secret";
@@ -63,7 +84,9 @@ export const encodeSessionPayload = (session: AuthSession) => (
 
 export const decodeSessionPayload = (payload: string): AuthSession | null => {
     try {
-        return JSON.parse(textDecoder.decode(fromBase64Url(payload))) as AuthSession;
+        const session = JSON.parse(textDecoder.decode(fromBase64Url(payload))) as unknown;
+
+        return isAuthSession(session) ? session : null;
     } catch {
         return null;
     }

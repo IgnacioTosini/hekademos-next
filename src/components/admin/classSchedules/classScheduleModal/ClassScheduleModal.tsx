@@ -1,6 +1,7 @@
 'use client';
 
 import { IoMdClose } from 'react-icons/io';
+import type { ClassCategoryOption } from '@/types/schema/common';
 import type { WeeklyClassScheduleWithRelations } from '@/types/schema/classes';
 import type { UserWithRelations } from '@/types/schema/users';
 import { ClassScheduleForm } from '../classScheduleForm/ClassScheduleForm';
@@ -10,10 +11,11 @@ type Props = {
     isOpen: boolean;
     schedule: WeeklyClassScheduleWithRelations | null;
     coaches: UserWithRelations[];
+    categories: ClassCategoryOption[];
     onClose: () => void;
 };
 
-export const ClassScheduleModal = ({ isOpen, schedule, coaches, onClose }: Props) => {
+export const ClassScheduleModal = ({ isOpen, schedule, coaches, categories, onClose }: Props) => {
     if (!isOpen) return null;
 
     return (
@@ -26,7 +28,7 @@ export const ClassScheduleModal = ({ isOpen, schedule, coaches, onClose }: Props
                     </button>
                 </div>
 
-                <ClassScheduleForm schedule={schedule} coaches={coaches} onClose={onClose} />
+                <ClassScheduleForm schedule={schedule} coaches={coaches} categories={categories} onClose={onClose} />
             </div>
         </div>
     );

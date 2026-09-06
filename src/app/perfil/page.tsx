@@ -1,12 +1,18 @@
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { getWeeklyClassSchedules } from "@/app/actions/class.actions";
+import { getCommunityFeed } from "@/app/actions/community.actions";
 import { getCurrentAuthSession } from "@/lib/auth-session";
+import { getEffectiveScheduleStudentIds, getOneTimeScheduleChangesForDate } from "@/lib/one-time-schedule-change";
 import { prisma } from "@/lib/prisma";
-import { ChangePasswordButton } from "@/components/account";
-import { StudentProfileContent } from "@/components/admin/students";
-import { LogoutIconButton } from "@/components/auth";
-import { StudentProfileEditor, StudentRoutineEditor, StudentScheduleChangeRequest } from "@/components/platform/student";
+import { ChangePasswordButton } from "@/components/account/changePasswordButton/ChangePasswordButton";
+import { StudentProfileContent } from "@/components/admin/students/studentProfile/studentProfileContent/StudentProfileContent";
+import { LogoutIconButton } from "@/components/auth/logoutIconButton/LogoutIconButton";
+import { CommunityFeed } from "@/components/community/CommunityFeed";
+import { StudentProfileEditor } from "@/components/platform/student/studentProfileEditor/StudentProfileEditor";
+import { StudentRoutineEditor } from "@/components/platform/student/studentRoutineEditor/StudentRoutineEditor";
+import { StudentScheduleChangeRequest } from "@/components/platform/student/studentScheduleChangeRequest/StudentScheduleChangeRequest";
+import { getLocalDayRange, getNextScheduleOccurrence } from "@/utils/schedule";
 import "./_perfilPage.scss";
 
 export const metadata: Metadata = {
@@ -57,7 +63,12 @@ export default async function PerfilPage({ searchParams }: Props) {
         redirect("/coach/dashboard");
     }
 
-    const [student, schedulesResponse] = await Promise.all([
+    const { start: todayStart } = getLocalDayRange(new Date());
+    const oneTimeCandidateStart = new Date(todayStart);
+
+    oneTimeCandidateStart.setDate(oneTimeCandidateStart.getDate() - 7);
+
+    const [student, schedulesResponse, communityResponse] = await Promise.all([
         prisma.student.findUnique({
             where: {
                 userId: session.userId,
@@ -126,9 +137,23 @@ export default async function PerfilPage({ searchParams }: Props) {
                         createdAt: "asc",
                     },
                 },
+                scheduleChangeRequests: {
+                    where: {
+                        type: "ONE_TIME",
+                        status: "APPROVED",
+                        requestedDate: {
+                            gte: oneTimeCandidateStart,
+                        },
+                    },
+                    orderBy: {
+                        createdAt: "desc",
+                    },
+                    take: 10,
+                },
             },
         }),
         getWeeklyClassSchedules(),
+        getCommunityFeed(),
     ]);
 
     if (!student) {
@@ -152,12 +177,88 @@ export default async function PerfilPage({ searchParams }: Props) {
             : student.coach,
     };
     const weeklySchedules = schedulesResponse.ok ? schedulesResponse.data : [];
+    const now = new Date();
+    const temporaryScheduleChangeCandidate = student.scheduleChangeRequests
+        .flatMap((request) => {
+            const sourceScheduleId = request.currentScheduleIds[0];
+            const requestedScheduleId = request.requestedScheduleIds[0];
+            const sourceSchedule = weeklySchedules.find((schedule) => schedule.id === sourceScheduleId);
+            const requestedSchedule = weeklySchedules.find((schedule) => schedule.id === requestedScheduleId);
+
+            if (
+                !request.requestedDate
+                || request.currentScheduleIds.length !== 1
+                || request.requestedScheduleIds.length !== 1
+                || !sourceSchedule
+                || !requestedSchedule
+            ) {
+                return [];
+            }
+
+            const sourceDate = getNextScheduleOccurrence(sourceSchedule, request.createdAt);
+            const lastAffectedDate = sourceDate > request.requestedDate ? sourceDate : request.requestedDate;
+            const expiresAt = getLocalDayRange(lastAffectedDate).end;
+
+            if (expiresAt <= now) return [];
+
+            return [{
+                id: request.id,
+                sourceScheduleId,
+                sourceDate,
+                sourceSchedule,
+                requestedDate: request.requestedDate,
+                expiresAt,
+                weeklySchedule: requestedSchedule,
+            }];
+        })[0] ?? null;
+    const temporaryScheduleChange = temporaryScheduleChangeCandidate
+        ? await (async () => {
+            const firstAffectedDate = temporaryScheduleChangeCandidate.sourceDate < temporaryScheduleChangeCandidate.requestedDate
+                ? temporaryScheduleChangeCandidate.sourceDate
+                : temporaryScheduleChangeCandidate.requestedDate;
+            let cancelDisabledReason: string | null = null;
+
+            if (firstAffectedDate <= now) {
+                cancelDisabledReason = "La primera clase involucrada ya comenzó y el cambio no se puede cancelar.";
+            } else if (temporaryScheduleChangeCandidate.sourceSchedule.capacity !== null) {
+                const [changes, sourceAssignments] = await Promise.all([
+                    getOneTimeScheduleChangesForDate(temporaryScheduleChangeCandidate.sourceDate),
+                    prisma.studentScheduleAssignment.findMany({
+                        where: {
+                            weeklyScheduleId: temporaryScheduleChangeCandidate.sourceSchedule.id,
+                            isActive: true,
+                        },
+                        select: {
+                            studentId: true,
+                        },
+                    }),
+                ]);
+                const effectiveStudentIds = getEffectiveScheduleStudentIds({
+                    scheduleId: temporaryScheduleChangeCandidate.sourceSchedule.id,
+                    fixedStudentIds: sourceAssignments.map((assignment) => assignment.studentId),
+                    changes,
+                });
+                const occupiedAfterCancellation = new Set([...effectiveStudentIds, student.id]).size;
+
+                if (occupiedAfterCancellation > temporaryScheduleChangeCandidate.sourceSchedule.capacity) {
+                    cancelDisabledReason = "Tu lugar en el horario habitual ya fue ocupado. Comunicate con administración.";
+                }
+            }
+
+            return {
+                ...temporaryScheduleChangeCandidate,
+                canCancel: cancelDisabledReason === null,
+                cancelDisabledReason,
+            };
+        })()
+        : null;
 
     return (
         <main className="perfil-page">
             <LogoutIconButton />
             <StudentProfileContent
                 student={sanitizedStudent}
+                temporaryScheduleChange={temporaryScheduleChange}
                 actions={(
                     <div className="student-profile-actions">
                         <StudentProfileEditor
@@ -168,6 +269,8 @@ export default async function PerfilPage({ searchParams }: Props) {
                 )}
                 scheduleActions={(
                     <StudentScheduleChangeRequest
+                        activeOneTimeChange={temporaryScheduleChange}
+                        referenceDate={now}
                         student={sanitizedStudent}
                         weeklySchedules={weeklySchedules}
                     />
@@ -178,10 +281,12 @@ export default async function PerfilPage({ searchParams }: Props) {
                     />
                 )}
                 showInternalNotes={false}
+                allowPaymentReport
                 attendanceBaseHref="/perfil"
                 selectedAttendanceMonth={attendancePeriod.selectedMonth}
                 selectedAttendanceYear={attendancePeriod.selectedYear}
             />
+            {communityResponse.ok && <CommunityFeed data={communityResponse.data} embedded />}
         </main>
     );
 }

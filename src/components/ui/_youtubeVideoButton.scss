@@ -1,0 +1,71 @@
+@use '@/styles/variables' as *;
+
+.youtube-video-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .45rem;
+    min-height: 36px;
+    margin-top: .75rem;
+    padding: .55rem .85rem;
+    border: 1px solid rgba($secondary-color, .7);
+    border-radius: 999px;
+    background: rgba($secondary-color, .12);
+    color: $secondary-color;
+    cursor: pointer;
+    font: inherit;
+    font-size: $font-size-small;
+    font-weight: $font-weight-semibold;
+    transition: transform .2s ease, background .2s ease, color .2s ease;
+
+    svg { font-size: .7rem; }
+    &:hover { transform: translateY(-1px); background: $secondary-color; color: $color-text; }
+    &:focus-visible { outline: 3px solid rgba($secondary-color, .35); outline-offset: 2px; }
+}
+
+.youtube-video-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 5000;
+    display: grid;
+    place-items: center;
+    padding: 1.25rem;
+    background: rgba(3, 10, 20, .86);
+    backdrop-filter: blur(8px);
+}
+
+.youtube-video-dialog {
+    width: min(100%, 960px);
+    overflow: hidden;
+    border: 1px solid rgba($secondary-color, .35);
+    border-radius: 14px;
+    background: $quinary-color;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, .55);
+}
+
+.youtube-video-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .9rem 1rem;
+
+    h3 { min-width: 0; overflow: hidden; color: $color-text; font-size: $font-size-medium; text-overflow: ellipsis; white-space: nowrap; }
+    button {
+        display: grid; place-items: center; flex: 0 0 auto; width: 38px; height: 38px; border: 0; border-radius: 50%;
+        background: rgba($color-text, .08); color: $color-text; cursor: pointer; font-size: 1.4rem;
+    }
+}
+
+.youtube-video-frame {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    background: #000;
+
+    iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+}
+
+@media (max-width: 600px) {
+    .youtube-video-modal { padding: .65rem; }
+    .youtube-video-header { padding: .7rem .8rem; }
+}

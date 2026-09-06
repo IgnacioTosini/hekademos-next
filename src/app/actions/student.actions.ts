@@ -1,12 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getAppUrl } from "@/lib/app-url";
 import { getAdminActionErrorMessage, logAdminActionError, requireAdminSession } from "@/lib/admin-session";
 import { buildEmailMessage, sendEmail } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
 import { writeAuditLog } from "@/lib/audit-log";
 import { isDeliverableEmail, isValidBirthDate, isValidOptionalPhone } from "@/lib/form-validation";
+import { getClassCategoryLabel } from "@/utils/class-category";
 import type {
     AdminStudentProfile,
     CreateStudentUserInput,
@@ -68,15 +70,7 @@ const getCurrentActiveStudentMembership = async (studentId: string) => (
     })
 );
 
-const getAppBaseUrl = () => (
-    process.env.NEXT_PUBLIC_APP_URL
-    || process.env.AUTH_BASE_URL
-    || "http://localhost:3000"
-);
-
-const getStudentLoginUrl = () => (
-    `${getAppBaseUrl()}/auth/login?next=/perfil`
-);
+const getStudentLoginUrl = () => getAppUrl("/auth/login?next=/perfil");
 
 const sendStudentWelcomeEmail = async ({
     email,
@@ -181,6 +175,7 @@ const getStudentActionErrorMessage = (error: unknown, fallback: string) => {
     if (error.message === "La cantidad de turnos supera lo permitido por el plan.") return error.message;
     if (error.message === "Uno de los turnos seleccionados ya no existe.") return error.message;
     if (error.message === "Uno de los turnos seleccionados no tiene cupos disponibles.") return error.message;
+    if (error.message === "Uno de los turnos seleccionados no corresponde a la categoria del plan.") return error.message;
     if (error.message === "El alumno no puede elegir dos turnos el mismo dia.") return error.message;
     if (error.message === "Revisa los telefonos ingresados.") return error.message;
     if (error.message === "La fecha de nacimiento no parece valida.") return error.message;
@@ -230,6 +225,12 @@ const validateNewStudentSchedules = async (planId?: string | null, scheduleIds?:
 
     if (selectedSchedules.length !== uniqueScheduleIds.length) {
         throw new Error("Uno de los turnos seleccionados ya no existe.");
+    }
+
+    if (selectedSchedules.some((schedule) => (
+        getClassCategoryLabel(schedule.classCategory) !== getClassCategoryLabel(plan.classCategory)
+    ))) {
+        throw new Error("Uno de los turnos seleccionados no corresponde a la categoria del plan.");
     }
 
     const selectedDays = selectedSchedules.map((schedule) => schedule.dayOfWeek);
@@ -294,6 +295,12 @@ const syncStudentSchedules = async (
 
     if (selectedSchedules.length !== uniqueScheduleIds.length) {
         throw new Error("Uno de los turnos seleccionados ya no existe.");
+    }
+
+    if (selectedSchedules.some((schedule) => (
+        getClassCategoryLabel(schedule.classCategory) !== getClassCategoryLabel(activeMembership.plan.classCategory)
+    ))) {
+        throw new Error("Uno de los turnos seleccionados no corresponde a la categoria del plan.");
     }
 
     const selectedDays = selectedSchedules.map((schedule) => schedule.dayOfWeek);
@@ -619,8 +626,10 @@ export const updateStudentUser = async (
         await requireAdminSession();
 
         validateStudentProfileFields(input);
+        await validateNewStudentSchedules(input.planId, input.scheduleIds);
         const name = input.name ?? ([input.firstName, input.lastName].filter(Boolean).join(" ") || undefined);
         const passwordHash = input.password ? await hashPassword(input.password) : input.passwordHash;
+        const passwordIsChanging = Boolean(input.password) || input.passwordHash !== undefined;
 
         const user = await prisma.user.update({
             where: {
@@ -631,6 +640,7 @@ export const updateStudentUser = async (
                 name,
                 phone: input.phone,
                 passwordHash,
+                sessionVersion: passwordIsChanging ? { increment: 1 } : undefined,
                 emailVerified: toDate(input.emailVerified),
                 role: "STUDENT",
                 status: input.status,

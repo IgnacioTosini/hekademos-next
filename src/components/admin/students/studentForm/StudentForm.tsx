@@ -5,11 +5,12 @@ import { FormEvent, useMemo, useState, useTransition } from 'react';
 import { toast } from 'react-toastify';
 import { createStudentUser, updateStudentUser } from '@/app/actions/student.actions';
 import { isValidBirthDate, isValidOptionalPhone } from '@/lib/form-validation';
-import type { WeeklyClassScheduleWithRelations } from '@/types/schema/classes';
+import type { WeeklyClassScheduleSummary } from '@/types/schema/classes';
 import type { MembershipPlan } from '@/types/schema/memberships';
 import type { UserStatus, UserWithRelations } from '@/types/schema/users';
+import { getClassCategoryLabel } from '@/utils/class-category';
 import { centsToPesosInput, parsePesosToCents } from '@/utils/format';
-import { addMinutesToTime, dayOrder, uppercaseDayLabels } from '@/utils/schedule';
+import { dayOrder, getScheduleTimeLabel, uppercaseDayLabels } from '@/utils/schedule';
 import { saveWithResolvedUserImage, UserImageField, type UserImageValue } from '../../users/userImageField/UserImageField';
 import '../../users/userForm/_userForm.scss';
 
@@ -17,7 +18,7 @@ type Props = {
     student: UserWithRelations | null;
     coaches: UserWithRelations[];
     membershipPlans: MembershipPlan[];
-    weeklySchedules: WeeklyClassScheduleWithRelations[];
+    weeklySchedules: WeeklyClassScheduleSummary[];
     onClose: () => void;
 };
 
@@ -65,14 +66,13 @@ const getInitialState = (student: UserWithRelations | null, membershipPlans: Mem
     };
 };
 
-const getScheduleLabel = (schedule: WeeklyClassScheduleWithRelations) => {
-    const endsAt = addMinutesToTime(schedule.startTime, schedule.durationMinutes);
-    const coachName = schedule.coach?.user?.name || schedule.coach?.user?.email;
+const getScheduleLabel = (schedule: WeeklyClassScheduleSummary) => {
+    const coachName = schedule.coachName;
 
-    return `${schedule.startTime}${endsAt ? ` a ${endsAt}` : ''}${coachName ? ` - ${coachName}` : ''}`;
+    return `${getClassCategoryLabel(schedule.classCategory)} · ${getScheduleTimeLabel(schedule)}${coachName ? ` - ${coachName}` : ''}`;
 };
 
-const getScheduleCapacityLabel = (schedule: WeeklyClassScheduleWithRelations, isSelected: boolean) => {
+const getScheduleCapacityLabel = (schedule: WeeklyClassScheduleSummary, isSelected: boolean) => {
     if (schedule.capacity === null) return 'Sin cupo definido';
 
     const availableSpots = schedule.availableSpots ?? Math.max(schedule.capacity - (schedule.occupiedSpots ?? 0), 0);
@@ -84,7 +84,7 @@ const getScheduleCapacityLabel = (schedule: WeeklyClassScheduleWithRelations, is
 
 const hasRepeatedDay = (
     scheduleIds: string[],
-    schedules: WeeklyClassScheduleWithRelations[]
+    schedules: WeeklyClassScheduleSummary[]
 ) => {
     const selectedDays = scheduleIds
         .map((scheduleId) => schedules.find((schedule) => schedule.id === scheduleId)?.dayOfWeek)
@@ -105,8 +105,10 @@ export const StudentForm = ({ student, coaches, membershipPlans, weeklySchedules
     const availableWeeklySchedules = useMemo(() => (
         weeklySchedules.filter((schedule) => (
             !form.coachId || !schedule.coachId || schedule.coachId === form.coachId
+        ) && (
+            !selectedPlan || getClassCategoryLabel(schedule.classCategory) === getClassCategoryLabel(selectedPlan.classCategory)
         ))
-    ), [form.coachId, weeklySchedules]);
+    ), [form.coachId, selectedPlan, weeklySchedules]);
     const schedulesByDay = useMemo(() => (
         dayOrder
             .map((dayOfWeek) => ({
@@ -129,7 +131,14 @@ export const StudentForm = ({ student, coaches, membershipPlans, weeklySchedules
         setForm((current) => ({
             ...current,
             planId,
-            scheduleIds: plan ? current.scheduleIds.slice(0, plan.trainingDaysPerWeek) : [],
+            scheduleIds: plan
+                ? current.scheduleIds
+                    .filter((scheduleId) => weeklySchedules.some((schedule) => (
+                        schedule.id === scheduleId
+                        && getClassCategoryLabel(schedule.classCategory) === getClassCategoryLabel(plan.classCategory)
+                    )))
+                    .slice(0, plan.trainingDaysPerWeek)
+                : [],
             monthlyPricePesos: plan ? centsToPesosInput(plan.priceCents) : '',
         }));
     };
@@ -430,7 +439,7 @@ export const StudentForm = ({ student, coaches, membershipPlans, weeklySchedules
                         <option value="">Sin membresia</option>
                         {membershipPlans.map((plan) => (
                             <option key={plan.id} value={plan.id}>
-                                {plan.name} - {plan.trainingDaysPerWeek} dias/semana
+                                {plan.name} - {getClassCategoryLabel(plan.classCategory)} - {plan.trainingDaysPerWeek} dias/semana
                             </option>
                         ))}
                     </select>
@@ -503,6 +512,12 @@ export const StudentForm = ({ student, coaches, membershipPlans, weeklySchedules
 
                 {!form.planId && (
                     <p className="schedule-helper">Elegir una membresia para asignar turnos.</p>
+                )}
+
+                {selectedPlan && (
+                    <p className="schedule-helper">
+                        Mostrando solamente clases de {getClassCategoryLabel(selectedPlan.classCategory).toLowerCase()}.
+                    </p>
                 )}
 
                 {form.planId && availableWeeklySchedules.length === 0 && (

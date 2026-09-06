@@ -71,6 +71,15 @@
         font-weight: $font-weight-semibold;
     }
 
+    .login-form-message {
+        padding: .75rem .85rem;
+        border-radius: 8px;
+        background: rgba($color-success, .12);
+        color: $color-success;
+        font-size: $font-size-small;
+        font-weight: $font-weight-semibold;
+    }
+
     button {
         min-height: 44px;
         margin-top: .25rem;

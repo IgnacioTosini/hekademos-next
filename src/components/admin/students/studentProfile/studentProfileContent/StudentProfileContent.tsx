@@ -2,11 +2,14 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { FaArrowLeft, FaExternalLinkAlt } from "react-icons/fa";
-import { EmptyState } from "@/components/ui";
+import { EmptyState } from "@/components/ui/emptyState/EmptyState";
+import { RefreshAt } from "@/components/ui/RefreshAt";
 import type { AttendanceStatus, WeeklyClassSchedule } from "@/types/schema/classes";
+import type { PrismaDate } from "@/types/schema/common";
 import type { StudentMembershipWithRelations } from "@/types/schema/memberships";
 import type { Payment, PaymentStatus } from "@/types/schema/payments";
 import type { AdminStudentProfile } from "@/types/schema/users";
+import { getClassCategoryLabel } from "@/utils/class-category";
 import { formatCurrency, formatDate } from "@/utils/format";
 import { getActiveMembership, getMembershipAmountCents } from "@/utils/membership";
 import {
@@ -16,9 +19,10 @@ import {
     getPaymentWindowLabel,
     shouldApplyLateSurcharge,
 } from "@/utils/payment";
-import { addMinutesToTime, dayLabels, dayOrderIndex } from "@/utils/schedule";
+import { dayOrderIndex, getScheduleLabel } from "@/utils/schedule";
 import { getInitials } from "@/utils/strings";
 import { getStudentName } from "@/utils/student";
+import { CoachPaymentCard } from "./CoachPaymentCard";
 import "./_studentProfileContent.scss";
 
 type Props = {
@@ -28,12 +32,25 @@ type Props = {
     backLabel?: string;
     paymentsHref?: string;
     showInternalNotes?: boolean;
+    allowPaymentReport?: boolean;
     attendanceBaseHref?: string;
     selectedAttendanceMonth?: number;
     selectedAttendanceYear?: number;
     scheduleActions?: ReactNode;
+    temporaryScheduleChange?: {
+        id: string;
+        sourceScheduleId: string;
+        requestedDate: PrismaDate;
+        expiresAt: PrismaDate;
+        weeklySchedule: ScheduleDisplay;
+    } | null;
     routineActions?: ReactNode;
 };
+
+type ScheduleDisplay = Pick<
+    WeeklyClassSchedule,
+    "id" | "dayOfWeek" | "classCategory" | "startTime" | "durationMinutes" | "capacity"
+>;
 
 export type StudentProfilePaymentStatus = PaymentStatus | "NO_MEMBERSHIP";
 
@@ -87,12 +104,6 @@ const getYearOptions = (selectedYear: number) => {
     years.add(selectedYear);
 
     return Array.from(years).sort((a, b) => b - a);
-};
-
-const getScheduleLabel = (schedule: WeeklyClassSchedule) => {
-    const endsAt = addMinutesToTime(schedule.startTime, schedule.durationMinutes);
-
-    return `${dayLabels[schedule.dayOfWeek]} ${schedule.startTime}${endsAt ? ` a ${endsAt}` : ""}`;
 };
 
 const getAttendanceDate = (value: Date | string | null | undefined) => {
@@ -149,10 +160,12 @@ export const StudentProfileContent = ({
     backLabel = "Volver",
     paymentsHref,
     showInternalNotes = true,
+    allowPaymentReport = false,
     attendanceBaseHref,
     selectedAttendanceMonth,
     selectedAttendanceYear,
     scheduleActions,
+    temporaryScheduleChange,
     routineActions,
 }: Props) => {
     const today = new Date();
@@ -165,6 +178,10 @@ export const StudentProfileContent = ({
     const attendanceYearOptions = getYearOptions(attendanceYear);
     const studentName = getStudentName(student);
     const paymentSummary = getStudentProfilePaymentSummary(student, today);
+    const paymentPeriodLabel = new Intl.DateTimeFormat("es-AR", {
+        month: "long",
+        year: "numeric",
+    }).format(today);
     const activeMembership = paymentSummary.activeMembership;
     const membershipAmount = getMembershipAmountCents(activeMembership);
     const paymentHistory = student.payments ?? [];
@@ -178,17 +195,34 @@ export const StudentProfileContent = ({
     }), {} as Record<AttendanceStatus, number>);
     const coachName = student.coach?.user?.name || student.coach?.user?.email || "Sin coach asignado";
     const activeSchedules = (student.schedules ?? [])
-        .flatMap((scheduleAssignment) => {
+        .flatMap<{
+            id: string;
+            isTemporary: boolean;
+            requestedDate: PrismaDate | null;
+            weeklySchedule: ScheduleDisplay;
+        }>((scheduleAssignment) => {
             if (!scheduleAssignment.isActive || !scheduleAssignment.weeklySchedule) return [];
+            if (scheduleAssignment.weeklyScheduleId === temporaryScheduleChange?.sourceScheduleId) return [];
 
             return [{
                 id: scheduleAssignment.id,
+                isTemporary: false,
+                requestedDate: null,
                 weeklySchedule: scheduleAssignment.weeklySchedule,
             }];
         })
+        .concat(temporaryScheduleChange ? [{
+            id: `temporary-${temporaryScheduleChange.id}`,
+            isTemporary: true,
+            requestedDate: temporaryScheduleChange.requestedDate,
+            weeklySchedule: temporaryScheduleChange.weeklySchedule,
+        }] : [])
         .sort((first, second) => (
             dayOrderIndex[first.weeklySchedule.dayOfWeek] - dayOrderIndex[second.weeklySchedule.dayOfWeek]
             || first.weeklySchedule.startTime.localeCompare(second.weeklySchedule.startTime)
+            || getClassCategoryLabel(first.weeklySchedule.classCategory).localeCompare(
+                getClassCategoryLabel(second.weeklySchedule.classCategory)
+            )
         ));
 
     return (
@@ -226,7 +260,9 @@ export const StudentProfileContent = ({
                 <article>
                     <span>Membresia</span>
                     <strong>{activeMembership?.plan?.name ?? "Sin plan"}</strong>
-                    <p>{activeMembership?.plan ? `${activeMembership.plan.trainingDaysPerWeek} dias/semana` : "Sin membresia activa"}</p>
+                    <p>{activeMembership?.plan
+                        ? `${getClassCategoryLabel(activeMembership.plan.classCategory)} · ${activeMembership.plan.trainingDaysPerWeek} dias/semana`
+                        : "Sin membresia activa"}</p>
                 </article>
 
                 <article>
@@ -280,6 +316,10 @@ export const StudentProfileContent = ({
                                 <dd>{activeMembership.plan.name}</dd>
                             </div>
                             <div>
+                                <dt>Categoría</dt>
+                                <dd>{getClassCategoryLabel(activeMembership.plan.classCategory)}</dd>
+                            </div>
+                            <div>
                                 <dt>Dias por semana</dt>
                                 <dd>{activeMembership.plan.trainingDaysPerWeek}</dd>
                             </div>
@@ -308,6 +348,7 @@ export const StudentProfileContent = ({
                 </article>
 
                 <article className="student-profile-card">
+                    {temporaryScheduleChange && <RefreshAt value={temporaryScheduleChange.expiresAt} />}
                     <div className="student-profile-card-header student-profile-card-header-compact">
                         <h2>Turnos elegidos</h2>
                         {scheduleActions}
@@ -316,12 +357,19 @@ export const StudentProfileContent = ({
                         <div className="student-profile-schedules">
                             {activeSchedules.map((scheduleAssignment) => (
                                 <div key={scheduleAssignment.id} className="student-profile-schedule">
-                                    <strong>{getScheduleLabel(scheduleAssignment.weeklySchedule)}</strong>
-                                    <span>
-                                        {scheduleAssignment.weeklySchedule.capacity
+                                    <div>
+                                        <strong>{getScheduleLabel(scheduleAssignment.weeklySchedule)}</strong>
+                                        {scheduleAssignment.isTemporary && (
+                                            <small className="student-profile-schedule-temporary">
+                                                Solo por esta clase · {formatDate(scheduleAssignment.requestedDate)}
+                                            </small>
+                                        )}
+                                    </div>
+                                    <span>{scheduleAssignment.isTemporary
+                                        ? "Después vuelve tu turno habitual"
+                                        : scheduleAssignment.weeklySchedule.capacity
                                             ? `Cupo ${scheduleAssignment.weeklySchedule.capacity}`
-                                            : "Sin cupo definido"}
-                                    </span>
+                                            : "Sin cupo definido"}</span>
                                 </div>
                             ))}
                         </div>
@@ -334,6 +382,19 @@ export const StudentProfileContent = ({
                         />
                     )}
                 </article>
+
+                <CoachPaymentCard
+                    coachName={coachName}
+                    paymentAlias={student.coach?.paymentAlias ?? null}
+                    paymentAccountHolder={student.coach?.paymentAccountHolder ?? null}
+                    coachPhone={student.coach?.user?.phone ?? null}
+                    studentName={studentName}
+                    amountLabel={formatCurrency(paymentSummary.visibleAmount, paymentSummary.currency)}
+                    paymentPeriodLabel={paymentPeriodLabel}
+                    hasActiveMembership={Boolean(activeMembership)}
+                    isCurrentPaymentPaid={paymentSummary.status === "PAID"}
+                    allowPaymentReport={allowPaymentReport}
+                />
 
                 <article className="student-profile-card student-profile-card-wide">
                     <div className="student-profile-card-header">

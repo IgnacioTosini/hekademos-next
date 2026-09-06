@@ -1,12 +1,6 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { gsap, ScrollTrigger } from '../animations/gsapConfig'
-import {
-    createScrollAnimations,
-    createContactAnimations,
-    createPhilosophyAnimations
-} from '../animations/scrollAnimations'
 
 export const useScrollAnimations = () => {
     const containerRef = useRef<HTMLDivElement>(null)
@@ -19,64 +13,76 @@ export const useScrollAnimations = () => {
             return
         }
 
-        const ctx = gsap.context(() => {
-            // Animaciones básicas
+        let disposed = false
+        let disposeAnimations: (() => void) | undefined
+
+        const initializeAnimations = async () => {
+            const [gsapModule, animationModule] = await Promise.all([
+                import('../animations/gsapConfig'),
+                import('../animations/scrollAnimations'),
+            ])
+
+            if (disposed) return
+
+            const { gsap, ScrollTrigger } = gsapModule
             const {
-                animateSections,
-                animateElements,
-                animateStaggeredCards
-            } = createScrollAnimations()
+                createScrollAnimations,
+                createContactAnimations,
+                createPhilosophyAnimations,
+            } = animationModule
+            const ctx = gsap.context(() => {
+                const { animateSections, animateElements, animateStaggeredCards } = createScrollAnimations()
+                const {
+                    animateTitleReveal,
+                    animateFadeUp,
+                    animateSplitContainer,
+                    animateQuoteReveal,
+                    animateListItems,
+                } = createPhilosophyAnimations()
+                const {
+                    animateContactSplit,
+                    animateContactElements,
+                    animateContactCards,
+                    animateContactIcons,
+                    animateSocialButtons,
+                    animateClockTick,
+                    animateScheduleItems,
+                } = createContactAnimations()
 
-            const {
-                animateTitleReveal,
-                animateFadeUp,
-                animateSplitContainer,
-                animateQuoteReveal,
-                animateListItems
-            } = createPhilosophyAnimations()
+                animateSections()
+                animateElements()
+                animateStaggeredCards()
+                animateTitleReveal()
+                animateFadeUp()
+                animateSplitContainer()
+                animateQuoteReveal()
+                animateListItems()
+                animateContactSplit()
+                animateContactElements()
+                animateContactCards()
+                animateContactIcons()
+                animateSocialButtons()
+                animateClockTick()
+                animateScheduleItems()
+            }, containerRef)
+            const refreshScrollTriggers = () => ScrollTrigger.refresh()
+            const refreshFrame = requestAnimationFrame(refreshScrollTriggers)
 
-            // Animaciones de Contact
-            const {
-                animateContactSplit,
-                animateContactElements,
-                animateContactCards,
-                animateContactIcons,
-                animateSocialButtons,
-                animateClockTick,
-                animateScheduleItems
-            } = createContactAnimations()
+            window.addEventListener('load', refreshScrollTriggers)
+            disposeAnimations = () => {
+                cancelAnimationFrame(refreshFrame)
+                window.removeEventListener('load', refreshScrollTriggers)
+                ctx.revert()
+            }
+        }
 
-            animateSections()
-            animateElements()
-            animateStaggeredCards()
-
-            // Ejecutar animaciones de Philosophy
-            animateTitleReveal()
-            animateFadeUp()
-            animateSplitContainer()
-            animateQuoteReveal()
-            animateListItems()
-
-            // Ejecutar animaciones de Contact
-            animateContactSplit()
-            animateContactElements()
-            animateContactCards()
-            animateContactIcons()
-            animateSocialButtons()
-            animateClockTick()
-            animateScheduleItems()
-
-        }, containerRef)
-
-        const refreshScrollTriggers = () => ScrollTrigger.refresh()
-        const refreshFrame = requestAnimationFrame(refreshScrollTriggers)
-
-        window.addEventListener('load', refreshScrollTriggers)
+        void initializeAnimations().catch((error) => {
+            if (!disposed) console.error('No se pudieron inicializar las animaciones:', error)
+        })
 
         return () => {
-            cancelAnimationFrame(refreshFrame)
-            window.removeEventListener('load', refreshScrollTriggers)
-            ctx.revert()
+            disposed = true
+            disposeAnimations?.()
         }
     }, [])
 

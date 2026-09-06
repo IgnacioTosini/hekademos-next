@@ -1,0 +1,4 @@
+@use '@/styles/variables' as *;
+
+.admin-community-page { width: 100%; min-width: 0; min-height: 100dvh; padding: 2.5rem; background: $primary-color; }
+@media (max-width: 768px) { .admin-community-page { padding: 5rem 1rem 2rem; } }

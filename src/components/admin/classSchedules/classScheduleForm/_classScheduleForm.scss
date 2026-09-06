@@ -51,6 +51,12 @@
             color: $color-text;
         }
 
+        small {
+            color: $color-text-secondary;
+            font-size: $font-size-small;
+            line-height: 1.4;
+        }
+
         textarea {
             min-height: 96px;
             resize: vertical;

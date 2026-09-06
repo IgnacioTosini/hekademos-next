@@ -63,6 +63,9 @@ export const UserSubmenu = ({ user }: Props) => {
                                 {user.name ? `Perfil (${user.name})` : 'Mi perfil'}
                             </Link>
                         </li>
+                        {(user.role === 'STUDENT' || user.role === 'COACH') && (
+                            <li role="menuitem"><Link href="/comunidad" onClick={() => setOpen(false)}>Comunidad</Link></li>
+                        )}
                         <li role="menuitem">
                             <button onClick={handleLogout} disabled={isPending}>
                                 {isPending ? 'Saliendo...' : 'Cerrar sesión'}

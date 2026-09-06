@@ -1,4 +1,4 @@
-import type { WeeklyClassScheduleWithRelations } from "@/types/schema/classes";
+import type { WeeklyClassScheduleSummary } from "@/types/schema/classes";
 import type { MembershipPlan } from "@/types/schema/memberships";
 import type { AdminStudentProfile, UserWithRelations } from "@/types/schema/users";
 import {
@@ -13,7 +13,7 @@ type Props = {
     studentUser: UserWithRelations;
     coaches: UserWithRelations[];
     membershipPlans: MembershipPlan[];
-    weeklySchedules: WeeklyClassScheduleWithRelations[];
+    weeklySchedules: WeeklyClassScheduleSummary[];
     selectedAttendanceMonth?: number;
     selectedAttendanceYear?: number;
 };

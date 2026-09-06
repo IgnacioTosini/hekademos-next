@@ -1,22 +1,27 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { FaRegTrashAlt } from 'react-icons/fa';
 import { GoPencil } from 'react-icons/go';
 import { toast } from 'react-toastify';
 import { deleteMembershipPlan } from '@/app/actions/membership.actions';
-import { EmptyState } from '@/components/ui';
+import { EmptyState } from '@/components/ui/emptyState/EmptyState';
+import type { ClassCategoryOption } from '@/types/schema/common';
 import type { MembershipPlanWithRelations } from '@/types/schema/memberships';
+import { getClassCategoryLabel } from '@/utils/class-category';
 import { formatCurrency } from '@/utils/format';
-import { MembershipPlanModal } from '../membershipPlanModal/MembershipPlanModal';
 import './_membershipPlansSection.scss';
+
+const MembershipPlanModal = dynamic(() => import('../membershipPlanModal/MembershipPlanModal').then((module) => module.MembershipPlanModal));
 
 type Props = {
     plans: MembershipPlanWithRelations[];
+    categories: ClassCategoryOption[];
 };
 
-export const MembershipPlansSection = ({ plans }: Props) => {
+export const MembershipPlansSection = ({ plans, categories }: Props) => {
     const router = useRouter();
     const [query, setQuery] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -30,15 +35,17 @@ export const MembershipPlansSection = ({ plans }: Props) => {
         return plans.filter((plan) => {
             const values = [
                 plan.name,
+                getClassCategoryLabel(plan.classCategory),
                 plan.currency,
                 `${plan.trainingDaysPerWeek}`,
                 plan.isActive ? 'activo' : 'inactivo',
                 plan.isRecommended ? 'recomendado' : '',
+                categories.find((category) => category.name === plan.classCategory)?.isSpecialActivity ? 'evento especial' : '',
             ];
 
             return values.some((value) => value.toLowerCase().includes(search));
         });
-    }, [plans, query]);
+    }, [categories, plans, query]);
 
     const openCreate = () => {
         setSelectedPlan(null);
@@ -82,7 +89,7 @@ export const MembershipPlansSection = ({ plans }: Props) => {
                 <button type="button" onClick={openCreate}>+ Nuevo plan</button>
             </div>
 
-            <MembershipPlanModal isOpen={isModalOpen} plan={selectedPlan} onClose={closeModal} />
+            {isModalOpen && <MembershipPlanModal isOpen plan={selectedPlan} categories={categories} onClose={closeModal} />}
 
             <div className="membership-plans-table-wrapper">
                 <div className="membership-plans-toolbar">
@@ -98,6 +105,7 @@ export const MembershipPlansSection = ({ plans }: Props) => {
                     <thead>
                         <tr>
                             <th>Plan</th>
+                            <th>Categoría</th>
                             <th>Dias</th>
                             <th>Precio</th>
                             <th>Alumnos</th>
@@ -113,6 +121,14 @@ export const MembershipPlansSection = ({ plans }: Props) => {
                                     <div className="membership-plan-name">
                                         <strong>{plan.name}</strong>
                                         {plan.isRecommended && <span>Recomendado</span>}
+                                    </div>
+                                </td>
+                                <td data-label="Categoría">
+                                    <div className="membership-plan-category">
+                                        <span>{getClassCategoryLabel(plan.classCategory)}</span>
+                                        {categories.find((category) => category.name === plan.classCategory)?.isSpecialActivity && (
+                                            <em>Evento</em>
+                                        )}
                                     </div>
                                 </td>
                                 <td data-label="Dias">{plan.trainingDaysPerWeek} por semana</td>

@@ -1,5 +1,5 @@
 import { getAuditLogs } from "@/app/actions/audit.actions";
-import { AuditSection } from "@/components/admin/audit";
+import { AuditSection } from "@/components/admin/audit/auditSection/AuditSection";
 import type { Metadata } from "next";
 import "./_auditoriaPage.scss";
 

@@ -1,0 +1,87 @@
+@use '@/styles/variables' as *;
+
+.admin-community-section { display: flex; flex-direction: column; gap: 1.5rem; width: 100%; max-width: 1180px; margin: 0 auto; color: $color-text; }
+.admin-community-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;
+    h1 { font-family: $font-family-display; font-size: $font-size-xxlarge; line-height: 1.1; }
+    p { max-width: 720px; margin-top: .45rem; color: $color-text-secondary; line-height: 1.5; }
+    > button { display: inline-flex; align-items: center; gap: .55rem; min-height: 44px; padding: .75rem 1rem; border: 0; border-radius: 8px; background: $secondary-color; color: $color-text; cursor: pointer; font-weight: $font-weight-semibold; white-space: nowrap; }
+}
+.admin-community-error { padding: 1rem; border: 1px solid rgba($color-error, .3); border-radius: 8px; background: rgba($color-error, .1); }
+.admin-community-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.admin-community-card { display: flex; flex-direction: column; min-width: 0; padding: 1.15rem; border: 1px solid rgba($secondary-color, .2); border-radius: 10px; background: rgba($tertiary-color, .23);
+    h2 { margin-top: .85rem; font-size: $font-size-large; line-height: 1.25; }
+    > .youtube-video-trigger { align-self: flex-start; }
+}
+.admin-community-card-header, .admin-community-badges, .admin-community-actions, .admin-community-meta { display: flex; align-items: center; gap: .55rem; }
+.admin-community-card-header { justify-content: space-between; }
+.admin-community-badges span { padding: .25rem .55rem; border-radius: 999px; background: rgba($secondary-color, .14); color: $secondary-color; font-size: $font-size-small; font-weight: $font-weight-semibold;
+    &.published { background: rgba($color-success, .13); color: $color-success; }
+    &.draft { background: rgba($color-text-secondary, .14); color: $color-text-secondary; }
+}
+.admin-community-actions button, .admin-community-comment-actions button { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid rgba($secondary-color, .2); border-radius: 8px; background: transparent; color: $color-text-secondary; cursor: pointer;
+    &:hover { border-color: $secondary-color; color: $secondary-color; }
+    &:disabled { opacity: .55; cursor: wait; }
+}
+.admin-community-content { margin-top: .7rem; color: $color-text-secondary; line-height: 1.55; white-space: pre-wrap; }
+.admin-community-author { margin-top: .3rem; color: $secondary-color; font-size: $font-size-small; font-weight: $font-weight-semibold; }
+.admin-community-meta { justify-content: space-between; margin-top: 1rem; padding-top: .85rem; border-top: 1px solid rgba($secondary-color, .13); color: $color-text-secondary; font-size: $font-size-small;
+    span { display: inline-flex; align-items: center; gap: .4rem; }
+}
+.admin-community-comments { margin-top: .85rem; border-top: 1px solid rgba($secondary-color, .13);
+    summary { padding-top: .85rem; color: $secondary-color; cursor: pointer; font-weight: $font-weight-semibold; }
+}
+.admin-community-comment-list { display: grid; gap: .65rem; margin-top: .8rem; }
+.admin-community-comment { display: flex; justify-content: space-between; gap: .75rem; padding: .75rem; border-radius: 8px; background: rgba($quinary-color, .62);
+    div { min-width: 0; }
+    strong, small { display: block; }
+    small { margin-top: .2rem; color: $color-text-secondary; }
+    p { margin-top: .55rem; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
+}
+.admin-community-comment-actions { display: flex; flex: 0 0 auto; gap: .4rem; }
+.admin-community-role { display: inline-block !important; margin-left: .35rem; padding: .15rem .4rem; border-radius: 999px; background: rgba($secondary-color, .13); color: $secondary-color !important; font-size: $font-size-xsmall; font-weight: $font-weight-semibold; }
+.admin-community-inline-edit { display: grid; gap: .55rem; margin-top: .6rem;
+    textarea { width: 100%; padding: .7rem; border: 1px solid rgba($secondary-color, .25); border-radius: 8px; outline: none; resize: vertical; background: $primary-color; color: $color-text; font: inherit; line-height: 1.45;
+        &:focus { border-color: $secondary-color; }
+    }
+    > div { display: flex; justify-content: flex-end; gap: .45rem; }
+    button { min-height: 36px; padding: .5rem .7rem; border: 1px solid rgba($secondary-color, .3); border-radius: 7px; background: transparent; color: $color-text; cursor: pointer; }
+    button:last-child { border-color: $secondary-color; background: $secondary-color; font-weight: $font-weight-semibold; }
+}
+.admin-community-reply-form { display: grid; gap: .75rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba($secondary-color, .15);
+    label { display: grid; gap: .35rem; color: $color-text-secondary; font-size: $font-size-small; font-weight: $font-weight-semibold; }
+    select, textarea { width: 100%; padding: .7rem .8rem; border: 1px solid rgba($secondary-color, .25); border-radius: 8px; outline: none; background: $quinary-color; color: $color-text; font: inherit; }
+    textarea { resize: vertical; line-height: 1.45; }
+    select:focus, textarea:focus { border-color: $secondary-color; box-shadow: 0 0 0 2px rgba($secondary-color, .1); }
+    > div { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+    small { color: $color-text-secondary; }
+    button { min-height: 40px; padding: .6rem .9rem; border: 0; border-radius: 8px; background: $secondary-color; color: $color-text; cursor: pointer; font-weight: $font-weight-semibold;
+        &:disabled { opacity: .6; cursor: wait; }
+    }
+}
+.admin-community-no-comments { margin-top: .75rem; color: $color-text-secondary; }
+.admin-community-modal { position: fixed; inset: 0; z-index: 3000; display: grid; place-items: center; padding: 1rem; background: rgba(3, 10, 20, .82); backdrop-filter: blur(6px); }
+.admin-community-form { display: grid; gap: 1rem; width: min(100%, 680px); max-height: calc(100dvh - 2rem); overflow-y: auto; padding: 1.35rem; border: 1px solid rgba($secondary-color, .3); border-radius: 12px; background: $primary-color; box-shadow: 0 25px 80px rgba(0,0,0,.5);
+    label { display: flex; flex-direction: column; gap: .45rem; color: $color-text-secondary; font-size: $font-size-small; font-weight: $font-weight-semibold; text-transform: uppercase; }
+    input, textarea, select { width: 100%; padding: .75rem .85rem; border: 1px solid rgba($secondary-color, .25); border-radius: 8px; outline: none; background: $quinary-color; color: $color-text; font: inherit; text-transform: none; }
+    textarea { resize: vertical; line-height: 1.5; }
+    input:focus, textarea:focus, select:focus { border-color: $secondary-color; box-shadow: 0 0 0 2px rgba($secondary-color, .12); }
+    label small { color: $color-text-secondary; font-weight: $font-weight-regular; text-transform: none; }
+}
+.admin-community-form-header { display: flex; justify-content: space-between; gap: 1rem; padding-bottom: .9rem; border-bottom: 1px solid rgba($secondary-color, .15);
+    h2 { font-family: $font-family-display; font-size: $font-size-large; }
+    p { margin-top: .3rem; color: $color-text-secondary; }
+    button { display: grid; place-items: center; flex: 0 0 auto; width: 38px; height: 38px; border: 0; border-radius: 50%; background: rgba($color-text, .08); color: $color-text; cursor: pointer; font-size: 1.25rem; }
+}
+.admin-community-checkbox { flex-direction: row !important; align-items: center; text-transform: none !important;
+    input { width: 18px; height: 18px; accent-color: $secondary-color; }
+}
+.admin-community-form-actions { display: flex; justify-content: flex-end; gap: .7rem; padding-top: .5rem;
+    button { min-height: 42px; padding: .7rem 1rem; border: 1px solid rgba($secondary-color, .3); border-radius: 8px; background: transparent; color: $color-text; cursor: pointer; }
+    button:last-child { border-color: $secondary-color; background: $secondary-color; font-weight: $font-weight-semibold; }
+    button:disabled { opacity: .6; cursor: wait; }
+}
+
+@media (max-width: 850px) {
+    .admin-community-header { flex-direction: column; }
+    .admin-community-list { grid-template-columns: 1fr; }
+}

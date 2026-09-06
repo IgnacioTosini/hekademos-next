@@ -33,6 +33,9 @@ export const seedAdmin = async (prisma: PrismaClient) => {
     update: {
       name: "Admin Hekademos",
       passwordHash,
+      sessionVersion: existingAdmin?.passwordHash !== passwordHash
+        ? { increment: 1 }
+        : undefined,
       role: "ADMIN",
       status: "ACTIVE",
     },

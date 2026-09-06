@@ -386,6 +386,257 @@
         margin-top: 1rem;
     }
 
+    .student-profile-payment-method-card {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .student-profile-payment-method-heading {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+
+        > svg {
+            flex: 0 0 auto;
+            color: $secondary-color;
+            font-size: 1.8rem;
+        }
+    }
+
+    .student-profile-payment-eyebrow {
+        display: block;
+        margin-bottom: .35rem;
+        color: $secondary-color;
+        font-size: $font-size-small;
+        font-weight: $font-weight-semibold;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+    }
+
+    .student-profile-payment-details {
+        margin-top: .8rem;
+
+        div {
+            padding: .65rem 0;
+        }
+    }
+
+    .student-profile-payment-alias {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: .6rem;
+        min-width: 0;
+
+        span {
+            overflow-wrap: anywhere;
+        }
+
+        button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: .35rem;
+            min-height: 32px;
+            padding: .35rem .55rem;
+            border: 1px solid rgba($secondary-color, .25);
+            border-radius: 7px;
+            background: rgba($secondary-color, .1);
+            color: $secondary-color;
+            cursor: pointer;
+            font-family: $font-family;
+            font-size: $font-size-small;
+            font-weight: $font-weight-semibold;
+
+            &:hover {
+                border-color: rgba($secondary-color, .52);
+                background: rgba($secondary-color, .18);
+            }
+        }
+    }
+
+    .student-profile-payment-copy-error,
+    .student-profile-payment-missing {
+        margin-top: .7rem;
+        color: $color-text-secondary;
+        font-size: $font-size-small;
+        line-height: 1.4;
+    }
+
+    .student-profile-payment-copy-error {
+        color: $color-error;
+    }
+
+    .student-profile-copy-payment-details {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .45rem;
+        width: 100%;
+        min-height: 40px;
+        margin: .85rem 0;
+        padding: .6rem .8rem;
+        border: 1px solid rgba($secondary-color, .25);
+        border-radius: 8px;
+        background: rgba($secondary-color, .1);
+        color: $color-text;
+        cursor: pointer;
+        font-family: $font-family;
+        font-size: $font-size-small;
+        font-weight: $font-weight-semibold;
+
+        &:hover:not(:disabled) {
+            border-color: rgba($secondary-color, .52);
+            background: rgba($secondary-color, .18);
+            color: $secondary-color;
+        }
+
+        &:disabled {
+            cursor: not-allowed;
+            opacity: .5;
+        }
+    }
+
+    .student-profile-mercado-pago-preview {
+        display: flex;
+        flex-direction: column;
+        gap: .55rem;
+        margin-top: auto;
+        padding-top: 1rem;
+        border-top: 1px solid rgba($secondary-color, .14);
+
+        > span {
+            width: fit-content;
+            padding: .25rem .55rem;
+            border-radius: 999px;
+            background: rgba(0, 158, 227, .14);
+            color: #40b8ec;
+            font-size: $font-size-small;
+            font-weight: $font-weight-semibold;
+        }
+
+        a,
+        button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: .5rem;
+            width: 100%;
+            min-height: 46px;
+            padding: .75rem 1rem;
+            border: 0;
+            border-radius: 8px;
+            background: #009ee3;
+            color: #fff;
+            font-family: $font-family;
+            font-size: $font-size-normal;
+            font-weight: $font-weight-semibold;
+            line-height: 1.25;
+            text-align: center;
+            text-decoration: none;
+
+            svg {
+                flex: 0 0 auto;
+                font-size: 1.2rem;
+            }
+        }
+
+        a {
+            cursor: pointer;
+            transition: filter .2s ease, transform .2s ease;
+
+            &:hover {
+                filter: brightness(1.08);
+                transform: translateY(-1px);
+            }
+        }
+
+        button {
+            cursor: not-allowed;
+            opacity: .6;
+        }
+
+        small {
+            color: $color-text-secondary;
+            font-size: $font-size-small;
+            line-height: 1.35;
+        }
+    }
+
+    .student-profile-payment-report {
+        display: flex;
+        flex-direction: column;
+        gap: .75rem;
+        margin-top: 1rem;
+        padding: 1rem;
+        border: 1px solid rgba($color-success, .24);
+        border-radius: 8px;
+        background: rgba($color-success, .07);
+
+        > div {
+            display: flex;
+            flex-direction: column;
+            gap: .3rem;
+        }
+
+        strong {
+            color: $color-text;
+            font-size: $font-size-normal;
+            font-weight: $font-weight-semibold;
+        }
+
+        small {
+            color: $color-text-secondary;
+            font-size: $font-size-small;
+            line-height: 1.4;
+        }
+
+        > a,
+        > button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: .5rem;
+            width: 100%;
+            min-height: 44px;
+            padding: .7rem .9rem;
+            border: 0;
+            border-radius: 8px;
+            background: #25d366;
+            color: #071b10;
+            font-family: $font-family;
+            font-size: $font-size-normal;
+            font-weight: $font-weight-semibold;
+            line-height: 1.25;
+            text-align: center;
+            text-decoration: none;
+
+            svg {
+                flex: 0 0 auto;
+                font-size: 1.2rem;
+            }
+        }
+
+        > a {
+            transition: filter .2s ease, transform .2s ease;
+
+            &:hover {
+                filter: brightness(1.06);
+                transform: translateY(-1px);
+            }
+        }
+
+        > button {
+            cursor: not-allowed;
+            opacity: .55;
+        }
+
+        .student-profile-payment-report-warning {
+            color: $color-error;
+        }
+    }
+
     .student-profile-schedule {
         display: flex;
         align-items: center;
@@ -402,6 +653,22 @@
             font-weight: $font-weight-semibold;
             line-height: 1.25;
             overflow-wrap: anywhere;
+        }
+
+        > div {
+            display: flex;
+            flex-direction: column;
+            gap: .35rem;
+        }
+
+        .student-profile-schedule-temporary {
+            width: fit-content;
+            padding: .25rem .5rem;
+            border-radius: 999px;
+            background: rgba($secondary-color, .16);
+            color: $secondary-color;
+            font-size: $font-size-small;
+            font-weight: $font-weight-semibold;
         }
 
         span {
@@ -561,6 +828,12 @@
 
         .student-profile-card dd {
             text-align: left;
+        }
+
+        .student-profile-payment-alias {
+            align-items: flex-start;
+            justify-content: flex-start;
+            flex-wrap: wrap;
         }
     }
 }

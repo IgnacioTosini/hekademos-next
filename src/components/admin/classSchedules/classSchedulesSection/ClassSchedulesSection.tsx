@@ -1,21 +1,26 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { FaRegTrashAlt } from 'react-icons/fa';
 import { GoPencil } from 'react-icons/go';
 import { toast } from 'react-toastify';
 import { deleteWeeklyClassSchedule } from '@/app/actions/class.actions';
-import { EmptyState } from '@/components/ui';
+import { EmptyState } from '@/components/ui/emptyState/EmptyState';
 import type { DayOfWeek, WeeklyClassScheduleWithRelations } from '@/types/schema/classes';
+import type { ClassCategoryOption } from '@/types/schema/common';
 import type { UserWithRelations } from '@/types/schema/users';
+import { getClassCategoryLabel } from '@/utils/class-category';
 import { addMinutesToTime, dayLabels, dayOrder } from '@/utils/schedule';
-import { ClassScheduleModal } from '../classScheduleModal/ClassScheduleModal';
 import './_classSchedulesSection.scss';
+
+const ClassScheduleModal = dynamic(() => import('../classScheduleModal/ClassScheduleModal').then((module) => module.ClassScheduleModal));
 
 type Props = {
     schedules: WeeklyClassScheduleWithRelations[];
     coaches: UserWithRelations[];
+    categories: ClassCategoryOption[];
 };
 
 const getCoachName = (schedule: WeeklyClassScheduleWithRelations) => (
@@ -34,10 +39,11 @@ const getCapacityLabel = (schedule: WeeklyClassScheduleWithRelations) => {
     return `${availableSpots} libres · ${occupiedSpots}/${schedule.capacity}`;
 };
 
-export const ClassSchedulesSection = ({ schedules, coaches }: Props) => {
+export const ClassSchedulesSection = ({ schedules, coaches, categories }: Props) => {
     const router = useRouter();
     const [query, setQuery] = useState('');
     const [selectedDay, setSelectedDay] = useState<'all' | DayOfWeek>('all');
+    const [selectedCategory, setSelectedCategory] = useState('all');
     const [selectedCoachId, setSelectedCoachId] = useState('all');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedSchedule, setSelectedSchedule] = useState<WeeklyClassScheduleWithRelations | null>(null);
@@ -56,12 +62,14 @@ export const ClassSchedulesSection = ({ schedules, coaches }: Props) => {
 
         return schedules.filter((schedule) => {
             if (selectedDay !== 'all' && schedule.dayOfWeek !== selectedDay) return false;
+            if (selectedCategory !== 'all' && getClassCategoryLabel(schedule.classCategory) !== selectedCategory) return false;
             if (selectedCoachId === 'unassigned' && schedule.coachId) return false;
             if (selectedCoachId !== 'all' && selectedCoachId !== 'unassigned' && schedule.coachId !== selectedCoachId) return false;
             if (!search) return true;
 
             const values = [
                 dayLabels[schedule.dayOfWeek],
+                getClassCategoryLabel(schedule.classCategory),
                 schedule.startTime,
                 getCoachName(schedule),
                 schedule.notes,
@@ -70,7 +78,7 @@ export const ClassSchedulesSection = ({ schedules, coaches }: Props) => {
 
             return values.some((value) => value?.toLowerCase().includes(search));
         });
-    }, [query, schedules, selectedCoachId, selectedDay]);
+    }, [query, schedules, selectedCategory, selectedCoachId, selectedDay]);
 
     const groupedSchedules = dayOrder
         .map((day) => ({
@@ -121,12 +129,13 @@ export const ClassSchedulesSection = ({ schedules, coaches }: Props) => {
                 <button type="button" onClick={openCreate}>+ Nuevo turno</button>
             </div>
 
-            <ClassScheduleModal
+            {isModalOpen && <ClassScheduleModal
                 isOpen={isModalOpen}
                 schedule={selectedSchedule}
                 coaches={coaches}
+                categories={categories}
                 onClose={closeModal}
-            />
+            />}
 
             <div className="class-schedules-table-wrapper">
                 <div className="class-schedules-toolbar">
@@ -138,6 +147,17 @@ export const ClassSchedulesSection = ({ schedules, coaches }: Props) => {
                         <option value="all">Todos los dias</option>
                         {dayOrder.map((day) => (
                             <option key={day} value={day}>{dayLabels[day]}</option>
+                        ))}
+                    </select>
+
+                    <select
+                        value={selectedCategory}
+                        onChange={(event) => setSelectedCategory(event.target.value)}
+                        aria-label="Filtrar por categoría"
+                    >
+                        <option value="all">Todas las categorías</option>
+                        {categories.map((category) => (
+                            <option key={category.id} value={category.name}>{category.name}</option>
                         ))}
                     </select>
 
@@ -172,6 +192,7 @@ export const ClassSchedulesSection = ({ schedules, coaches }: Props) => {
                             <thead>
                                 <tr>
                                     <th>Horario</th>
+                                    <th>Categoría</th>
                                     <th>Coach</th>
                                     <th>Cupos</th>
                                     <th>Estado</th>
@@ -190,6 +211,14 @@ export const ClassSchedulesSection = ({ schedules, coaches }: Props) => {
                                                 <div className="class-schedule-time">
                                                     <strong>{schedule.startTime}{endsAt ? ` a ${endsAt}` : ''}</strong>
                                                     <span>{schedule.durationMinutes} min</span>
+                                                </div>
+                                            </td>
+                                            <td data-label="Categoría">
+                                                <div className="class-schedule-category">
+                                                    <span>{getClassCategoryLabel(schedule.classCategory)}</span>
+                                                    {categories.find((category) => category.name === schedule.classCategory)?.isSpecialActivity && (
+                                                        <em>Evento</em>
+                                                    )}
                                                 </div>
                                             </td>
                                             <td data-label="Coach">{getCoachName(schedule)}</td>

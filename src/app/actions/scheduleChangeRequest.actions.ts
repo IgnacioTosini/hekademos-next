@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getAppUrl } from "@/lib/app-url";
 import { getCurrentAuthSession } from "@/lib/auth-session";
 import { writeAuditLog } from "@/lib/audit-log";
 import { buildEmailMessage, sendEmail } from "@/lib/email";
@@ -13,7 +14,8 @@ import type {
 } from "@/types/schema/classes";
 import type { PrismaDate } from "@/types/schema/common";
 import type { User, UserImage } from "@/types/schema/users";
-import { addMinutesToTime, dayLabels, dayOrderIndex } from "@/utils/schedule";
+import { getClassCategoryLabel } from "@/utils/class-category";
+import { dayOrderIndex, getScheduleLabel } from "@/utils/schedule";
 import { getStudentName } from "@/utils/student";
 import { adminStudentsPath, type ActionResponse } from "./_shared";
 
@@ -69,8 +71,8 @@ const requireScheduleRequestReviewer = async () => {
     const session = await getCurrentAuthSession();
 
     if (!session) throw new Error("Necesitas iniciar sesion");
-    if (session.role !== "ADMIN" && session.role !== "COACH") {
-        throw new Error("Solo admin o coaches pueden revisar solicitudes");
+    if (session.role !== "ADMIN") {
+        throw new Error("Solo administracion puede revisar solicitudes");
     }
 
     return session;
@@ -79,12 +81,13 @@ const requireScheduleRequestReviewer = async () => {
 const getScheduleRequestErrorMessage = (error: unknown, fallback: string) => {
     if (!(error instanceof Error)) return fallback;
     if (error.message === "Necesitas iniciar sesion") return error.message;
-    if (error.message === "Solo admin o coaches pueden revisar solicitudes") return error.message;
+    if (error.message === "Solo administracion puede revisar solicitudes") return error.message;
     if (error.message === "No se encontro la solicitud") return error.message;
     if (error.message === "La solicitud ya fue revisada") return error.message;
     if (error.message === "El alumno no tiene una membresia activa") return error.message;
     if (error.message === "La cantidad de turnos supera el plan del alumno") return error.message;
     if (error.message === "Uno de los turnos solicitados ya no esta disponible") return error.message;
+    if (error.message === "Uno de los turnos solicitados no corresponde a la categoria del plan") return error.message;
     if (error.message === "La solicitud tiene mas de un turno en el mismo dia") return error.message;
     if (error.message === "Uno de los turnos solicitados ya no tiene cupo") return error.message;
 
@@ -93,25 +96,9 @@ const getScheduleRequestErrorMessage = (error: unknown, fallback: string) => {
 
 const toStringArray = (value: unknown) => (Array.isArray(value) ? value.filter(Boolean).map(String) : []);
 
-const getAppBaseUrl = () => (
-    process.env.NEXT_PUBLIC_APP_URL
-    || process.env.AUTH_BASE_URL
-    || "http://localhost:3000"
-);
-
 const requestTypeLabels: Record<ScheduleChangeRequest["type"], string> = {
     ONE_TIME: "Solo por esta clase",
     PERMANENT: "Cambio permanente",
-};
-
-const getScheduleLabel = (schedule: {
-    dayOfWeek: keyof typeof dayLabels;
-    startTime: string;
-    durationMinutes: number;
-}) => {
-    const endsAt = addMinutesToTime(schedule.startTime, schedule.durationMinutes);
-
-    return `${dayLabels[schedule.dayOfWeek]} ${schedule.startTime}${endsAt ? ` a ${endsAt}` : ""}`;
 };
 
 const formatScheduleLabels = async (scheduleIds: string[]) => {
@@ -164,7 +151,7 @@ const sendScheduleChangeRequestReviewNotification = async ({
             requestTypeLabel: requestTypeLabels[request.type],
             requestedSchedulesLabel,
             reviewNotes: notes,
-            profileUrl: `${getAppBaseUrl()}${profilePath}`,
+            profileUrl: getAppUrl(profilePath),
         },
     });
 
@@ -306,7 +293,8 @@ const sortSchedules = (
     if (!first || !second) return 0;
 
     return dayOrderIndex[first.dayOfWeek] - dayOrderIndex[second.dayOfWeek]
-        || first.startTime.localeCompare(second.startTime);
+        || first.startTime.localeCompare(second.startTime)
+        || getClassCategoryLabel(first.classCategory).localeCompare(getClassCategoryLabel(second.classCategory));
 };
 
 const validateRequestedSchedulesForStudent = async (
@@ -363,6 +351,12 @@ const validateRequestedSchedulesForStudent = async (
     });
 
     if (selectedSchedules.length !== uniqueScheduleIds.length) throw new Error("Uno de los turnos solicitados ya no esta disponible");
+
+    if (selectedSchedules.some((schedule) => (
+        getClassCategoryLabel(schedule.classCategory) !== getClassCategoryLabel(activeMembership.plan.classCategory)
+    ))) {
+        throw new Error("Uno de los turnos solicitados no corresponde a la categoria del plan");
+    }
 
     const selectedDays = selectedSchedules.map((schedule) => schedule.dayOfWeek);
 

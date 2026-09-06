@@ -13,8 +13,9 @@ import {
     savePaymentDetails,
     sendPaymentReminderEmails,
 } from '@/app/actions/payment.actions';
-import { EmptyState } from '@/components/ui';
+import { EmptyState } from '@/components/ui/emptyState/EmptyState';
 import type { Payment, PaymentOverviewRow, PaymentOverviewStatus } from '@/types/schema/payments';
+import { getClassCategoryLabel } from '@/utils/class-category';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { getInitials } from '@/utils/strings';
 import { getStudentName } from '@/utils/student';
@@ -59,7 +60,7 @@ const formatPaymentPeriodEnd = (value: PaymentOverviewRow['paymentPeriodEnd']) =
 const getPlanLabel = (row: PaymentOverviewRow) => {
     if (!row.activeMembership) return 'Sin plan activo';
 
-    return `${row.activeMembership.plan.name} · ${row.activeMembership.plan.trainingDaysPerWeek} dias/semana`;
+    return `${row.activeMembership.plan.name} · ${getClassCategoryLabel(row.activeMembership.plan.classCategory)} · ${row.activeMembership.plan.trainingDaysPerWeek} dias/semana`;
 };
 
 const getPaymentDateLabel = (row: PaymentOverviewRow) => (
@@ -269,7 +270,7 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
 
     const handleSendReminders = () => {
         const confirmed = window.confirm(
-            `Se enviarán recordatorios a los alumnos pendientes de ${currentMonthLabel}. ¿Continuar?`
+            `Se enviarán recordatorios por WhatsApp (email de respaldo) a los alumnos pendientes de ${currentMonthLabel}. No se repetirán los ya enviados. ¿Continuar?`
         );
 
         if (!confirmed) return;
@@ -283,13 +284,19 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
             }
 
             const summary = [
-                result.data.sentCount > 0 ? `${result.data.sentCount} enviados` : null,
+                result.data.whatsappCount > 0 ? `${result.data.whatsappCount} por WhatsApp` : null,
+                result.data.emailCount > 0 ? `${result.data.emailCount} por email` : null,
+                result.data.duplicateCount > 0 ? `${result.data.duplicateCount} ya enviados o en proceso` : null,
                 result.data.failedCount > 0 ? `${result.data.failedCount} fallidos` : null,
                 result.data.invalidEmailCount > 0 ? `${result.data.invalidEmailCount} con email inválido` : null,
                 result.data.alreadyPaidCount > 0 ? `${result.data.alreadyPaidCount} ya pagados` : null,
                 result.data.skippedCount > 0 ? `${result.data.skippedCount} omitidos` : null,
             ].filter(Boolean).join(' · ');
 
+            if (result.data.incomplete || result.data.failedCount > 0) {
+                toast.warning(`${summary}. ${result.data.incomplete ? 'Quedaron alumnos por procesar. ' : ''}Podés reintentar sin repetir los enviados.`);
+                return;
+            }
             if (result.data.sentCount === 0 && result.data.failedCount === 0) {
                 toast.info(summary || 'No hay alumnos pendientes para enviar recordatorios');
                 return;

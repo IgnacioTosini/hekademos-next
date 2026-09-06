@@ -1,17 +1,19 @@
 'use client';
 
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { FaRegTrashAlt } from 'react-icons/fa';
 import { GoPencil } from 'react-icons/go';
 import { toast } from 'react-toastify';
 import { deleteUser } from '@/app/actions/user.actions';
-import { EmptyState } from '@/components/ui';
+import { EmptyState } from '@/components/ui/emptyState/EmptyState';
 import type { UserWithRelations } from '@/types/schema/users';
-import { CoachModal } from '../coachModal/CoachModal';
-import { CoachStudentsModal } from '../coachStudentsModal/CoachStudentsModal';
 import '../../users/usersSection/_usersSection.scss';
+
+const CoachModal = dynamic(() => import('../coachModal/CoachModal').then((module) => module.CoachModal));
+const CoachStudentsModal = dynamic(() => import('../coachStudentsModal/CoachStudentsModal').then((module) => module.CoachStudentsModal));
 
 type Props = {
     coaches: UserWithRelations[];
@@ -39,6 +41,8 @@ export const CoachesSection = ({ coaches }: Props) => {
                 coach.coach?.specialty,
                 coach.coach?.instagram,
                 coach.coach?.bio,
+                coach.coach?.paymentAlias,
+                coach.coach?.paymentAccountHolder,
             ];
 
             return values.some((value) => value?.toLowerCase().includes(search));
@@ -98,8 +102,8 @@ export const CoachesSection = ({ coaches }: Props) => {
                 <button className="users-button" type="button" onClick={openCreate}>+ Nuevo coach</button>
             </div>
 
-            <CoachModal isOpen={isModalOpen} coach={selectedCoach} onClose={closeModal} />
-            <CoachStudentsModal isOpen={isStudentsModalOpen} coach={selectedCoach} onClose={closeStudentsModal} />
+            {isModalOpen && <CoachModal isOpen coach={selectedCoach} onClose={closeModal} />}
+            {isStudentsModalOpen && <CoachStudentsModal isOpen coach={selectedCoach} onClose={closeStudentsModal} />}
 
             <div className="users-table-wrapper">
                 <div className="users-table-toolbar">

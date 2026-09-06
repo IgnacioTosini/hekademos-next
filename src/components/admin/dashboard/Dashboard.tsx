@@ -13,6 +13,8 @@ import {
     MdOutlinePayments,
     MdOutlineSportsGymnastics,
     MdPublishedWithChanges,
+    MdWeb,
+    MdForum,
     MdWorkspacePremium,
 } from "react-icons/md";
 import { DashboardLogoutButton } from './dashboardLogoutButton/DashboardLogoutButton';
@@ -49,10 +51,12 @@ export const Dashboard = () => {
                     <Link href="/admin/coaches" className="dashboard-link" onClick={closeMenu}><MdOutlineSportsGymnastics />Coaches</Link>
                     <Link href="/admin/planes" className="dashboard-link" onClick={closeMenu}><MdWorkspacePremium />Planes</Link>
                     <Link href="/admin/turnos" className="dashboard-link" onClick={closeMenu}><MdOutlineCalendarMonth />Turnos</Link>
-                    <Link href="/admin/solicitudes-horarios" className="dashboard-link" onClick={closeMenu}><MdPublishedWithChanges />Solicitudes</Link>
+                    <Link href="/admin/solicitudes-horarios" className="dashboard-link" onClick={closeMenu}><MdPublishedWithChanges />Cambios de horario</Link>
                     <Link href="/admin/asistencia" className="dashboard-link" onClick={closeMenu}><MdFactCheck />Asistencia</Link>
                     <Link href="/admin/pagos" className="dashboard-link" onClick={closeMenu}><MdOutlinePayments />Pagos</Link>
                     <Link href="/admin/auditoria" className="dashboard-link" onClick={closeMenu}><MdHistory />Auditoría</Link>
+                    <Link href="/admin/comunidad" className="dashboard-link" onClick={closeMenu}><MdForum />Comunidad</Link>
+                    <Link href="/admin/contenido" className="dashboard-link" onClick={closeMenu}><MdWeb />Contenido web</Link>
                 </div>
 
                 <div className="dashboard-footer">

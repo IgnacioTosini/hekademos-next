@@ -1,15 +1,17 @@
 import { FaInstagram } from 'react-icons/fa';
 import Image from 'next/image';
 import './_teacherCard.scss'
+import { YoutubeVideoButton } from '../YoutubeVideoButton';
 
 type TeacherCardProps = {
     name: string;
     image: string;
     description: string;
     instagramLink: string;
+    videoUrl?: string;
 }
 
-export const TeacherCard = ({ name, image, description, instagramLink }: TeacherCardProps) => {
+export const TeacherCard = ({ name, image, description, instagramLink, videoUrl }: TeacherCardProps) => {
     return (
         <div className='teacherCard'>
             <picture className='imgContainer'>
@@ -17,9 +19,12 @@ export const TeacherCard = ({ name, image, description, instagramLink }: Teacher
             </picture>
             <h4 className='teacherTitle'>{name}</h4>
             <p className='teacherDescription'>{description}</p>
-            <a href={instagramLink} className='instagramLink' target="_blank" rel="noopener noreferrer">
-                <FaInstagram className='instagramIcon'/>
-            </a>
+            <div className="teacherCardActions">
+                <a href={instagramLink} className='instagramLink' target="_blank" rel="noopener noreferrer" aria-label={`Instagram de ${name}`}>
+                    <FaInstagram className='instagramIcon'/>
+                </a>
+                <YoutubeVideoButton videoUrl={videoUrl} title={name} />
+            </div>
         </div>
     )
 }

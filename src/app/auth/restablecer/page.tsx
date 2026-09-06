@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PasswordResetForm } from "@/components/auth";
+import { PasswordResetForm } from "@/components/auth/passwordResetForm/PasswordResetForm";
 import "../login/_loginPage.scss";
 
 export const metadata: Metadata = {

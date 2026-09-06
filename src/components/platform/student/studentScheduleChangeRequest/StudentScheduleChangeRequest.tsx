@@ -1,23 +1,46 @@
 "use client";
 
 import { FormEvent, useMemo, useState, useTransition } from "react";
-import { FaExchangeAlt } from "react-icons/fa";
+import { useRouter } from "next/navigation";
+import { FaExchangeAlt, FaUndoAlt } from "react-icons/fa";
 import { IoMdClose } from "react-icons/io";
 import { toast } from "react-toastify";
-import { createStudentScheduleChangeRequest } from "@/app/actions/profile.actions";
-import type { ScheduleChangeRequestType, WeeklyClassScheduleWithRelations } from "@/types/schema/classes";
+import {
+    cancelStudentOneTimeScheduleChange,
+    createStudentScheduleChangeRequest,
+} from "@/app/actions/profile.actions";
+import type { ScheduleChangeRequestType, WeeklyClassScheduleSummary } from "@/types/schema/classes";
+import type { PrismaDate } from "@/types/schema/common";
 import type { AdminStudentProfile } from "@/types/schema/users";
+import { getClassCategoryLabel } from "@/utils/class-category";
 import { getActiveMembership } from "@/utils/membership";
-import { addMinutesToTime, dayOrder, uppercaseDayLabels } from "@/utils/schedule";
+import {
+    dayOrder,
+    getNextScheduleOccurrence,
+    getOneTimeScheduleDates,
+    getScheduleTimeLabel,
+    uppercaseDayLabels,
+} from "@/utils/schedule";
 import "./_studentScheduleChangeRequest.scss";
 
 type Props = {
+    activeOneTimeChange?: {
+        id: string;
+        canCancel: boolean;
+        cancelDisabledReason: string | null;
+        sourceDate: PrismaDate;
+        requestedDate: PrismaDate;
+        sourceSchedule: WeeklyClassScheduleSummary;
+        weeklySchedule: WeeklyClassScheduleSummary;
+    } | null;
+    referenceDate: PrismaDate;
     student: AdminStudentProfile;
-    weeklySchedules: WeeklyClassScheduleWithRelations[];
+    weeklySchedules: WeeklyClassScheduleSummary[];
 };
 
 type FormState = {
     type: ScheduleChangeRequestType;
+    currentScheduleId: string;
     scheduleIds: string[];
     reason: string;
 };
@@ -28,13 +51,30 @@ const getInitialScheduleIds = (student: AdminStudentProfile) => (
         .map((schedule) => schedule.weeklyScheduleId) ?? []
 );
 
-const getScheduleLabel = (schedule: WeeklyClassScheduleWithRelations) => {
-    const endsAt = addMinutesToTime(schedule.startTime, schedule.durationMinutes);
+const formatOneTimeDate = (date: Date) => (
+    new Intl.DateTimeFormat("es-AR", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+    }).format(date)
+);
 
-    return `${schedule.startTime}${endsAt ? ` a ${endsAt}` : ""}`;
-};
+const formatCompactOneTimeDate = (date: Date) => (
+    new Intl.DateTimeFormat("es-AR", {
+        weekday: "short",
+        day: "2-digit",
+        month: "2-digit",
+    }).format(date).replace(",", "")
+);
 
-const getCapacityLabel = (schedule: WeeklyClassScheduleWithRelations, isSelected: boolean) => {
+const getDatedScheduleLabel = (
+    schedule: WeeklyClassScheduleSummary,
+    date: Date
+) => (
+    `${getClassCategoryLabel(schedule.classCategory)} · ${formatOneTimeDate(date)} · ${getScheduleTimeLabel(schedule)}`
+);
+
+const getCapacityLabel = (schedule: WeeklyClassScheduleSummary, isSelected: boolean) => {
     if (isSelected) return "Elegido";
     if (schedule.capacity === null) return "Sin cupo definido";
 
@@ -45,21 +85,38 @@ const getCapacityLabel = (schedule: WeeklyClassScheduleWithRelations, isSelected
     return `${availableSpots} ${availableSpots === 1 ? "cupo libre" : "cupos libres"}`;
 };
 
-export const StudentScheduleChangeRequest = ({ student, weeklySchedules }: Props) => {
+export const StudentScheduleChangeRequest = ({
+    activeOneTimeChange = null,
+    referenceDate,
+    student,
+    weeklySchedules,
+}: Props) => {
+    const router = useRouter();
     const [isOpen, setIsOpen] = useState(false);
     const [error, setError] = useState("");
     const [isPending, startTransition] = useTransition();
+    const hasActiveOneTimeChange = !!activeOneTimeChange;
+    const scheduleReferenceDate = useMemo(() => new Date(referenceDate), [referenceDate]);
     const activeMembership = getActiveMembership(student.memberships, new Date());
     const initialScheduleIds = useMemo(() => getInitialScheduleIds(student), [student]);
     const [form, setForm] = useState<FormState>({
-        type: "ONE_TIME",
-        scheduleIds: initialScheduleIds,
+        type: hasActiveOneTimeChange ? "PERMANENT" : "ONE_TIME",
+        currentScheduleId: hasActiveOneTimeChange ? "" : initialScheduleIds[0] ?? "",
+        scheduleIds: hasActiveOneTimeChange ? initialScheduleIds : [],
         reason: "",
     });
     const maxSelectedSchedules = activeMembership?.plan?.trainingDaysPerWeek ?? 0;
     const availableSchedules = useMemo(() => (
-        weeklySchedules.filter((schedule) => schedule.coachId === student.coachId)
-    ), [student.coachId, weeklySchedules]);
+        weeklySchedules.filter((schedule) => (
+            schedule.coachId === student.coachId
+            && getClassCategoryLabel(schedule.classCategory) === getClassCategoryLabel(activeMembership?.plan?.classCategory)
+        ))
+    ), [activeMembership?.plan?.classCategory, student.coachId, weeklySchedules]);
+    const currentSchedules = useMemo(() => (
+        initialScheduleIds
+            .map((scheduleId) => availableSchedules.find((schedule) => schedule.id === scheduleId))
+            .filter((schedule): schedule is WeeklyClassScheduleSummary => !!schedule)
+    ), [availableSchedules, initialScheduleIds]);
     const schedulesByDay = useMemo(() => (
         dayOrder
             .map((dayOfWeek) => ({
@@ -68,14 +125,33 @@ export const StudentScheduleChangeRequest = ({ student, weeklySchedules }: Props
             }))
             .filter((group) => group.schedules.length > 0)
     ), [availableSchedules]);
+    const selectedOneTimeSchedule = form.type === "ONE_TIME"
+        ? availableSchedules.find((schedule) => schedule.id === form.scheduleIds[0])
+        : null;
+    const selectedCurrentOneTimeSchedule = form.type === "ONE_TIME"
+        ? currentSchedules.find((schedule) => schedule.id === form.currentScheduleId)
+        : null;
+    const oneTimeDates = selectedOneTimeSchedule && selectedCurrentOneTimeSchedule
+        ? getOneTimeScheduleDates(
+            selectedCurrentOneTimeSchedule,
+            selectedOneTimeSchedule,
+            scheduleReferenceDate
+        )
+        : null;
 
     const resetForm = () => {
         setForm({
-            type: "ONE_TIME",
-            scheduleIds: initialScheduleIds,
+            type: hasActiveOneTimeChange ? "PERMANENT" : "ONE_TIME",
+            currentScheduleId: hasActiveOneTimeChange ? "" : initialScheduleIds[0] ?? "",
+            scheduleIds: hasActiveOneTimeChange ? initialScheduleIds : [],
             reason: "",
         });
         setError("");
+    };
+
+    const openModal = () => {
+        resetForm();
+        setIsOpen(true);
     };
 
     const closeModal = () => {
@@ -83,11 +159,18 @@ export const StudentScheduleChangeRequest = ({ student, weeklySchedules }: Props
         setIsOpen(false);
     };
 
-    const toggleSchedule = (schedule: WeeklyClassScheduleWithRelations) => {
+    const toggleSchedule = (schedule: WeeklyClassScheduleSummary) => {
         if (!activeMembership) return;
 
         setForm((current) => {
             const isSelected = current.scheduleIds.includes(schedule.id);
+
+            if (current.type === "ONE_TIME") {
+                return {
+                    ...current,
+                    scheduleIds: isSelected ? [] : [schedule.id],
+                };
+            }
 
             if (isSelected) {
                 return {
@@ -114,20 +197,34 @@ export const StudentScheduleChangeRequest = ({ student, weeklySchedules }: Props
         setError("");
 
         if (!form.reason.trim()) {
-            setError("Agregá una justificación para solicitar el cambio.");
+            setError("Agregá una justificación para confirmar el cambio.");
+            return;
+        }
+
+        if (form.type === "ONE_TIME" && !form.currentScheduleId) {
+            setError("Elegí el turno actual que querés reemplazar.");
+            return;
+        }
+
+        if (form.type === "ONE_TIME" && form.scheduleIds.length !== 1) {
+            setError("Elegí un único turno de reemplazo.");
             return;
         }
 
         startTransition(async () => {
             const result = await createStudentScheduleChangeRequest({
                 type: form.type,
+                currentScheduleId: form.type === "ONE_TIME" ? form.currentScheduleId : null,
                 requestedScheduleIds: form.scheduleIds,
                 reason: form.reason,
             });
 
             if (result.ok) {
-                toast.success("Solicitud de horario enviada");
+                toast.success(form.type === "PERMANENT"
+                    ? "Horarios actualizados automáticamente"
+                    : "Cambio puntual confirmado automáticamente");
                 closeModal();
+                router.refresh();
                 return;
             }
 
@@ -136,24 +233,72 @@ export const StudentScheduleChangeRequest = ({ student, weeklySchedules }: Props
         });
     };
 
+    const handleCancelOneTimeChange = () => {
+        if (!activeOneTimeChange || !activeOneTimeChange.canCancel) return;
+
+        const sourceDate = new Date(activeOneTimeChange.sourceDate);
+        const requestedDate = new Date(activeOneTimeChange.requestedDate);
+        const confirmed = window.confirm(
+            `¿Cancelar el cambio temporal?\n\nVolvés a: ${getDatedScheduleLabel(activeOneTimeChange.sourceSchedule, sourceDate)}\nDejás: ${getDatedScheduleLabel(activeOneTimeChange.weeklySchedule, requestedDate)}`
+        );
+
+        if (!confirmed) return;
+
+        startTransition(async () => {
+            const result = await cancelStudentOneTimeScheduleChange(activeOneTimeChange.id);
+
+            if (result.ok) {
+                toast.success("Cambio temporal cancelado. Volviste a tu horario habitual.");
+                setError("");
+                router.refresh();
+                return;
+            }
+
+            toast.error(result.error);
+        });
+    };
+
     return (
         <>
-            <button
-                className="student-schedule-change-button"
-                type="button"
-                onClick={() => setIsOpen(true)}
-            >
-                <FaExchangeAlt />
-                Solicitar cambio
-            </button>
+            <div className="student-schedule-change-actions">
+                <button
+                    className="student-schedule-change-button"
+                    type="button"
+                    onClick={openModal}
+                    disabled={isPending}
+                >
+                    <FaExchangeAlt />
+                    Cambiar horario
+                </button>
+
+                {activeOneTimeChange && (
+                    <>
+                        <button
+                            className="student-schedule-cancel-button"
+                            type="button"
+                            onClick={handleCancelOneTimeChange}
+                            disabled={isPending || !activeOneTimeChange.canCancel}
+                            title={activeOneTimeChange.cancelDisabledReason ?? "Cancelar el cambio temporal"}
+                        >
+                            <FaUndoAlt />
+                            {isPending ? "Cancelando..." : "Cancelar cambio temporal"}
+                        </button>
+                        {activeOneTimeChange.cancelDisabledReason && (
+                            <small className="student-schedule-cancel-reason">
+                                {activeOneTimeChange.cancelDisabledReason}
+                            </small>
+                        )}
+                    </>
+                )}
+            </div>
 
             {isOpen && (
                 <div className="student-schedule-request-container">
                     <div className="student-schedule-request-modal">
                         <div className="student-schedule-request-header">
                             <div>
-                                <h2>Solicitar cambio de horario</h2>
-                                <p>Elegí los nuevos turnos y contanos por qué necesitás el cambio.</p>
+                                <h2>Cambiar horario</h2>
+                                <p>Elegí los nuevos turnos. Si cumplen las condiciones, el cambio se confirma automáticamente.</p>
                             </div>
 
                             <button type="button" onClick={closeModal} aria-label="Cerrar">
@@ -167,25 +312,64 @@ export const StudentScheduleChangeRequest = ({ student, weeklySchedules }: Props
                                 <select
                                     id="schedule-request-type"
                                     value={form.type}
-                                    onChange={(event) => setForm((current) => ({
-                                        ...current,
-                                        type: event.target.value as ScheduleChangeRequestType,
-                                    }))}
+                                    onChange={(event) => {
+                                        const type = event.target.value as ScheduleChangeRequestType;
+
+                                        setForm((current) => ({
+                                            ...current,
+                                            type,
+                                            currentScheduleId: type === "ONE_TIME" ? initialScheduleIds[0] ?? "" : "",
+                                            scheduleIds: type === "ONE_TIME" ? [] : initialScheduleIds,
+                                        }));
+                                    }}
                                 >
-                                    <option value="ONE_TIME">Solo por esta clase</option>
+                                    <option value="ONE_TIME" disabled={hasActiveOneTimeChange}>
+                                        {hasActiveOneTimeChange ? "Solo por esta clase (ya tenés uno activo)" : "Solo por esta clase"}
+                                    </option>
                                     <option value="PERMANENT">Quiero cambiar permanentemente</option>
                                 </select>
                                 <p>
                                     {form.type === "PERMANENT"
-                                        ? "Este cambio queda pendiente hasta que tu entrenador lo apruebe."
-                                        : "Este pedido no modifica tus horarios fijos."}
+                                        ? "Tus turnos fijos se actualizan en el momento, sin revisión del entrenador."
+                                        : "Se confirma en el momento y no modifica tus horarios fijos."}
                                 </p>
                             </div>
 
+                            {form.type === "ONE_TIME" && (
+                                <div className="student-schedule-request-group">
+                                    <label htmlFor="schedule-request-current">Turno que querés cambiar</label>
+                                    <select
+                                        id="schedule-request-current"
+                                        value={form.currentScheduleId}
+                                        onChange={(event) => setForm((current) => ({
+                                            ...current,
+                                            currentScheduleId: event.target.value,
+                                            scheduleIds: current.scheduleIds.filter((scheduleId) => scheduleId !== event.target.value),
+                                        }))}
+                                        required
+                                    >
+                                        <option value="">Elegí tu turno actual</option>
+                                        {currentSchedules.map((schedule) => {
+                                            const occurrence = getNextScheduleOccurrence(schedule, scheduleReferenceDate);
+
+                                            return (
+                                                <option key={schedule.id} value={schedule.id}>
+                                                    {getDatedScheduleLabel(schedule, occurrence)}
+                                                </option>
+                                            );
+                                        })}
+                                    </select>
+                                    <p>Solamente este turno será reemplazado para la próxima clase.</p>
+                                </div>
+                            )}
+
                             <div className="student-schedule-request-group">
                                 <div className="student-schedule-request-row">
-                                    <label>Turnos solicitados</label>
-                                    <span>{form.scheduleIds.length}/{maxSelectedSchedules || 0}</span>
+                                    <label>
+                                        {form.type === "ONE_TIME" ? "Turno de reemplazo" : "Nuevos turnos fijos"}
+                                        {activeMembership?.plan && ` · ${getClassCategoryLabel(activeMembership.plan.classCategory)}`}
+                                    </label>
+                                    <span>{form.scheduleIds.length}/{form.type === "ONE_TIME" ? 1 : maxSelectedSchedules || 0}</span>
                                 </div>
 
                                 {!activeMembership && (
@@ -193,7 +377,9 @@ export const StudentScheduleChangeRequest = ({ student, weeklySchedules }: Props
                                 )}
 
                                 {activeMembership && schedulesByDay.length === 0 && (
-                                    <p className="student-schedule-request-helper">No hay turnos activos para tu coach asignado.</p>
+                                    <p className="student-schedule-request-helper">
+                                        No hay turnos activos de {getClassCategoryLabel(activeMembership.plan!.classCategory).toLowerCase()} para tu coach asignado.
+                                    </p>
                                 )}
 
                                 {activeMembership && schedulesByDay.length > 0 && (
@@ -211,12 +397,20 @@ export const StudentScheduleChangeRequest = ({ student, weeklySchedules }: Props
                                                                 : Math.max(schedule.capacity - (schedule.occupiedSpots ?? 0), 0)
                                                         );
                                                         const isFull = availableSpots !== null && availableSpots <= 0;
-                                                        const hasSameDay = !isSelected && form.scheduleIds.some((scheduleId) => (
+                                                        const isCurrentOneTimeSchedule = form.type === "ONE_TIME"
+                                                            && form.currentScheduleId === schedule.id;
+                                                        const isExistingFixedSchedule = form.type === "ONE_TIME"
+                                                            && initialScheduleIds.includes(schedule.id);
+                                                        const hasSameDay = form.type === "PERMANENT" && !isSelected && form.scheduleIds.some((scheduleId) => (
                                                             availableSchedules.find((availableSchedule) => availableSchedule.id === scheduleId)?.dayOfWeek === schedule.dayOfWeek
                                                         ));
-                                                        const isDisabled = (!isSelected && isFull)
+                                                        const isDisabled = isExistingFixedSchedule
+                                                            || (!isSelected && isFull)
                                                             || hasSameDay
-                                                            || (!isSelected && form.scheduleIds.length >= maxSelectedSchedules);
+                                                            || (form.type === "PERMANENT" && !isSelected && form.scheduleIds.length >= maxSelectedSchedules);
+                                                        const occurrence = form.type === "ONE_TIME"
+                                                            ? getNextScheduleOccurrence(schedule, scheduleReferenceDate)
+                                                            : null;
 
                                                         return (
                                                             <button
@@ -226,11 +420,18 @@ export const StudentScheduleChangeRequest = ({ student, weeklySchedules }: Props
                                                                 onClick={() => toggleSchedule(schedule)}
                                                                 disabled={isDisabled}
                                                             >
-                                                                <span>{getScheduleLabel(schedule)}</span>
+                                                                <span>
+                                                                    {occurrence && <em>{formatCompactOneTimeDate(occurrence)}</em>}
+                                                                    {getScheduleTimeLabel(schedule)}
+                                                                </span>
                                                                 <small>
-                                                                    {hasSameDay
-                                                                        ? "Día ya elegido"
-                                                                        : getCapacityLabel(schedule, isSelected)}
+                                                                    {isCurrentOneTimeSchedule
+                                                                        ? "Turno actual"
+                                                                        : isExistingFixedSchedule
+                                                                            ? "Ya es un turno fijo"
+                                                                            : hasSameDay
+                                                                                ? "Día ya elegido"
+                                                                                : getCapacityLabel(schedule, isSelected)}
                                                                 </small>
                                                             </button>
                                                         );
@@ -238,6 +439,23 @@ export const StudentScheduleChangeRequest = ({ student, weeklySchedules }: Props
                                                 </div>
                                             </div>
                                         ))}
+                                    </div>
+                                )}
+
+                                {form.type === "ONE_TIME" && oneTimeDates && selectedCurrentOneTimeSchedule && selectedOneTimeSchedule && (
+                                    <div className="student-schedule-request-summary">
+                                        <strong>Confirmá que las fechas sean correctas</strong>
+                                        <dl>
+                                            <div>
+                                                <dt>Horario habitual</dt>
+                                                <dd>{getDatedScheduleLabel(selectedCurrentOneTimeSchedule, oneTimeDates.sourceDate)}</dd>
+                                            </div>
+                                            <div>
+                                                <dt>Nuevo horario</dt>
+                                                <dd>{getDatedScheduleLabel(selectedOneTimeSchedule, oneTimeDates.requestedDate)}</dd>
+                                            </div>
+                                        </dl>
+                                        <p>El cambio se aplica solamente a estas clases. Después volvés automáticamente a tu horario habitual.</p>
                                     </div>
                                 )}
                             </div>
@@ -264,7 +482,7 @@ export const StudentScheduleChangeRequest = ({ student, weeklySchedules }: Props
                                     Cancelar
                                 </button>
                                 <button type="submit" disabled={isPending || !activeMembership}>
-                                    {isPending ? "Enviando..." : "Enviar solicitud"}
+                                    {isPending ? "Confirmando..." : "Confirmar cambio"}
                                 </button>
                             </div>
                         </form>

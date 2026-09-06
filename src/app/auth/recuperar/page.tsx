@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PasswordResetRequestForm } from "@/components/auth";
+import { PasswordResetRequestForm } from "@/components/auth/passwordResetRequestForm/PasswordResetRequestForm";
 import "../login/_loginPage.scss";
 
 export const metadata: Metadata = {
