@@ -1,4 +1,4 @@
-import { PrismaClient } from '@/generated/prisma/client';
+import { PrismaClient } from '@prisma/client';
 
 const globalForPrisma = globalThis as unknown as {
     prisma: PrismaClient | undefined;
@@ -6,7 +6,7 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 const cachedPrisma = globalForPrisma.prisma;
-const prismaSchemaVersion = '20260903190000';
+const prismaSchemaVersion = '20260906-standard-client';
 
 export const prisma = cachedPrisma
     && globalForPrisma.prismaSchemaVersion === prismaSchemaVersion

@@ -1,6 +1,6 @@
 "use server";
 
-import { Prisma } from "@/generated/prisma/client";
+import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { getAdminActionErrorMessage, logAdminActionError, requireAdminSession } from "@/lib/admin-session";
 import { writeAuditLog } from "@/lib/audit-log";
