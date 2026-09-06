@@ -65,7 +65,7 @@ test("se rechazan secretos, URLs y conexiones inseguras o incompletas", () => {
     }
 });
 
-test("WhatsApp deshabilitado no exige credenciales y el modo productivo sí las controla", () => {
+test("WhatsApp deshabilitado no exige credenciales y cada modo controla sus requisitos", () => {
     assert.deepEqual(validateProductionEnvironment(validEnvironment()), []);
 
     const keys = issueKeys({
@@ -82,8 +82,7 @@ test("WhatsApp deshabilitado no exige credenciales y el modo productivo sí las 
     });
 
     for (const key of [
-        "WHATSAPP_TEST_MODE",
-        "WHATSAPP_PRODUCTION_SENDS_CONFIRMED",
+        "WHATSAPP_TEST_RECIPIENT",
         "ACCESS_TOKEN_WHATSAPP_BUSINESS",
         "PHONE_NUMBER_ID",
         "WHATSAPP_BUSINESS_ACCOUNT_ID",
@@ -93,6 +92,24 @@ test("WhatsApp deshabilitado no exige credenciales y el modo productivo sí las 
     ]) {
         assert.equal(keys.has(key), true, `Faltó detectar el problema de ${key}`);
     }
+
+    assert.equal(keys.has("WHATSAPP_TEST_MODE"), false);
+    assert.equal(keys.has("WHATSAPP_PRODUCTION_SENDS_CONFIRMED"), false);
+});
+
+test("se permite desplegar WhatsApp en modo de prueba con un único destinatario de Meta", () => {
+    assert.deepEqual(validateProductionEnvironment({
+        ...validEnvironment(),
+        WHATSAPP_ENABLED: "true",
+        WHATSAPP_TEST_MODE: "true",
+        WHATSAPP_TEST_RECIPIENT: "54223154268951",
+        ACCESS_TOKEN_WHATSAPP_BUSINESS: "a".repeat(40),
+        PHONE_NUMBER_ID: "1262435353626456",
+        WHATSAPP_BUSINESS_ACCOUNT_ID: "1489417342948364",
+        WHATSAPP_API_VERSION: "v25.0",
+        WHATSAPP_SCHEDULE_TEMPLATE_NAME: "cambio_horario_confirmado",
+        WHATSAPP_SCHEDULE_TEMPLATE_LANGUAGE: "es_AR",
+    }), []);
 });
 
 test("se validan booleanos, fechas de cobro y rutas de Cloudinary", () => {

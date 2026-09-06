@@ -188,6 +188,7 @@ export const validateProductionEnvironment = (
         const templateLanguage = requireValue("WHATSAPP_SCHEDULE_TEMPLATE_LANGUAGE");
         const testMode = readBoolean("WHATSAPP_TEST_MODE", true);
         const productionSendsConfirmed = readBoolean("WHATSAPP_PRODUCTION_SENDS_CONFIRMED", false);
+        const testRecipient = testMode ? requireValue("WHATSAPP_TEST_RECIPIENT") : "";
 
         if (token && token.length < 20) {
             addIssue("ACCESS_TOKEN_WHATSAPP_BUSINESS", "parece demasiado corto para un token de Meta");
@@ -210,8 +211,16 @@ export const validateProductionEnvironment = (
         if (templateLanguage && !/^[a-z]{2}(?:_[A-Z]{2})?$/.test(templateLanguage)) {
             addIssue("WHATSAPP_SCHEDULE_TEMPLATE_LANGUAGE", "debe tener un formato como es_AR");
         }
-        if (testMode) addIssue("WHATSAPP_TEST_MODE", "debe ser false en producción");
-        if (!productionSendsConfirmed) {
+        if (testRecipient) {
+            const digits = testRecipient.replace(/\D/g, "");
+            if (!/^\+?[0-9\s().-]+$/.test(testRecipient) || digits.length < 8 || digits.length > 15) {
+                addIssue(
+                    "WHATSAPP_TEST_RECIPIENT",
+                    "debe coincidir con el destinatario de prueba autorizado por Meta"
+                );
+            }
+        }
+        if (!testMode && !productionSendsConfirmed) {
             addIssue("WHATSAPP_PRODUCTION_SENDS_CONFIRMED", "debe ser true para habilitar envíos reales");
         }
     }
