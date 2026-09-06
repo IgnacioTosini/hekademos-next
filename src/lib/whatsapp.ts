@@ -78,13 +78,23 @@ const normalizeApiVersion = (value?: string | null) => {
 
 export const normalizeWhatsAppPhoneNumber = normalizeWhatsappPhoneNumber;
 
+// Meta's test-number allowlist can expose Argentine recipients in its legacy
+// international format (country code + area code + 15 + local number). Preserve
+// that exact identifier instead of converting it to the regular E.164 format.
+const normalizeMetaTestRecipient = (value?: string | null) => {
+    if (!value?.trim() || !/^\+?[0-9\s().-]+$/.test(value.trim())) return null;
+
+    const digits = value.replace(/\D/g, "");
+    return digits.length >= 8 && digits.length <= 15 ? digits : null;
+};
+
 const getWhatsAppConfig = (): WhatsAppConfig | null => {
     if (!getBooleanEnv("WHATSAPP_ENABLED", false)) return null;
 
     const testMode = getBooleanEnv("WHATSAPP_TEST_MODE", true);
     const configuredTestRecipient = process.env.WHATSAPP_TEST_RECIPIENT?.trim() || null;
     const testRecipient = configuredTestRecipient
-        ? normalizeWhatsAppPhoneNumber(configuredTestRecipient)
+        ? normalizeMetaTestRecipient(configuredTestRecipient)
         : null;
 
     if (testMode && !testRecipient) {
@@ -110,7 +120,7 @@ const getApiErrorMessage = (response: WhatsAppApiResponse, status: number) => {
     }
 
     if (response.error?.code === 131030) {
-        return "WhatsApp API 131030: el destinatario no esta autorizado para recibir mensajes de prueba. Agrega y verifica WHATSAPP_TEST_RECIPIENT en la lista 'Para' de Configuracion de la API de Meta, o usa exactamente uno de los numeros ya autorizados";
+        return "WhatsApp API 131030: el destinatario no esta autorizado para recibir mensajes de prueba. En WHATSAPP_TEST_RECIPIENT copia exactamente los digitos del campo 'to' que genera Meta para el numero autorizado en la lista 'Para'";
     }
 
     const code = response.error?.code ? ` ${response.error.code}` : "";

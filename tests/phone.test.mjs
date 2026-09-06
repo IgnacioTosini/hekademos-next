@@ -44,3 +44,31 @@ test('WhatsApp acepta un teléfono local antiguo sin necesidad de editar la base
         assert.equal(result.status, 'SENT'); assert.equal(fetchMock.mock.callCount(), 1);
     } finally { process.env = original; fetchMock.mock.restore(); }
 });
+
+test('el modo de prueba conserva exactamente el destinatario autorizado por Meta', async () => {
+    const original = { ...process.env };
+    const fetchMock = mock.method(globalThis, 'fetch', async (_url, options) => {
+        assert.equal(JSON.parse(options.body).to, '54223154268951');
+        return Response.json({ messages: [{ id: 'qa-meta-test-recipient' }] });
+    });
+    try {
+        Object.assign(process.env, {
+            WHATSAPP_ENABLED: 'true',
+            WHATSAPP_TEST_MODE: 'true',
+            WHATSAPP_TEST_RECIPIENT: '+54 223 15 4268951',
+            ACCESS_TOKEN_WHATSAPP_BUSINESS: 'fake',
+            PHONE_NUMBER_ID: '123',
+        });
+        const result = await sendWhatsAppTemplate({
+            to: '02234268951',
+            templateName: 'qa',
+            languageCode: 'es_AR',
+        });
+        assert.equal(result.status, 'SENT');
+        assert.equal(result.testMode, true);
+        assert.equal(fetchMock.mock.callCount(), 1);
+    } finally {
+        process.env = original;
+        fetchMock.mock.restore();
+    }
+});
