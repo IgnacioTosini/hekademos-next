@@ -89,8 +89,11 @@ export const sendPaymentReminders = async ({
                         planName: membership.plan.name, amountLabel, dueDateLabel,
                     });
                     if (whatsapp.status === "SENT") { channel = "WHATSAPP"; messageId = whatsapp.messageId; }
-                } catch {
-                    console.warn("Recordatorio de cuota: WhatsApp no disponible; se intentara email", { studentId: student.id });
+                } catch (error) {
+                    console.warn("Recordatorio de cuota: WhatsApp no disponible; se intentara email", {
+                        studentId: student.id,
+                        error: error instanceof Error ? error.message : "Error desconocido al enviar por WhatsApp",
+                    });
                 }
                 if (!channel) {
                     if (!isDeliverableEmail(student.user.email)) {
