@@ -225,6 +225,45 @@ export const validateProductionEnvironment = (
         }
     }
 
+    const embeddedSignupKeys = [
+        "META_APP_ID",
+        "META_APP_SECRET",
+        "WHATSAPP_EMBEDDED_SIGNUP_CONFIG_ID",
+        "WHATSAPP_CREDENTIALS_ENCRYPTION_KEY",
+        "WHATSAPP_WEBHOOK_VERIFY_TOKEN",
+    ];
+    const embeddedSignupConfigured = embeddedSignupKeys.some((key) => Boolean(getValue(environment, key)));
+
+    if (embeddedSignupConfigured) {
+        for (const key of embeddedSignupKeys) requireValue(key);
+
+        const appId = getValue(environment, "META_APP_ID");
+        const configId = getValue(environment, "WHATSAPP_EMBEDDED_SIGNUP_CONFIG_ID");
+        const appSecret = getValue(environment, "META_APP_SECRET");
+        const encryptionKey = getValue(environment, "WHATSAPP_CREDENTIALS_ENCRYPTION_KEY");
+        const webhookToken = getValue(environment, "WHATSAPP_WEBHOOK_VERIFY_TOKEN");
+
+        if (appId && !/^\d+$/.test(appId)) addIssue("META_APP_ID", "debe contener solamente números");
+        if (configId && !/^\d+$/.test(configId)) {
+            addIssue("WHATSAPP_EMBEDDED_SIGNUP_CONFIG_ID", "debe contener solamente números");
+        }
+        if (appSecret && appSecret.length < 20) addIssue("META_APP_SECRET", "parece demasiado corto");
+        if (encryptionKey) {
+            const keyBytes = /^[a-f\d]{64}$/i.test(encryptionKey)
+                ? Buffer.from(encryptionKey, "hex")
+                : Buffer.from(encryptionKey, "base64");
+            if (keyBytes.length !== 32) {
+                addIssue(
+                    "WHATSAPP_CREDENTIALS_ENCRYPTION_KEY",
+                    "debe ser una clave hexadecimal de 64 caracteres o base64 de 32 bytes"
+                );
+            }
+        }
+        if (webhookToken && webhookToken.length < 32) {
+            addIssue("WHATSAPP_WEBHOOK_VERIFY_TOKEN", "debe tener al menos 32 caracteres");
+        }
+    }
+
     return issues;
 };
 

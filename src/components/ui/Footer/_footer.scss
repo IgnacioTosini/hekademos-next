@@ -1,6 +1,16 @@
 @use '../../../styles/variables' as *;
 
 .footer {
+    .legalLinks {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: .75rem 1.5rem;
+        padding: 0 1rem 1rem;
+        a { color: $color-text; text-underline-offset: .2em; }
+        a:hover { color: $secondary-color; }
+        a:focus-visible { outline: 2px solid $secondary-color; outline-offset: 4px; }
+    }
     display: flex;
     flex-direction: column;
     justify-content: center;

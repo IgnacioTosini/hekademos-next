@@ -6,13 +6,14 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 const cachedPrisma = globalForPrisma.prisma;
-const prismaSchemaVersion = '20260906-standard-client';
+const prismaSchemaVersion = '20260910-whatsapp-integration';
 
 export const prisma = cachedPrisma
     && globalForPrisma.prismaSchemaVersion === prismaSchemaVersion
     && 'classCategoryOption' in cachedPrisma
     && 'siteContent' in cachedPrisma
     && 'communityPost' in cachedPrisma
+    && 'whatsAppIntegration' in cachedPrisma
     ? cachedPrisma
     : new PrismaClient({
         log: ['error', 'warn'],

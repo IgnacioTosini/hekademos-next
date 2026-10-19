@@ -112,6 +112,31 @@ test("se permite desplegar WhatsApp en modo de prueba con un único destinatario
     }), []);
 });
 
+test("Embedded Signup exige una configuración completa y una clave de cifrado válida", () => {
+    const incompleteKeys = issueKeys({
+        ...validEnvironment(),
+        META_APP_ID: "3801474953343182",
+    });
+
+    for (const key of [
+        "META_APP_SECRET",
+        "WHATSAPP_EMBEDDED_SIGNUP_CONFIG_ID",
+        "WHATSAPP_CREDENTIALS_ENCRYPTION_KEY",
+        "WHATSAPP_WEBHOOK_VERIFY_TOKEN",
+    ]) {
+        assert.equal(incompleteKeys.has(key), true, `Faltó exigir ${key}`);
+    }
+
+    assert.deepEqual(validateProductionEnvironment({
+        ...validEnvironment(),
+        META_APP_ID: "3801474953343182",
+        META_APP_SECRET: "meta-app-secret-with-enough-length",
+        WHATSAPP_EMBEDDED_SIGNUP_CONFIG_ID: "123456789012345",
+        WHATSAPP_CREDENTIALS_ENCRYPTION_KEY: "a".repeat(64),
+        WHATSAPP_WEBHOOK_VERIFY_TOKEN: "webhook-verify-token-with-32-chars-minimum",
+    }), []);
+});
+
 test("se validan booleanos, fechas de cobro y rutas de Cloudinary", () => {
     const keys = issueKeys({
         ...validEnvironment(),

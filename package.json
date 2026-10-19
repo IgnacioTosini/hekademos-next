@@ -11,7 +11,7 @@
     "start": "npm run validate:env:production && next start",
     "validate:env:production": "node --no-warnings --experimental-strip-types scripts/validate-production-env.mjs",
     "lint": "eslint",
-    "test": "node --no-warnings --experimental-strip-types --experimental-test-module-mocks --experimental-loader=./tests/ts-alias-loader.mjs --test --test-concurrency=1 tests/phone.test.mjs tests/unit.test.mjs tests/schedule-notification.test.mjs tests/payment-reminders.test.mjs tests/payment-reminder-template.test.mjs",
+    "test": "node --no-warnings --experimental-strip-types --experimental-test-module-mocks --experimental-loader=./tests/ts-alias-loader.mjs --test --test-concurrency=1 tests/phone.test.mjs tests/unit.test.mjs tests/schedule-notification.test.mjs tests/payment-reminders.test.mjs tests/payment-reminder-template.test.mjs tests/whatsapp-integration.test.mjs tests/whatsapp-webhook.test.mjs",
     "test:env": "node --no-warnings --experimental-strip-types --test --test-concurrency=1 tests/environment.test.mjs",
     "test:db": "node -r dotenv/config --no-warnings --experimental-strip-types --test --test-concurrency=1 tests/database-integrity.test.mjs",
     "test:rate": "node -r dotenv/config --no-warnings --experimental-strip-types --experimental-loader=./tests/ts-alias-loader.mjs --test --test-concurrency=1 tests/rate-limit.test.mjs",

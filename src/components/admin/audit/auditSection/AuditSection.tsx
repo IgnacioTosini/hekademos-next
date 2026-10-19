@@ -34,6 +34,8 @@ const actionLabels: Record<string, string> = {
     COMMUNITY_COMMENT_CREATE: "Aporte creado",
     COMMUNITY_COMMENT_UPDATE: "Aporte editado",
     COMMUNITY_COMMENT_DELETE: "Aporte eliminado",
+    WHATSAPP_INTEGRATION_CONNECT: "WhatsApp conectado",
+    WHATSAPP_INTEGRATION_DISCONNECT: "WhatsApp desactivado",
 };
 
 const entityLabels: Record<string, string> = {
@@ -44,6 +46,7 @@ const entityLabels: Record<string, string> = {
     SiteContent: "Contenido web",
     CommunityPost: "Comunidad",
     CommunityComment: "Aporte",
+    WhatsAppIntegration: "WhatsApp",
 };
 
 const roleLabels = {
@@ -295,6 +298,15 @@ const getAuditSummary = (log: AuditLog) => {
         ].filter(Boolean);
 
         return `Se actualizó la ficha del alumno${email ? ` ${email}` : ""}${updatedFields.length ? `: ${updatedFields.join(", ")}` : ""}.`;
+    }
+
+    if (log.action === "WHATSAPP_INTEGRATION_CONNECT") {
+        const phone = getString(metadata, "displayPhoneNumber");
+        return `Se conectó un número mediante coexistencia${phone ? `: ${phone}` : ""}.`;
+    }
+
+    if (log.action === "WHATSAPP_INTEGRATION_DISCONNECT") {
+        return "Se desactivó la conexión administrada; la cuenta del teléfono no fue eliminada.";
     }
 
     return "Movimiento registrado.";

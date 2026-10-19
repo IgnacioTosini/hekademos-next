@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { IoMdAppstore } from 'react-icons/io';
-import { FaRegUser } from 'react-icons/fa';
+import { FaRegUser, FaWhatsapp } from 'react-icons/fa';
 import { PiStudent } from 'react-icons/pi';
 import {
     MdFactCheck,
@@ -54,6 +54,7 @@ export const Dashboard = () => {
                     <Link href="/admin/solicitudes-horarios" className="dashboard-link" onClick={closeMenu}><MdPublishedWithChanges />Cambios de horario</Link>
                     <Link href="/admin/asistencia" className="dashboard-link" onClick={closeMenu}><MdFactCheck />Asistencia</Link>
                     <Link href="/admin/pagos" className="dashboard-link" onClick={closeMenu}><MdOutlinePayments />Pagos</Link>
+                    <Link href="/admin/whatsapp" className="dashboard-link" onClick={closeMenu}><FaWhatsapp />WhatsApp</Link>
                     <Link href="/admin/auditoria" className="dashboard-link" onClick={closeMenu}><MdHistory />Auditoría</Link>
                     <Link href="/admin/comunidad" className="dashboard-link" onClick={closeMenu}><MdForum />Comunidad</Link>
                     <Link href="/admin/contenido" className="dashboard-link" onClick={closeMenu}><MdWeb />Contenido web</Link>

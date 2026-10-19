@@ -2,6 +2,13 @@
 @use 'sass:color';
 
 .formContainer {
+    .contactLegalNotice {
+        color: $color-text;
+        font-size: $font-size-normal;
+        line-height: 1.6;
+        a { color: $secondary-color; text-underline-offset: .2em; }
+        a:focus-visible { outline: 2px solid $secondary-color; outline-offset: 4px; }
+    }
     width: 100%;
     max-width: 600px;
     padding: 2rem;

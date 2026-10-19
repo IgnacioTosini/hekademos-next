@@ -1,0 +1,94 @@
+@use '@/styles/variables' as *;
+
+.whatsapp-integration {
+    width: 100%;
+    padding: 2rem;
+    color: $color-text;
+}
+
+.whatsapp-integration-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+
+    h1 { margin: 0 0 .25rem; font-size: 2rem; }
+    p { margin: 0; color: $color-text-secondary; }
+}
+
+.whatsapp-integration-icon {
+    display: grid;
+    width: 3.5rem;
+    height: 3.5rem;
+    place-items: center;
+    border-radius: 50%;
+    background: #25d366;
+    color: #fff;
+    font-size: 2rem;
+}
+
+.whatsapp-integration-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.whatsapp-integration-card,
+.whatsapp-integration-note {
+    border: 1px solid rgba($secondary-color, .3);
+    border-radius: .75rem;
+    background: rgba($quinary-color, .72);
+}
+
+.whatsapp-integration-card {
+    padding: 1.5rem;
+
+    h2 { margin: 0 0 1rem; }
+    ol { padding-left: 1.25rem; color: $color-text-secondary; line-height: 1.55; }
+    dl { margin: 0; }
+    dl div { display: flex; justify-content: space-between; gap: 1rem; padding: .75rem 0; border-bottom: 1px solid rgba(#fff, .1); }
+    dt { color: $color-text-secondary; }
+    dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+}
+
+.whatsapp-integration-empty,
+.whatsapp-integration-warning,
+.whatsapp-integration-message,
+.whatsapp-integration-error { line-height: 1.5; }
+
+.whatsapp-integration-warning,
+.whatsapp-integration-error { color: #ffb4ab; }
+.whatsapp-integration-message { color: #9ee6b4; }
+
+.whatsapp-integration-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem;
+    margin-top: 1.25rem;
+
+    button {
+        display: inline-flex;
+        align-items: center;
+        gap: .5rem;
+        border: 1px solid #25d366;
+        border-radius: .55rem;
+        padding: .75rem 1rem;
+        background: #25d366;
+        color: #071c10;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    button.secondary { border-color: rgba(#fff, .35); background: transparent; color: $color-text; }
+    button:disabled { cursor: not-allowed; opacity: .55; }
+}
+
+.whatsapp-integration-note { margin-top: 1rem; padding: 1rem 1.25rem; color: $color-text-secondary; }
+
+@media (max-width: 850px) {
+    .whatsapp-integration { padding: 1rem; }
+    .whatsapp-integration-grid { grid-template-columns: 1fr; }
+    .whatsapp-integration-card dl div { flex-direction: column; gap: .3rem; }
+    .whatsapp-integration-card dd { text-align: left; }
+}

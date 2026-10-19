@@ -201,6 +201,24 @@ model PaymentReminderDelivery {
   @@index([periodStart, status])
 }
 
+model WhatsAppIntegration {
+  id                   String   @id @default("primary")
+  wabaId               String
+  phoneNumberId        String
+  displayPhoneNumber   String?
+  verifiedName         String?
+  accessTokenEncrypted String
+  accessTokenIv        String
+  accessTokenAuthTag   String
+  tokenExpiresAt       DateTime?
+  connectedByUserId    String?
+  connectedAt          DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([wabaId])
+  @@index([phoneNumberId])
+}
+
 model Coach {
   id                   String  @id @default(cuid())
   userId               String  @unique

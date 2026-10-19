@@ -1,6 +1,7 @@
 import { FaInstagram, FaYoutube } from 'react-icons/fa'
 import { NavbarLinks } from '../NavbarLinks/NavbarLinks'
 import Image from 'next/image'
+import Link from 'next/link'
 import './_footer.scss'
 import { getHomePageContent } from '@/lib/site-content'
 
@@ -37,6 +38,10 @@ export const Footer = async () => {
       </div>
 
       <div className='footerPartTwo'>
+        <nav className="legalLinks" aria-label="Información legal">
+          <Link href="/privacidad">Política de privacidad</Link>
+          <Link href="/terminos-y-condiciones">Términos y condiciones</Link>
+        </nav>
         <p>© {new Date().getFullYear()} {content.copyright}</p>
         <p>{content.credit}</p>
 

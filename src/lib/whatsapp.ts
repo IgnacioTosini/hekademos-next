@@ -1,4 +1,5 @@
 import { normalizeWhatsappPhoneNumber } from '@/utils/whatsapp';
+import { getManagedWhatsAppCredentials } from '@/lib/whatsapp-integration';
 
 type WhatsAppConfig = {
     accessToken: string;
@@ -88,7 +89,7 @@ const normalizeMetaTestRecipient = (value?: string | null) => {
     return digits.length >= 8 && digits.length <= 15 ? digits : null;
 };
 
-const getWhatsAppConfig = (): WhatsAppConfig | null => {
+const getWhatsAppConfig = async (): Promise<WhatsAppConfig | null> => {
     if (!getBooleanEnv("WHATSAPP_ENABLED", false)) return null;
 
     const testMode = getBooleanEnv("WHATSAPP_TEST_MODE", true);
@@ -105,10 +106,14 @@ const getWhatsAppConfig = (): WhatsAppConfig | null => {
         throw new Error("Los envios productivos de WhatsApp no fueron confirmados");
     }
 
+    const managedCredentials = await getManagedWhatsAppCredentials();
+
     return {
-        accessToken: getRequiredEnv("ACCESS_TOKEN_WHATSAPP_BUSINESS"),
+        accessToken: managedCredentials?.accessToken
+            ?? getRequiredEnv("ACCESS_TOKEN_WHATSAPP_BUSINESS"),
         apiVersion: normalizeApiVersion(process.env.WHATSAPP_API_VERSION),
-        phoneNumberId: getRequiredEnv("PHONE_NUMBER_ID"),
+        phoneNumberId: managedCredentials?.phoneNumberId
+            ?? getRequiredEnv("PHONE_NUMBER_ID"),
         testMode,
         testRecipient,
     };
@@ -138,7 +143,7 @@ export const sendWhatsAppTemplate = async ({
     languageCode,
     bodyParameters = [],
 }: SendWhatsAppTemplateInput): Promise<WhatsAppSendResult> => {
-    const config = getWhatsAppConfig();
+    const config = await getWhatsAppConfig();
 
     if (!config) {
         return {

@@ -1,6 +1,7 @@
 'use client'
 
 import { FormEvent, useState } from 'react';
+import Link from 'next/link';
 import { toast } from 'react-toastify';
 import { sendContactMessage } from '@/app/actions/contact.actions';
 import './_form.scss';
@@ -140,6 +141,11 @@ export const Form = ({ content }: Props) => {
                     {errors.message && touched.message && <div className="errorMessage">{errors.message}</div>}
                 </div>
 
+                <p className="contactLegalNotice">
+                    Usaremos tu nombre, email y mensaje para responder tu consulta. Consultá nuestra{' '}
+                    <Link href="/privacidad">Política de privacidad</Link> y los{' '}
+                    <Link href="/terminos-y-condiciones">Términos y condiciones</Link>.
+                </p>
                 <button type="submit" disabled={isSubmitting} className="formButton">
                     {isSubmitting ? content.submittingLabel : content.submitLabel}
                 </button>
