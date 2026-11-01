@@ -1,0 +1,5 @@
+﻿@use '@/styles/variables' as *;
+.site-full-preview { min-height: 100dvh; overflow: clip; background: $primary-color; color: $color-text; }
+.site-full-preview-loading { min-height: 100dvh; display: grid; place-items: center; background: $primary-color; color: $color-text; }
+.site-full-preview button, .site-full-preview a, .site-full-preview input, .site-full-preview textarea, .site-full-preview select { pointer-events: none; }
+.site-full-preview .faqQuestion { pointer-events: auto; }

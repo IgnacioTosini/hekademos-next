@@ -73,6 +73,9 @@ const getRequestBaseUrl = async () => {
     const configuredBaseUrl = getConfiguredAppBaseUrl();
 
     if (configuredBaseUrl) return configuredBaseUrl;
+    if (process.env.NODE_ENV === "production") {
+        throw new Error("Falta configurar la URL pública para recuperar contraseñas");
+    }
 
     const requestHeaders = await headers();
     const host = requestHeaders.get("host");
@@ -150,7 +153,7 @@ export const login = async (
             return {
                 ok: false,
                 data: null,
-                error: "La cuenta no esta activa",
+                error: "Credenciales invalidas",
             };
         }
 

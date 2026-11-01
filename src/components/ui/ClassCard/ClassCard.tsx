@@ -1,12 +1,14 @@
 import Image from 'next/image'
 import './_classCard.scss'
 import { YoutubeVideoButton } from '../YoutubeVideoButton'
+import type { SiteContentImage } from '@/lib/home-page-content'
+import { siteImageStyle } from '@/lib/site-image-style'
 
 type ClassCardProps = {
     title: string
     description: string
     list: string[]
-    image?: string
+    image?: SiteContentImage
     videoUrl?: string
 }
 
@@ -16,10 +18,12 @@ export const ClassCard = ({ title, description, list, image, videoUrl }: ClassCa
             <picture className='imgContainer'>
                 {image && (
                     <Image
-                        src={image}
+                        src={image.url}
+                        style={siteImageStyle(image)}
                         alt={title}
-                        width={200}
-                        height={200}
+                        width={900}
+                        height={600}
+                        sizes="(max-width: 768px) 100vw, 50vw"
                         className='classCardImage'
                         quality={80}
                         placeholder="blur"

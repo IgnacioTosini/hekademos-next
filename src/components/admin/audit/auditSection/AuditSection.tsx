@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { AuditLog } from "@/app/actions/audit.actions";
 import { EmptyState } from "@/components/ui/emptyState/EmptyState";
+import { Pagination } from "@/components/ui/pagination/Pagination";
+import { usePagination } from "@/hooks/usePagination";
 import { formatCurrency } from "@/utils/format";
 import "./_auditSection.scss";
 
@@ -10,7 +12,7 @@ type Props = {
     logs: AuditLog[];
 };
 
-type ActionFilter = "all" | "payments" | "attendance" | "students";
+type ActionFilter = "all" | "payments" | "attendance" | "students" | "community" | "content" | "whatsapp";
 type ActorFilter = "all" | "ADMIN" | "COACH" | "STUDENT";
 
 const actionLabels: Record<string, string> = {
@@ -18,6 +20,7 @@ const actionLabels: Record<string, string> = {
     PAYMENT_MARK_PENDING: "Pago desmarcado",
     PAYMENT_DETAILS_UPDATE: "Detalle de pago",
     PAYMENT_REMINDER_EMAILS: "Recordatorios de pago",
+    PAYMENT_REMINDERS: "Recordatorios de pago",
     ATTENDANCE_MARK_COACH: "Asistencia",
     ATTENDANCE_MARK_ADMIN: "Asistencia",
     SCHEDULE_CHANGE_REQUEST_APPROVE: "Solicitud aprobada",
@@ -54,6 +57,8 @@ const roleLabels = {
     COACH: "Coach",
     STUDENT: "Alumno",
 };
+
+const getActionLabel = (action: string) => actionLabels[action] ?? "Acción registrada";
 
 const monthLabels = [
     "enero",
@@ -169,7 +174,7 @@ const getAuditSummary = (log: AuditLog) => {
         return `Se actualizaron los datos del pago de ${period}${details.length ? `. ${details.join(". ")}.` : "."}`;
     }
 
-    if (log.action === "PAYMENT_REMINDER_EMAILS") {
+    if (log.action === "PAYMENT_REMINDER_EMAILS" || log.action === "PAYMENT_REMINDERS") {
         const sentCount = getNumber(metadata, "sentCount") ?? 0;
         const failedCount = getNumber(metadata, "failedCount") ?? 0;
         const alreadyPaidCount = getNumber(metadata, "alreadyPaidCount") ?? 0;
@@ -318,7 +323,15 @@ const getActionGroup = (log: AuditLog): ActionFilter => {
     if (log.action.startsWith("PAYMENT_")) return "payments";
     if (log.action.startsWith("ATTENDANCE_")) return "attendance";
     if (log.action.startsWith("STUDENT_") || log.action.startsWith("SCHEDULE_")) return "students";
+    if (log.action.startsWith("COMMUNITY_")) return "community";
+    if (log.action.startsWith("SITE_CONTENT_")) return "content";
+    if (log.action.startsWith("WHATSAPP_")) return "whatsapp";
     return "all";
+};
+
+const actionFilterLabels: Record<ActionFilter, string> = {
+    all: "Todas", payments: "Pagos", attendance: "Asistencia", students: "Alumnos y horarios",
+    community: "Comunidad", content: "Contenido web", whatsapp: "WhatsApp",
 };
 
 const formatInputDate = (value: Date | string) => {
@@ -331,7 +344,7 @@ const formatInputDate = (value: Date | string) => {
 };
 
 const getSearchText = (log: AuditLog) => [
-    actionLabels[log.action] ?? log.action,
+    getActionLabel(log.action),
     log.actorEmail,
     log.actorRole ? roleLabels[log.actorRole] : null,
     getEntityLabel(log.entityType),
@@ -343,6 +356,23 @@ export const AuditSection = ({ logs }: Props) => {
     const [actionFilter, setActionFilter] = useState<ActionFilter>("all");
     const [actorFilter, setActorFilter] = useState<ActorFilter>("all");
     const [dateFilter, setDateFilter] = useState("");
+    const resultsRef = useRef<HTMLDivElement>(null);
+    const filtersInitialized = useRef(false);
+
+    useEffect(() => {
+        if (!filtersInitialized.current) { filtersInitialized.current = true; return; }
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+        let cancelled = false;
+        let cleanup: (() => void) | undefined;
+        void import("@/animations/gsapConfig").then(({ gsap }) => {
+            if (cancelled || !resultsRef.current) return;
+            const context = gsap.context(() => {
+                gsap.fromTo(resultsRef.current, { autoAlpha: .65, y: 8 }, { autoAlpha: 1, y: 0, duration: .28, ease: "power2.out", clearProps: "all" });
+            });
+            cleanup = () => context.revert();
+        });
+        return () => { cancelled = true; cleanup?.(); };
+    }, [query, actionFilter, actorFilter, dateFilter]);
 
     const filteredLogs = useMemo(() => {
         const search = query.trim().toLowerCase();
@@ -356,6 +386,7 @@ export const AuditSection = ({ logs }: Props) => {
             return matchesAction && matchesActor && matchesDate && matchesSearch;
         });
     }, [actionFilter, actorFilter, dateFilter, logs, query]);
+    const logPages = usePagination(filteredLogs, 20, `${query}|${actionFilter}|${actorFilter}|${dateFilter}`);
 
     const hasFilters = Boolean(query.trim() || actionFilter !== "all" || actorFilter !== "all" || dateFilter);
 
@@ -370,9 +401,10 @@ export const AuditSection = ({ logs }: Props) => {
         <section className="audit-section">
             <div className="audit-header">
                 <div>
+                    <span className="audit-eyebrow">ACTIVIDAD ADMINISTRATIVA</span>
                     <h1>Auditoría</h1>
                     <p>
-                        {filteredLogs.length} de {logs.length} movimientos recientes.
+                        {filteredLogs.length} de {logs.length} movimientos cargados{logs.length === 150 ? " · Se muestran los 150 más recientes" : ""}.
                     </p>
                 </div>
             </div>
@@ -389,7 +421,10 @@ export const AuditSection = ({ logs }: Props) => {
                             <option value="all">Todas</option>
                             <option value="payments">Pagos</option>
                             <option value="attendance">Asistencia</option>
-                            <option value="students">Alumnos</option>
+                            <option value="students">Alumnos y horarios</option>
+                            <option value="community">Comunidad</option>
+                            <option value="content">Contenido web</option>
+                            <option value="whatsapp">WhatsApp</option>
                         </select>
                     </label>
 
@@ -427,14 +462,17 @@ export const AuditSection = ({ logs }: Props) => {
                         />
                     </label>
 
-                    {hasFilters && (
-                        <button className="audit-clear-button" type="button" onClick={clearFilters}>
-                            Limpiar
-                        </button>
-                    )}
                 </div>
 
-                {filteredLogs.length > 0 ? (
+                {hasFilters && <div className="audit-active-filters" aria-label="Filtros activos">
+                    {actionFilter !== "all" && <span>{actionFilterLabels[actionFilter]}</span>}
+                    {actorFilter !== "all" && <span>{roleLabels[actorFilter]}</span>}
+                    {dateFilter && <span>{dateFilter}</span>}
+                    {query.trim() && <span>“{query.trim()}”</span>}
+                    <button type="button" onClick={clearFilters}>Limpiar filtros</button>
+                </div>}
+
+                <div ref={resultsRef} className="audit-results">{filteredLogs.length > 0 ? (
                     <table className="audit-table">
                         <thead>
                             <tr>
@@ -447,11 +485,11 @@ export const AuditSection = ({ logs }: Props) => {
                         </thead>
 
                         <tbody>
-                            {filteredLogs.map((log) => (
+                            {logPages.pageItems.map((log) => (
                                 <tr key={log.id}>
-                                    <td data-label="Fecha">{formatDate(log.createdAt)}</td>
+                                    <td data-label="Fecha"><time dateTime={new Date(log.createdAt).toISOString()}>{formatDate(log.createdAt)}</time></td>
                                     <td data-label="Acción">
-                                        <span className="audit-action">{actionLabels[log.action] ?? log.action}</span>
+                                        <span className="audit-action">{getActionLabel(log.action)}</span>
                                     </td>
                                     <td data-label="Usuario">
                                         <strong>{log.actorEmail ?? "Sin usuario"}</strong>
@@ -476,7 +514,8 @@ export const AuditSection = ({ logs }: Props) => {
                             ? "No hay movimientos que coincidan con los filtros."
                             : "Todavía no hay acciones registradas."}
                     />
-                )}
+                )}</div>
+                <Pagination page={logPages.page} pageSize={logPages.pageSize} totalItems={filteredLogs.length} onPageChange={logPages.setPage} label="movimientos" />
             </div>
         </section>
     );

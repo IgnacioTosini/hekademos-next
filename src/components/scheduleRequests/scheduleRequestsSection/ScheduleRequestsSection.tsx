@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState, useTransition } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { FaCheck, FaTimes } from "react-icons/fa";
 import { IoMdClose } from "react-icons/io";
 import { toast } from "react-toastify";
@@ -10,6 +10,8 @@ import {
     type ScheduleChangeRequestReviewItem,
 } from "@/app/actions/scheduleChangeRequest.actions";
 import { EmptyState } from "@/components/ui/emptyState/EmptyState";
+import { Pagination } from "@/components/ui/pagination/Pagination";
+import { usePagination } from "@/hooks/usePagination";
 import type { ScheduleChangeRequestStatus, WeeklyClassScheduleWithRelations } from "@/types/schema/classes";
 import { formatDateTime } from "@/utils/format";
 import { dayOrderIndex, getScheduleLabel as getBaseScheduleLabel } from "@/utils/schedule";
@@ -76,11 +78,17 @@ export const ScheduleRequestsSection = ({ errorMessage, requests }: Props) => {
     const [modalState, setModalState] = useState<ReviewModalState | null>(null);
     const [notes, setNotes] = useState("");
     const [query, setQuery] = useState("");
+    const [statusFilter, setStatusFilter] = useState("ALL");
+    const [typeFilter, setTypeFilter] = useState("ALL");
+    const listsRef = useRef<HTMLDivElement>(null);
+    const filtersInitialized = useRef(false);
     const [isPending, startTransition] = useTransition();
     const normalizedQuery = query.trim().toLowerCase();
     const filteredRequests = useMemo(() => (
-        normalizedQuery
-            ? requests.filter((request) => {
+        requests.filter((request) => {
+                if (statusFilter !== "ALL" && request.status !== statusFilter) return false;
+                if (typeFilter !== "ALL" && request.type !== typeFilter) return false;
+                if (!normalizedQuery) return true;
                 const studentName = getStudentName(request);
                 const values = [
                     studentName,
@@ -95,10 +103,28 @@ export const ScheduleRequestsSection = ({ errorMessage, requests }: Props) => {
 
                 return values.some((value) => value?.toLowerCase().includes(normalizedQuery));
             })
-            : requests
-    ), [normalizedQuery, requests]);
+    ), [normalizedQuery, requests, statusFilter, typeFilter]);
     const pendingRequests = sortRequests(filteredRequests.filter((request) => request.status === "PENDING"));
     const reviewedRequests = sortRequests(filteredRequests.filter((request) => request.status !== "PENDING"));
+    const filterKey = `${query}|${statusFilter}|${typeFilter}`;
+    const pendingPages = usePagination(pendingRequests, 8, filterKey);
+    const reviewedPages = usePagination(reviewedRequests, 8, filterKey);
+
+    useEffect(() => {
+        if (!filtersInitialized.current) { filtersInitialized.current = true; return; }
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+        let cancelled = false;
+        let cleanup: (() => void) | undefined;
+        void import("@/animations/gsapConfig").then(({ gsap }) => {
+            if (cancelled || !listsRef.current) return;
+            const cards = listsRef.current.querySelectorAll(".schedule-request-card");
+            const context = gsap.context(() => {
+                gsap.fromTo(cards, { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: .32, stagger: .035, ease: "power2.out", clearProps: "all" });
+            }, listsRef);
+            cleanup = () => context.revert();
+        });
+        return () => { cancelled = true; cleanup?.(); };
+    }, [statusFilter, typeFilter]);
 
     const openModal = (intent: ReviewModalState["intent"], request: ScheduleChangeRequestReviewItem) => {
         setModalState({
@@ -165,8 +191,6 @@ export const ScheduleRequestsSection = ({ errorMessage, requests }: Props) => {
                 </div>
 
                 <div className="schedule-request-meta">
-                    <span>Coach actual</span>
-                    <strong>{studentCoach}</strong>
                     <span>Creada</span>
                     <strong>{formatDateTime(request.createdAt)}</strong>
                     {request.type === "ONE_TIME" && request.requestedDate && (
@@ -175,6 +199,8 @@ export const ScheduleRequestsSection = ({ errorMessage, requests }: Props) => {
                             <strong>{formatDateTime(request.requestedDate, { weekday: "long" })}</strong>
                         </>
                     )}
+                    <span>Coach actual</span>
+                    <strong>{studentCoach}</strong>
                     {request.reviewedAt && (
                         <>
                             <span>{request.status === "APPROVED" && !request.reviewedByUserId ? "Confirmada" : "Revisada"}</span>
@@ -183,9 +209,9 @@ export const ScheduleRequestsSection = ({ errorMessage, requests }: Props) => {
                     )}
                 </div>
 
-                <div className="schedule-request-grid">
+                <div className="schedule-request-grid" aria-label="Comparación de horarios">
                     <div>
-                        <h4>Turnos actuales</h4>
+                        <h4>Antes · turnos actuales</h4>
                         <ul>
                             {sortSchedules(request.currentSchedules).length > 0 ? (
                                 sortSchedules(request.currentSchedules).map((schedule) => (
@@ -198,7 +224,7 @@ export const ScheduleRequestsSection = ({ errorMessage, requests }: Props) => {
                     </div>
 
                     <div>
-                        <h4>Turnos solicitados</h4>
+                        <h4>Después · turnos solicitados</h4>
                         <ul>
                             {sortSchedules(request.requestedSchedules).map((schedule) => (
                                 <li key={schedule.id}>
@@ -265,41 +291,57 @@ export const ScheduleRequestsSection = ({ errorMessage, requests }: Props) => {
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
                     placeholder="Buscar alumno, coach o turno..."
+                    aria-label="Buscar cambios de horario"
                 />
+                <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Filtrar por estado">
+                    <option value="ALL">Todos los estados</option>
+                    <option value="PENDING">Pendientes anteriores</option>
+                    <option value="APPROVED">Aprobadas</option>
+                    <option value="REJECTED">Rechazadas</option>
+                    <option value="CANCELLED">Canceladas</option>
+                </select>
+                <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} aria-label="Filtrar por tipo de cambio">
+                    <option value="ALL">Todos los tipos</option>
+                    <option value="ONE_TIME">Una clase</option>
+                    <option value="PERMANENT">Permanente</option>
+                </select>
             </div>
 
-            {pendingRequests.length > 0 && (
-                <div className="schedule-requests-group">
-                    <h2>Solicitudes anteriores pendientes</h2>
-                    <div className="schedule-requests-list">
-                        {pendingRequests.map(renderRequestCard)}
-                    </div>
-                </div>
-            )}
+            <p className="schedule-requests-results" aria-live="polite">Mostrando <strong>{filteredRequests.length}</strong> de {requests.length} cambios</p>
 
-            <div className="schedule-requests-group">
-                <h2>Historial</h2>
-                {reviewedRequests.length > 0 ? (
-                    <div className="schedule-requests-list">
-                        {reviewedRequests.map(renderRequestCard)}
+            <div className="schedule-requests-groups" ref={listsRef}>
+                {pendingRequests.length > 0 && (
+                    <div className="schedule-requests-group schedule-requests-group-pending">
+                        <div className="schedule-requests-group-heading"><div><span>REVISIÓN MANUAL</span><h2>Solicitudes anteriores pendientes</h2></div><strong>{pendingRequests.length}</strong></div>
+                        <div className="schedule-requests-list">
+                            {pendingPages.pageItems.map(renderRequestCard)}
+                        </div>
+                        <Pagination page={pendingPages.page} pageSize={pendingPages.pageSize} totalItems={pendingRequests.length} onPageChange={pendingPages.setPage} label="solicitudes pendientes" />
                     </div>
-                ) : (
-                    <EmptyState
-                        title="Sin historial"
-                        description="Todavía no hay cambios de horario registrados."
-                    />
                 )}
+
+                {reviewedRequests.length > 0 && (
+                    <div className="schedule-requests-group">
+                        <div className="schedule-requests-group-heading"><div><span>CAMBIOS PROCESADOS</span><h2>Historial</h2></div><strong>{reviewedRequests.length}</strong></div>
+                        <div className="schedule-requests-list">
+                            {reviewedPages.pageItems.map(renderRequestCard)}
+                        </div>
+                        <Pagination page={reviewedPages.page} pageSize={reviewedPages.pageSize} totalItems={reviewedRequests.length} onPageChange={reviewedPages.setPage} label="solicitudes revisadas" />
+                    </div>
+                )}
+
+                {filteredRequests.length === 0 && <EmptyState title={requests.length ? "Sin resultados" : "Sin cambios registrados"} description={requests.length ? "No hay cambios que coincidan con los filtros." : "Los cambios de horario aparecerán acá cuando se registren."} />}
             </div>
 
             {modalState && (
                 <div className="schedule-request-modal-backdrop">
-                    <div className="schedule-request-modal">
+                    <div className={`schedule-request-modal schedule-request-modal-${modalState.intent}`} role="dialog" aria-modal="true" aria-labelledby="schedule-review-title">
                         <div className="schedule-request-modal-header">
                             <div>
-                                <h2>
+                                <h2 id="schedule-review-title">
                                     {modalState.intent === "approve" ? "Aprobar solicitud" : "Rechazar solicitud"}
                                 </h2>
-                                <p>{getStudentName(modalState.request)}</p>
+                                <p>{getStudentName(modalState.request)} · {modalState.intent === "approve" ? "se aplicará el horario solicitado" : "se mantendrá el horario actual"}</p>
                             </div>
 
                             <button type="button" onClick={closeModal} aria-label="Cerrar">

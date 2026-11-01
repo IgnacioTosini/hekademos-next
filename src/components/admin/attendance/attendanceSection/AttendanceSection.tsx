@@ -2,11 +2,13 @@
 
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { FaDownload } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { markAdminStudentAttendance } from '@/app/actions/attendance.actions';
 import { EmptyState } from '@/components/ui/emptyState/EmptyState';
+import { Pagination } from '@/components/ui/pagination/Pagination';
+import { usePagination } from '@/hooks/usePagination';
 import type { AdminAttendanceSchedule, AdminMonthlyAttendanceSummary, AttendanceStatus } from '@/types/schema/classes';
 import type { UserWithRelations } from '@/types/schema/users';
 import { formatDate } from '@/utils/format';
@@ -96,7 +98,42 @@ export const AttendanceSection = ({
 }: Props) => {
     const router = useRouter();
     const [pendingAttendanceKey, setPendingAttendanceKey] = useState<string | null>(null);
+    const [pendingAttendanceStatus, setPendingAttendanceStatus] = useState<AttendanceStatus | null>(null);
     const [isPending, startTransition] = useTransition();
+    const [isFiltering, startFilterTransition] = useTransition();
+    const filterIndicatorRef = useRef<HTMLSpanElement>(null);
+    const schedulesRef = useRef<HTMLDivElement>(null);
+    const monthlyStudents = useMemo(() => monthlySummary?.students ?? [], [monthlySummary]);
+    const monthlyPages = usePagination(monthlyStudents, 15, `${selectedMonth}|${selectedYear}|${selectedCoachId}`);
+
+    useEffect(() => {
+        if (!isFiltering || !filterIndicatorRef.current || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        let cancelled = false;
+        let cleanup: (() => void) | undefined;
+        void import('@/animations/gsapConfig').then(({ gsap }) => {
+            if (cancelled || !filterIndicatorRef.current) return;
+            const context = gsap.context(() => {
+                gsap.to(filterIndicatorRef.current, { rotation: 360, duration: .8, ease: 'none', repeat: -1 });
+            });
+            cleanup = () => context.revert();
+        });
+        return () => { cancelled = true; cleanup?.(); };
+    }, [isFiltering]);
+
+    useEffect(() => {
+        if (!schedulesRef.current || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        let cancelled = false;
+        let cleanup: (() => void) | undefined;
+        void import('@/animations/gsapConfig').then(({ gsap }) => {
+            if (cancelled || !schedulesRef.current) return;
+            const cards = schedulesRef.current.querySelectorAll('.attendance-schedule');
+            const context = gsap.context(() => {
+                gsap.fromTo(cards, { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: .32, stagger: .04, ease: 'power2.out', clearProps: 'all' });
+            }, schedulesRef);
+            cleanup = () => context.revert();
+        });
+        return () => { cancelled = true; cleanup?.(); };
+    }, [selectedDate, selectedCoachId]);
     const coachOptions = useMemo(() => (
         coaches
             .filter((coach) => coach.coach?.id)
@@ -124,7 +161,7 @@ export const AttendanceSection = ({
         params.set('month', String(month));
         params.set('year', String(year));
 
-        router.push(`/admin/asistencia?${params.toString()}`);
+        startFilterTransition(() => router.push(`/admin/asistencia?${params.toString()}`, { scroll: false }));
     };
 
     const handleExportMonthlySummary = () => {
@@ -160,6 +197,7 @@ export const AttendanceSection = ({
     ) => {
         const attendanceKey = `${scheduleId}-${studentId}`;
         setPendingAttendanceKey(attendanceKey);
+        setPendingAttendanceStatus(status);
 
         startTransition(async () => {
             const result = await markAdminStudentAttendance(scheduleId, studentId, status, selectedDate);
@@ -172,6 +210,7 @@ export const AttendanceSection = ({
             }
 
             setPendingAttendanceKey(null);
+            setPendingAttendanceStatus(null);
         });
     };
 
@@ -184,7 +223,7 @@ export const AttendanceSection = ({
                 </div>
             </div>
 
-            <div className="attendance-toolbar">
+            <div className="attendance-toolbar" aria-busy={isFiltering}>
                 <div className="attendance-toolbar-group">
                     <label htmlFor="attendance-date">Fecha</label>
                     <input
@@ -235,6 +274,7 @@ export const AttendanceSection = ({
                     </select>
                 </div>
             </div>
+            {isFiltering && <div className="attendance-filter-status" role="status"><span ref={filterIndicatorRef} aria-hidden="true" />Actualizando asistencia...</div>}
 
             <article className="attendance-monthly-summary">
                 <div className="attendance-monthly-header">
@@ -269,6 +309,7 @@ export const AttendanceSection = ({
                 </div>
 
                 {monthlySummary && monthlySummary.students.length > 0 ? (
+                    <>
                     <div className="attendance-monthly-table-wrapper">
                         <table className="attendance-monthly-table">
                             <thead>
@@ -284,7 +325,7 @@ export const AttendanceSection = ({
                                 </tr>
                             </thead>
                             <tbody>
-                                {monthlySummary.students.map((student) => (
+                                {monthlyPages.pageItems.map((student) => (
                                     <tr key={student.studentId}>
                                         <td data-label="Alumno">
                                             <strong>{student.name}</strong>
@@ -302,6 +343,8 @@ export const AttendanceSection = ({
                             </tbody>
                         </table>
                     </div>
+                    <Pagination page={monthlyPages.page} pageSize={monthlyPages.pageSize} totalItems={monthlyStudents.length} onPageChange={monthlyPages.setPage} label="alumnos" />
+                    </>
                 ) : (
                     <EmptyState
                         compact
@@ -313,7 +356,7 @@ export const AttendanceSection = ({
             </article>
 
             {schedules.length > 0 ? (
-                <div className="attendance-schedules">
+                <div className="attendance-schedules" ref={schedulesRef}>
                     {schedules.map((schedule) => (
                         <article className="attendance-schedule" key={schedule.scheduleId}>
                             <div className="attendance-schedule-header">
@@ -331,7 +374,7 @@ export const AttendanceSection = ({
                                         const isSavingAttendance = isPending && pendingAttendanceKey === attendanceKey;
 
                                         return (
-                                            <div className="attendance-student" key={student.studentId}>
+                                            <div className={`attendance-student${!student.status ? ' attendance-student-unmarked' : ''}${isSavingAttendance ? ' attendance-student-saving' : ''}`} key={student.studentId} aria-busy={isSavingAttendance}>
                                                 <div className="attendance-student-main">
                                                     <div className="attendance-avatar">
                                                         {student.imageUrl ? (
@@ -342,7 +385,7 @@ export const AttendanceSection = ({
                                                     </div>
                                                     <div>
                                                         <strong>{student.name}</strong>
-                                                        <span>{student.status ? attendanceStatusLabels[student.status] : 'Sin marcar'}</span>
+                                                        <span>{isSavingAttendance ? 'Guardando asistencia...' : student.status ? attendanceStatusLabels[student.status] : 'Sin marcar'}</span>
                                                     </div>
                                                 </div>
 
@@ -351,11 +394,11 @@ export const AttendanceSection = ({
                                                         <button
                                                             key={status}
                                                             type="button"
-                                                            className={student.status === status ? 'attendance-action-active' : ''}
+                                                            className={`attendance-action-${status.toLowerCase()}${(isSavingAttendance ? pendingAttendanceStatus === status : student.status === status) ? ' attendance-action-active' : ''}`}
                                                             onClick={() => handleAttendance(schedule.scheduleId, student.studentId, status)}
-                                                            disabled={isSavingAttendance}
+                                                            disabled={isPending}
                                                         >
-                                                            {isSavingAttendance && student.status === status ? '...' : attendanceStatusLabels[status]}
+                                                            {(isSavingAttendance ? pendingAttendanceStatus === status : student.status === status) ? '✓ ' : ''}{attendanceStatusLabels[status]}
                                                         </button>
                                                     ))}
                                                 </div>

@@ -56,6 +56,17 @@ const normalizeFromTemplate = (template: unknown, value: unknown, path = "home")
 
     if (isRecord(template)) {
         const incoming = isRecord(value) ? value : {};
+        if (typeof template.url === "string" && typeof template.alt === "string" && typeof template.publicId === "string") {
+            const image = Object.fromEntries(Object.entries(template).map(([key, childTemplate]) => [
+                key, normalizeFromTemplate(childTemplate, incoming[key], `${path}.${key}`),
+            ])) as Record<string, unknown>;
+            const clamp = (input: unknown, fallback: number, min: number, max: number) => typeof input === "number" && Number.isFinite(input)
+                ? Math.min(max, Math.max(min, input)) : fallback;
+            image.scale = clamp(incoming.scale, 100, 100, 200);
+            image.positionX = clamp(incoming.positionX, 50, 0, 100);
+            image.positionY = clamp(incoming.positionY, 50, 0, 100);
+            return image;
+        }
         return Object.fromEntries(Object.entries(template).map(([key, childTemplate]) => [
             key,
             normalizeFromTemplate(childTemplate, incoming[key], `${path}.${key}`),
@@ -65,9 +76,15 @@ const normalizeFromTemplate = (template: unknown, value: unknown, path = "home")
     return template;
 };
 
-export const normalizeHomePageContent = (value: unknown): HomePageContent => (
-    normalizeFromTemplate(defaultHomePageContent, value) as HomePageContent
-);
+export const normalizeHomePageContent = (value: unknown): HomePageContent => {
+    const content = normalizeFromTemplate(defaultHomePageContent, value) as HomePageContent;
+    content.classes.items.forEach((item, index) => {
+        if ((item.image.url === "/hekademosTitle.jpg" || (index === 2 && item.image.url === "/classes/planificacion.png")) && !item.image.publicId && defaultHomePageContent.classes.items[index]) {
+            item.image = { ...defaultHomePageContent.classes.items[index].image };
+        }
+    });
+    return content;
+};
 
 const getStoredHomePageContent = unstable_cache(
     () => prisma.siteContent.findUnique({

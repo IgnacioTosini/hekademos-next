@@ -1,0 +1,14 @@
+@use '@/styles/variables' as *;
+
+.admin-route-loading {
+    display: grid;
+    flex: 1;
+    place-items: center;
+    min-width: 0;
+    min-height: 100dvh;
+    padding: 2rem;
+
+    .loading-state { width: min(100%, 540px); border: 1px solid rgba($secondary-color, .18); border-radius: 1rem; background: rgba($tertiary-color, .22); }
+}
+
+@media (max-width: 768px) { .admin-route-loading { min-height: 70dvh; padding: 5rem 1rem 2rem; } }

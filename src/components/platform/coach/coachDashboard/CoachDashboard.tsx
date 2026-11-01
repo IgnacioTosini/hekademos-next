@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useState, useTransition, type ReactNode } from 'react';
-import { FaCheck, FaExternalLinkAlt, FaPencilAlt, FaUndo } from 'react-icons/fa';
+import { FaCheck, FaExternalLinkAlt, FaPencilAlt, FaSearch, FaUndo } from 'react-icons/fa';
 import { IoMdClose } from 'react-icons/io';
 import { toast } from 'react-toastify';
 import { markCoachStudentAttendance } from '@/app/actions/attendance.actions';
@@ -13,6 +13,8 @@ import {
     updateCoachStudent,
 } from '@/app/actions/coach.actions';
 import { EmptyState } from '@/components/ui/emptyState/EmptyState';
+import { Pagination } from '@/components/ui/pagination/Pagination';
+import { usePagination } from '@/hooks/usePagination';
 import type { AttendanceStatus, CoachTodayAttendanceSchedule } from '@/types/schema/classes';
 import { getInitials } from '@/utils/strings';
 import './_coachDashboard.scss';
@@ -71,10 +73,17 @@ const scheduleDayOrder: Record<string, number> = {
 };
 
 const getScheduleSortParts = (schedule: string) => {
-    const [day = '', time = ''] = schedule.split(' ');
-    const [hours = '0', minutes = '0'] = time.split(':');
+    const [category = '', dayAndTime = schedule] = schedule.split(' · ');
+    const match = dayAndTime.match(/^(.+?)\s+(\d{1,2}:\d{2})\s+a\s+(\d{1,2}:\d{2})$/i);
+    const day = match?.[1] ?? 'Otros';
+    const start = match?.[2] ?? dayAndTime;
+    const end = match?.[3] ?? '';
+    const [hours = '0', minutes = '0'] = start.split(':');
 
     return {
+        category: category || 'Clase',
+        day,
+        time: end ? `${start} a ${end}` : dayAndTime,
         dayOrder: scheduleDayOrder[day.toLowerCase()] ?? 99,
         minutes: (Number(hours) || 0) * 60 + (Number(minutes) || 0),
     };
@@ -92,14 +101,12 @@ const getScheduleGroups = (students: CoachDashboardStudent[]) => {
     return Array.from(scheduleMap.entries())
         .map(([schedule, scheduleStudents]) => ({
             schedule,
+            ...getScheduleSortParts(schedule),
             students: scheduleStudents.sort((a, b) => a.name.localeCompare(b.name)),
         }))
         .sort((a, b) => {
-            const first = getScheduleSortParts(a.schedule);
-            const second = getScheduleSortParts(b.schedule);
-
-            return first.dayOrder - second.dayOrder
-                || first.minutes - second.minutes
+            return a.dayOrder - b.dayOrder
+                || a.minutes - b.minutes
                 || a.schedule.localeCompare(b.schedule);
         });
 };
@@ -130,7 +137,14 @@ export const CoachDashboard = ({ coachName, students, attendanceSchedules, accou
             return searchableValues.some((value) => value?.toLowerCase().includes(normalizedQuery));
         })
         : students;
+    const studentPages = usePagination(filteredStudents, 8, normalizedQuery);
     const scheduleGroups = getScheduleGroups(filteredStudents);
+    const scheduleDays = Array.from(scheduleGroups.reduce((days, group) => {
+        const turns = days.get(group.day) ?? [];
+        turns.push(group);
+        days.set(group.day, turns);
+        return days;
+    }, new Map<string, typeof scheduleGroups>()).entries());
     const attendanceStudentsCount = attendanceSchedules.reduce((total, schedule) => total + schedule.students.length, 0);
     const markedAttendanceCount = attendanceSchedules.reduce((total, schedule) => (
         total + schedule.students.filter((student) => student.status).length
@@ -228,8 +242,9 @@ export const CoachDashboard = ({ coachName, students, attendanceSchedules, accou
         <section className="coach-dashboard">
             <div className="coach-dashboard-header">
                 <div>
+                    <span className="coach-dashboard-eyebrow">TU ESPACIO DE TRABAJO</span>
                     <h1>Panel de coach</h1>
-                    <p>Hola {coachName}. Estos son tus alumnos asignados y sus rutinas.</p>
+                    <p>Hola, {coachName}. Seguí la asistencia de hoy y el progreso de tus alumnos desde un solo lugar.</p>
                 </div>
                 {accountActions && (
                     <div className="coach-dashboard-account-actions">
@@ -239,19 +254,19 @@ export const CoachDashboard = ({ coachName, students, attendanceSchedules, accou
             </div>
 
             <div className="coach-dashboard-stats">
-                <article>
+                <article className="coach-stat-students">
                     <span>Alumnos</span>
                     <strong>{students.length}</strong>
                     <p>Asignados a tu seguimiento.</p>
                 </article>
 
-                <article>
+                <article className="coach-stat-routines">
                     <span>Rutinas cargadas</span>
                     <strong>{studentsWithRoutine}</strong>
                     <p>Alumnos con rutina disponible.</p>
                 </article>
 
-                <article>
+                <article className="coach-stat-payments">
                     <span>Pagos del mes</span>
                     <strong>{paidStudents}</strong>
                     <p>Alumnos marcados como pagados.</p>
@@ -261,10 +276,14 @@ export const CoachDashboard = ({ coachName, students, attendanceSchedules, accou
             <article className="coach-dashboard-card coach-attendance-card">
                 <div className="coach-dashboard-card-header">
                     <div>
+                        <span className="coach-dashboard-section-label">01 / SEGUIMIENTO DIARIO</span>
                         <h2>Asistencia de hoy</h2>
                         <p>{markedAttendanceCount}/{attendanceStudentsCount} alumnos con asistencia marcada.</p>
                     </div>
+                    {attendanceStudentsCount > 0 && <strong className="coach-attendance-progress-count">{Math.round(markedAttendanceCount / attendanceStudentsCount * 100)}%</strong>}
                 </div>
+
+                {attendanceStudentsCount > 0 && <div className="coach-attendance-progress" role="progressbar" aria-label="Asistencia marcada" aria-valuenow={markedAttendanceCount} aria-valuemin={0} aria-valuemax={attendanceStudentsCount}><span style={{ width: `${markedAttendanceCount / attendanceStudentsCount * 100}%` }} /></div>}
 
                 {attendanceSchedules.length > 0 ? (
                     <div className="coach-attendance-schedules">
@@ -339,23 +358,27 @@ export const CoachDashboard = ({ coachName, students, attendanceSchedules, accou
             <article className="coach-dashboard-card">
                 <div className="coach-dashboard-card-header">
                     <div>
+                        <span className="coach-dashboard-section-label">02 / ALUMNOS</span>
                         <h2>Mis clases</h2>
                         <p>Lista de alumnos asignados, rutinas y estado de pago del mes.</p>
                     </div>
+                    <span className="coach-dashboard-count">{filteredStudents.length} {filteredStudents.length === 1 ? 'alumno' : 'alumnos'}</span>
                 </div>
 
                 <div className="coach-dashboard-search">
+                    <FaSearch aria-hidden="true" />
                     <input
                         value={query}
                         onChange={(event) => setQuery(event.target.value)}
                         placeholder="Buscar alumno, email, plan u horario..."
                         aria-label="Buscar alumno"
                     />
+                    {query && <button type="button" onClick={() => setQuery('')} aria-label="Limpiar búsqueda">Limpiar</button>}
                 </div>
 
                 {filteredStudents.length > 0 ? (
                     <div className="coach-students-list">
-                        {filteredStudents.map((student) => {
+                        {studentPages.pageItems.map((student) => {
                             const isSavingPayment = isPending && pendingStudentId === student.id;
 
                             return (
@@ -377,6 +400,7 @@ export const CoachDashboard = ({ coachName, students, attendanceSchedules, accou
                                     </div>
 
                                     <div className="coach-student-plan">
+                                        <span className="coach-student-meta-label">Plan y horarios</span>
                                         <strong>{student.membershipName ?? 'Sin membresia'}</strong>
                                         <span>
                                             {student.trainingDaysPerWeek
@@ -393,6 +417,7 @@ export const CoachDashboard = ({ coachName, students, attendanceSchedules, accou
                                     </div>
 
                                     <div className="coach-student-payment">
+                                        <span className="coach-student-meta-label">Estado del mes</span>
                                         <span className={`coach-payment-status coach-payment-status-${student.paymentStatus.toLowerCase().replace('_', '-')}`}>
                                             {getPaymentLabel(student.paymentStatus)}
                                         </span>
@@ -402,35 +427,37 @@ export const CoachDashboard = ({ coachName, students, attendanceSchedules, accou
                                         )}
                                     </div>
 
-                                    <div className="coach-student-routine">
-                                        {student.routineExcelUrl ? (
-                                            <a href={student.routineExcelUrl} target="_blank" rel="noreferrer">
-                                                Ver rutina
-                                                <FaExternalLinkAlt />
-                                            </a>
-                                        ) : (
-                                            <span>Sin rutina</span>
-                                        )}
-                                    </div>
+                                    <div className="coach-student-footer">
+                                        <div className="coach-student-routine">
+                                            {student.routineExcelUrl ? (
+                                                <a href={student.routineExcelUrl} target="_blank" rel="noreferrer">
+                                                    Ver rutina
+                                                    <FaExternalLinkAlt />
+                                                </a>
+                                            ) : (
+                                                <span>Sin rutina</span>
+                                            )}
+                                        </div>
 
-                                    <div className="coach-student-actions">
-                                        <button type="button" onClick={() => openEditModal(student)}>
-                                            <FaPencilAlt />
-                                            Editar
-                                        </button>
+                                        <div className="coach-student-actions">
+                                            <button type="button" onClick={() => openEditModal(student)}>
+                                                <FaPencilAlt />
+                                                Editar
+                                            </button>
 
-                                        <button
-                                            type="button"
-                                            onClick={() => handlePaymentToggle(student)}
-                                            disabled={!student.hasActiveMembership || isSavingPayment}
-                                        >
-                                            {student.paymentStatus === 'PAID' ? <FaUndo /> : <FaCheck />}
-                                            {isSavingPayment
-                                                ? 'Guardando'
-                                                : student.paymentStatus === 'PAID'
-                                                    ? 'Desmarcar'
-                                                    : 'Marcar pago'}
-                                        </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => handlePaymentToggle(student)}
+                                                disabled={!student.hasActiveMembership || isSavingPayment}
+                                            >
+                                                {student.paymentStatus === 'PAID' ? <FaUndo /> : <FaCheck />}
+                                                {isSavingPayment
+                                                    ? 'Guardando'
+                                                    : student.paymentStatus === 'PAID'
+                                                        ? 'Desmarcar'
+                                                        : 'Marcar pago'}
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             );
@@ -446,41 +473,53 @@ export const CoachDashboard = ({ coachName, students, attendanceSchedules, accou
                             : 'Todavia no tenes alumnos vinculados a tu cuenta.'}
                     />
                 )}
+                <Pagination page={studentPages.page} pageSize={studentPages.pageSize} totalItems={filteredStudents.length} onPageChange={studentPages.setPage} label="alumnos" />
             </article>
 
             <article className="coach-dashboard-card">
                 <div className="coach-dashboard-card-header">
                     <div>
-                        <h2>Alumnos por horario</h2>
-                        <p>Resumen de tus turnos y los alumnos asignados a cada uno.</p>
+                        <span className="coach-dashboard-section-label">03 / ORGANIZACIÓN</span>
+                        <h2>Tu semana de clases</h2>
+                        <p>Horarios, alumnos y rutinas organizados por día.</p>
                     </div>
+                    <span className="coach-dashboard-count">{scheduleGroups.length} {scheduleGroups.length === 1 ? 'turno' : 'turnos'}</span>
                 </div>
 
                 {scheduleGroups.length > 0 ? (
-                    <div className="coach-schedule-groups">
-                        {scheduleGroups.map((group) => (
-                            <div className="coach-schedule-group" key={group.schedule}>
-                                <div className="coach-schedule-group-header">
-                                    <strong>{group.schedule}</strong>
-                                    <span>{group.students.length} {group.students.length === 1 ? 'alumno' : 'alumnos'}</span>
+                    <div className="coach-schedule-days">
+                        {scheduleDays.map(([day, turns]) => (
+                            <section className="coach-schedule-day" key={day} aria-label={`Clases del ${day}`}>
+                                <div className="coach-schedule-day-header">
+                                    <h3>{day}</h3>
+                                    <span>{turns.length} {turns.length === 1 ? 'turno' : 'turnos'}</span>
                                 </div>
-
-                                <div className="coach-schedule-students">
-                                    {group.students.map((student) => (
-                                        <div className="coach-schedule-student" key={student.id}>
-                                            <span>{student.name}</span>
-                                            {student.routineExcelUrl ? (
-                                                <a href={student.routineExcelUrl} target="_blank" rel="noreferrer">
-                                                    Rutina
-                                                    <FaExternalLinkAlt />
-                                                </a>
-                                            ) : (
-                                                <small>Sin rutina</small>
-                                            )}
+                                <div className="coach-schedule-day-turns">
+                                    {turns.map((group) => (
+                                        <div className="coach-schedule-turn" key={group.schedule}>
+                                            <div className="coach-schedule-turn-header">
+                                                <div>
+                                                    <strong>{group.time}</strong>
+                                                    <span>{group.category}</span>
+                                                </div>
+                                                <small>{group.students.length} {group.students.length === 1 ? 'alumno' : 'alumnos'}</small>
+                                            </div>
+                                            <div className="coach-schedule-students">
+                                                {group.students.map((student) => (
+                                                    <div className="coach-schedule-student" key={student.id}>
+                                                        <span>{student.name}</span>
+                                                        {student.routineExcelUrl ? (
+                                                            <a href={student.routineExcelUrl} target="_blank" rel="noreferrer" aria-label={`Ver rutina de ${student.name}`}>
+                                                                Rutina <FaExternalLinkAlt />
+                                                            </a>
+                                                        ) : <small>Sin rutina</small>}
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
-                            </div>
+                            </section>
                         ))}
                     </div>
                 ) : (

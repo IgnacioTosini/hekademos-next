@@ -75,6 +75,7 @@ export default async function PerfilPage({ searchParams }: Props) {
             },
             include: {
                 user: {
+                    omit: { passwordHash: true },
                     include: {
                         image: true,
                     },
@@ -82,6 +83,7 @@ export default async function PerfilPage({ searchParams }: Props) {
                 coach: {
                     include: {
                         user: {
+                            omit: { passwordHash: true },
                             include: {
                                 image: true,
                             },
@@ -258,6 +260,7 @@ export default async function PerfilPage({ searchParams }: Props) {
             <LogoutIconButton />
             <StudentProfileContent
                 student={sanitizedStudent}
+                selfProfile
                 temporaryScheduleChange={temporaryScheduleChange}
                 actions={(
                     <div className="student-profile-actions">

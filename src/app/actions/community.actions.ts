@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { Prisma } from "@prisma/client";
 import { getAdminActionErrorMessage, logAdminActionError, requireAdminSession } from "@/lib/admin-session";
 import { getCurrentAuthSession } from "@/lib/auth-session";
 import { writeAuditLog } from "@/lib/audit-log";
@@ -59,8 +60,6 @@ export type CommunityPostItem = {
     videoUrl: string | null;
     isPublished: boolean;
     authorCoachId: string | null;
-    createdByName: string | null;
-    createdByEmail: string | null;
     authorCoach: {
         specialty: string | null;
         user: {
@@ -71,12 +70,15 @@ export type CommunityPostItem = {
     createdAt: Date;
     updatedAt: Date;
     comments: CommunityCommentItem[];
+    _count: { comments: number };
 };
 
 export type CommunityFeedData = {
     posts: CommunityPostItem[];
-    viewerStudentId: string | null;
-    viewerCoachId: string | null;
+    page: number;
+    totalPosts: number;
+    filteredTotal: number;
+    types: string[];
     viewerUserId: string;
     viewerRole: "ADMIN" | "COACH" | "STUDENT";
 };
@@ -84,8 +86,33 @@ export type CommunityFeedData = {
 export type AdminCommunityData = {
     posts: CommunityPostItem[];
     authors: CommunityAuthorOption[];
+    page: number;
+    totalPosts: number;
+    filteredTotal: number;
+    types: string[];
 };
 
+export type CommunityPageFilters = { page?: number; query?: string; type?: string; status?: "all" | "published" | "draft" };
+const communityPageSize = 10;
+const adminCommunityPageSize = 6;
+const normalizeCommunityPage = (page: number | undefined, total: number, pageSize: number) =>
+    Math.min(Math.max(1, Math.ceil(total / pageSize)), Number.isSafeInteger(page) && (page ?? 0) > 0 ? page! : 1);
+const communityWhere = (filters: CommunityPageFilters, admin: boolean): Prisma.CommunityPostWhereInput => {
+    const query = filters.query?.trim().slice(0, 100) ?? "";
+    const type = filters.type?.trim().slice(0, 50) ?? "";
+    return {
+        ...(!admin || filters.status === "published" ? { isPublished: true } : filters.status === "draft" ? { isPublished: false } : {}),
+        ...(type && type !== "Todas" && type !== "all" ? { type } : {}),
+        ...(query ? { OR: [
+            { title: { contains: query, mode: "insensitive" } },
+            { content: { contains: query, mode: "insensitive" } },
+            { type: { contains: query, mode: "insensitive" } },
+            { authorCoach: { user: { name: { contains: query, mode: "insensitive" } } } },
+        ] } : {}),
+    };
+};
+
+const commentOrder = [{ createdAt: "asc" as const }, { id: "asc" as const }];
 const postSelect = {
     id: true,
     type: true,
@@ -94,8 +121,6 @@ const postSelect = {
     videoUrl: true,
     isPublished: true,
     authorCoachId: true,
-    createdByName: true,
-    createdByEmail: true,
     authorCoach: {
         select: {
             specialty: true,
@@ -109,8 +134,10 @@ const postSelect = {
     },
     createdAt: true,
     updatedAt: true,
+    _count: { select: { comments: true } },
     comments: {
-        orderBy: { createdAt: "asc" as const },
+        orderBy: commentOrder,
+        take: 10,
         select: {
             id: true,
             postId: true,
@@ -148,6 +175,26 @@ const postSelect = {
         },
     },
 } as const;
+
+export const getCommunityComments = async (postId: string, page = 1): Promise<ActionResponse<{ comments: CommunityCommentItem[]; total: number; page: number }>> => {
+    try {
+        const session = await getCurrentAuthSession();
+        if (!session) return { ok: false, data: null, error: "No autorizado" };
+        const post = await prisma.communityPost.findUnique({ where: { id: postId }, select: { isPublished: true, _count: { select: { comments: true } } } });
+        if (!post || (!post.isPublished && session.role !== "ADMIN")) return { ok: false, data: null, error: "Publicación no disponible" };
+        const safePage = normalizeCommunityPage(page, post._count.comments, 10);
+        const comments = await prisma.communityComment.findMany({
+            where: { postId },
+            orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+            skip: (safePage - 1) * 10,
+            take: 10,
+            select: postSelect.comments.select,
+        });
+        return { ok: true, data: { comments, total: post._count.comments, page: safePage } };
+    } catch {
+        return { ok: false, data: null, error: "No se pudieron cargar los aportes" };
+    }
+};
 
 const revalidateCommunity = () => {
     revalidatePath("/comunidad");
@@ -196,23 +243,31 @@ const communityAuthorExists = async (coachId: string) => {
     return Boolean(await prisma.coach.findUnique({ where: { id: coachId }, select: { id: true } }));
 };
 
-export const getAdminCommunityPosts = async (): Promise<ActionResponse<AdminCommunityData>> => {
+export const getAdminCommunityPosts = async (filters: CommunityPageFilters = {}): Promise<ActionResponse<AdminCommunityData>> => {
     try {
         await requireAdminSession();
-        const [posts, coaches] = await Promise.all([
-            prisma.communityPost.findMany({
-                orderBy: { createdAt: "desc" },
-                select: postSelect,
-            }),
+        const where = communityWhere(filters, true);
+        const [filteredTotal, totalPosts, types, coaches] = await Promise.all([
+            prisma.communityPost.count({ where }),
+            prisma.communityPost.count(),
+            prisma.communityPost.groupBy({ by: ["type"], orderBy: { type: "asc" } }),
             prisma.coach.findMany({
                 orderBy: { user: { name: "asc" } },
                 select: { id: true, user: { select: { name: true, email: true } } },
             }),
         ]);
+        const page = normalizeCommunityPage(filters.page, filteredTotal, adminCommunityPageSize);
+        const posts = await prisma.communityPost.findMany({
+            where,
+            orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+            select: postSelect,
+            skip: (page - 1) * adminCommunityPageSize,
+            take: adminCommunityPageSize,
+        });
         return {
             ok: true,
             data: {
-                posts,
+                posts, page, totalPosts, filteredTotal, types: types.map((item) => item.type),
                 authors: coaches.map((coach) => ({ id: coach.id, name: coach.user.name || coach.user.email })),
             },
         };
@@ -222,31 +277,24 @@ export const getAdminCommunityPosts = async (): Promise<ActionResponse<AdminComm
     }
 };
 
-export const getCommunityFeed = async (): Promise<ActionResponse<CommunityFeedData>> => {
+export const getCommunityFeed = async (filters: CommunityPageFilters = {}): Promise<ActionResponse<CommunityFeedData>> => {
     try {
         const session = await getCurrentAuthSession();
         if (!session) return { ok: false, data: null, error: "Iniciá sesión para entrar a la comunidad" };
 
-        const [posts, student, coach] = await Promise.all([
-            prisma.communityPost.findMany({
-                where: { isPublished: true },
-                orderBy: { createdAt: "desc" },
-                select: postSelect,
-            }),
-            session.role === "STUDENT"
-                ? prisma.student.findUnique({ where: { userId: session.userId }, select: { id: true } })
-                : Promise.resolve(null),
-            session.role === "COACH"
-                ? prisma.coach.findUnique({ where: { userId: session.userId }, select: { id: true } })
-                : Promise.resolve(null),
+        const where = communityWhere(filters, false);
+        const [filteredTotal, totalPosts, types] = await Promise.all([
+            prisma.communityPost.count({ where }),
+            prisma.communityPost.count({ where: { isPublished: true } }),
+            prisma.communityPost.groupBy({ by: ["type"], where: { isPublished: true }, orderBy: { type: "asc" } }),
         ]);
+        const page = normalizeCommunityPage(filters.page, filteredTotal, communityPageSize);
+        const posts = await prisma.communityPost.findMany({ where, orderBy: [{ createdAt: "desc" }, { id: "desc" }], select: postSelect, skip: (page - 1) * communityPageSize, take: communityPageSize });
 
         return {
             ok: true,
             data: {
-                posts,
-                viewerStudentId: student?.id ?? null,
-                viewerCoachId: coach?.id ?? null,
+                posts, page, totalPosts, filteredTotal, types: types.map((item) => item.type),
                 viewerUserId: session.userId,
                 viewerRole: session.role,
             },

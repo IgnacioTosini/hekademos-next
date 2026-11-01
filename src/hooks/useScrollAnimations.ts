@@ -27,6 +27,7 @@ export const useScrollAnimations = () => {
             const { gsap, ScrollTrigger } = gsapModule
             const {
                 createScrollAnimations,
+                createAboutAnimations,
                 createContactAnimations,
                 createPhilosophyAnimations,
             } = animationModule
@@ -37,7 +38,7 @@ export const useScrollAnimations = () => {
                     animateFadeUp,
                     animateSplitContainer,
                     animateQuoteReveal,
-                    animateListItems,
+                    animateScrollFocus,
                 } = createPhilosophyAnimations()
                 const {
                     animateContactSplit,
@@ -50,13 +51,14 @@ export const useScrollAnimations = () => {
                 } = createContactAnimations()
 
                 animateSections()
+                createAboutAnimations()
                 animateElements()
                 animateStaggeredCards()
                 animateTitleReveal()
                 animateFadeUp()
                 animateSplitContainer()
                 animateQuoteReveal()
-                animateListItems()
+                animateScrollFocus()
                 animateContactSplit()
                 animateContactElements()
                 animateContactCards()

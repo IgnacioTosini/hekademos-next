@@ -3,6 +3,7 @@
 import { FormEvent, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import { login } from '@/app/actions/auth.actions';
 import './_loginForm.scss';
 
@@ -11,6 +12,7 @@ export const LoginForm = () => {
     const searchParams = useSearchParams();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [isPending, startTransition] = useTransition();
     const passwordChanged = searchParams.get('passwordChanged') === '1';
@@ -46,7 +48,8 @@ export const LoginForm = () => {
     return (
         <form className="login-form" onSubmit={handleSubmit}>
             <div className="login-form-header">
-                <h1>Ingresar</h1>
+                <span className="login-form-eyebrow">TU CUENTA</span>
+                <h1>Bienvenido de nuevo</h1>
                 <p>Acceso para alumnos, coaches y administración.</p>
             </div>
 
@@ -65,15 +68,20 @@ export const LoginForm = () => {
 
             <div className="login-form-group">
                 <label htmlFor="login-password">Contraseña</label>
-                <input
-                    id="login-password"
-                    type="password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    placeholder="Tu contraseña"
-                    autoComplete="current-password"
-                    required
-                />
+                <div className="login-password-field">
+                    <input
+                        id="login-password"
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value)}
+                        placeholder="Tu contraseña"
+                        autoComplete="current-password"
+                        required
+                    />
+                    <button type="button" className="login-password-toggle" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'} aria-pressed={showPassword}>
+                        {showPassword ? <FaEyeSlash aria-hidden="true" /> : <FaEye aria-hidden="true" />}
+                    </button>
+                </div>
             </div>
 
             {passwordChanged && !error && (
@@ -81,14 +89,14 @@ export const LoginForm = () => {
                     Contraseña actualizada. Cerramos tus sesiones por seguridad; volvé a ingresar.
                 </p>
             )}
-            {error && <p className="login-form-error">{error}</p>}
+            {error && <p className="login-form-error" role="alert">{error}</p>}
 
-            <button type="submit" disabled={isPending}>
+            <button type="submit" className="login-submit" disabled={isPending}>
                 {isPending ? 'Ingresando...' : 'Entrar'}
             </button>
 
             <Link className="login-form-reset-link" href="/auth/recuperar">
-                Olvide mi contraseña
+                Olvidé mi contraseña
             </Link>
         </form>
     );

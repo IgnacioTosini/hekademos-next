@@ -1,4 +1,4 @@
-export type SiteContentImage = { url: string; publicId: string; alt: string };
+export type SiteContentImage = { url: string; publicId: string; alt: string; scale?: number; positionX?: number; positionY?: number };
 
 export type HomePageContent = {
     navigation: { primaryLinks: Array<{ label: string; href: string }>; menuLinks: Array<{ label: string; href: string }> };
@@ -76,9 +76,9 @@ export const defaultHomePageContent: HomePageContent = {
         title: "Nuestras clases",
         subtitle: "Descubre nuestras propuestas de entrenamiento diseñadas para transformar tu relación con el movimiento",
         items: [
-            { title: "Entrenamiento funcional consciente", description: "Mejora tu fuerza, movilidad y control corporal a través de ejercicios que desarrollan la conexión mente-cuerpo.", features: ["Fortalecimiento integral", "Movilidad articular", "Control postural", "Conciencia corporal"], videoUrl: "", image: { url: "/hekademosTitle.jpg", publicId: "", alt: "Entrenamiento funcional consciente" } },
-            { title: "Calistenia y ejercicios avanzados", description: "Domina movimientos complejos como planche, front lever, muscle up y verticales con progresiones seguras.", features: ["Planche progresión", "Front lever", "Muscle up", "Verticales"], videoUrl: "", image: { url: "/hekademosTitle.jpg", publicId: "", alt: "Calistenia y ejercicios avanzados" } },
-            { title: "Planificación individualizada", description: "Programa diseñado específicamente según tu nivel actual, objetivos y necesidades particulares.", features: ["Evaluación inicial", "Plan personalizado", "Seguimiento continuo", "Ajustes periódicos"], videoUrl: "", image: { url: "/hekademosTitle.jpg", publicId: "", alt: "Planificación individualizada" } },
+            { title: "Entrenamiento funcional consciente", description: "Mejora tu fuerza, movilidad y control corporal a través de ejercicios que desarrollan la conexión mente-cuerpo.", features: ["Fortalecimiento integral", "Movilidad articular", "Control postural", "Conciencia corporal"], videoUrl: "", image: { url: "/classes/funcional.png", publicId: "", alt: "Entrenamiento funcional consciente" } },
+            { title: "Calistenia y ejercicios avanzados", description: "Domina movimientos complejos como planche, front lever, muscle up y verticales con progresiones seguras.", features: ["Planche progresión", "Front lever", "Muscle up", "Verticales"], videoUrl: "", image: { url: "/classes/calistenia.png", publicId: "", alt: "Calistenia y ejercicios avanzados" } },
+            { title: "Planificación individualizada", description: "Programa diseñado específicamente según tu nivel actual, objetivos y necesidades particulares.", features: ["Evaluación inicial", "Plan personalizado", "Seguimiento continuo", "Ajustes periódicos"], videoUrl: "", image: { url: "/classes/muscle-up.png", publicId: "", alt: "Persona realizando un muscle-up en barra" } },
         ],
     },
     trainingSchedule: {

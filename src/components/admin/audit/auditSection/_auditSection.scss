@@ -6,6 +6,13 @@
     gap: 1.5rem;
     width: 100%;
 
+    .audit-eyebrow {
+        color: $secondary-color;
+        font-size: .72rem;
+        font-weight: 800;
+        letter-spacing: .14em;
+    }
+
     .audit-header {
         display: flex;
         align-items: center;
@@ -13,6 +20,7 @@
         gap: 1rem;
 
         h1 {
+            margin-top: .3rem;
             color: $color-text;
             font-family: $font-family-display;
             font-size: $font-size-xxlarge;
@@ -34,9 +42,39 @@
         background: rgba($tertiary-color, .22);
     }
 
+    .audit-active-filters {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: .5rem;
+        padding: .75rem 1rem;
+        border-bottom: 1px solid rgba($secondary-color, .16);
+
+        span {
+            max-width: 100%;
+            overflow-wrap: anywhere;
+            border: 1px solid rgba($secondary-color, .25);
+            border-radius: 999px;
+            padding: .35rem .65rem;
+            background: rgba($secondary-color, .1);
+            color: $color-text;
+            font-size: $font-size-small;
+        }
+
+        button {
+            border: 0;
+            background: transparent;
+            color: $secondary-color;
+            font: inherit;
+            font-size: $font-size-small;
+            font-weight: $font-weight-semibold;
+            cursor: pointer;
+        }
+    }
+
     .audit-table-toolbar {
         display: grid;
-        grid-template-columns: minmax(130px, .8fr) minmax(130px, .8fr) minmax(150px, .8fr) minmax(220px, 1.4fr) auto;
+        grid-template-columns: minmax(130px, .8fr) minmax(130px, .8fr) minmax(150px, .8fr) minmax(220px, 1.4fr);
         align-items: end;
         gap: .85rem;
         padding: 1rem;
@@ -152,6 +190,8 @@
             overflow-wrap: anywhere;
         }
 
+        tbody tr:hover { background: rgba($secondary-color, .05); }
+
         tr:last-child td {
             border-bottom: 0;
         }
@@ -242,7 +282,7 @@
                 display: grid;
                 overflow: hidden;
                 border: 1px solid rgba($secondary-color, .16);
-                border-radius: 8px;
+                border-radius: 12px;
                 background: rgba($quinary-color, .28);
             }
 
@@ -272,6 +312,33 @@
                 }
             }
 
+            td[data-label="Fecha"],
+            td[data-label="Acción"] {
+                border-bottom: 0;
+                padding-bottom: .35rem;
+            }
+
+            td[data-label="Fecha"] {
+                display: block;
+                padding-top: 1rem;
+                color: $color-text-secondary;
+                text-align: left;
+
+                &::before { display: none; }
+            }
+
+            td[data-label="Acción"] {
+                display: block;
+                text-align: left;
+
+                &::before { display: none; }
+            }
+
+            td[data-label="Resumen"] {
+                background: rgba(#fff, .035);
+                line-height: 1.6;
+            }
+
             td[data-label="Usuario"],
             td[data-label="Resumen"] {
                 grid-template-columns: 1fr;
@@ -295,7 +362,7 @@
             }
 
             .audit-action {
-                justify-self: end;
+                justify-self: start;
             }
         }
     }

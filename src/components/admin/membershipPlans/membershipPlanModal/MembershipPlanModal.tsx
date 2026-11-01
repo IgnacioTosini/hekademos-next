@@ -20,7 +20,7 @@ export const MembershipPlanModal = ({ isOpen, plan, categories, onClose }: Props
         <div className="membership-plan-modal-container">
             <div className="membership-plan-modal">
                 <div className="membership-plan-modal-header">
-                    <h2>{plan ? 'Editar plan' : 'Nuevo plan'}</h2>
+                    <div><span className="membership-plan-modal-eyebrow">MEMBRESÍAS HEKADEMOS</span><h2>{plan ? 'Editar plan' : 'Nuevo plan'}</h2></div>
                     <button type="button" onClick={onClose} aria-label="Cerrar modal">
                         <IoMdClose />
                     </button>

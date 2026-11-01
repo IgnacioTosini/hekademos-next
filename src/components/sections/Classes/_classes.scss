@@ -1,47 +1,174 @@
 @use '../../../styles/variables' as *;
 
 .classes {
+    min-height: calc(100dvh - 5rem);
     display: flex;
     flex-direction: column;
-    align-items: center;
-    padding: 5rem 1rem;
-    border-radius: 1rem;
+    justify-content: center;
+    overflow: hidden;
+    background: $quinary-color;
+    color: $color-text;
+}
 
-    @media (max-width: 768px) {
-        padding: 4rem 1rem;
-    }
+.classesIntro {
+    width: min(100%, 1200px);
+    margin: 0 auto;
+    padding: 4.5rem 2rem 1rem;
+}
 
-    .classesTitle {
-        font-size: clamp($font-size-xxlarge, 10vw, $font-size-xxxlarge);
-        margin-bottom: 1rem;
+.classesEyebrow, .classStoryNumber {
+    color: $secondary-color;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+    letter-spacing: .18em;
+}
 
-        &::after {
-            content: '';
-            display: block;
-            width: 60px;
-            height: 4px;
-            background-color: $color-button;
-            margin: 0.5rem auto 0;
-            border-radius: 2px;
-        }
-    }
+.classesTitle {
+    font-size: clamp(2.25rem, 5vw, 4rem);
+    line-height: 1.1;
+    margin: .5rem 0 1rem;
+}
 
-    .classesDescription {
-        color: $color-text-secondary;
-        font-size: $font-size-medium-large;
-        text-align: center;
-        max-width: 600px;
-    }
+.classesDescription {
+    max-width: 680px;
+    color: $color-text-secondary;
+    font-size: $font-size-medium-large;
+    line-height: 1.6;
+}
 
-    .classesContainer {
-        display: flex;
-        justify-content: center;
-        gap: 1.5rem;
-        margin-top: 2rem;
+.classesViewport { width: 100%; overflow: hidden; cursor: grab; }
+.classesViewport.is-dragging { cursor: grabbing; user-select: none; }
+.classesViewport.is-dragging * { user-select: none; }
+
+.classesContainer {
+    display: flex;
+    gap: 1.5rem;
+    width: max-content;
+    padding: 1rem calc((100vw - min(76vw, 900px)) / 2);
+}
+
+.classStory {
+    position: relative;
+    flex: 0 0 min(76vw, 900px);
+    width: min(76vw, 900px);
+    min-height: clamp(360px, 50dvh, 540px);
+}
+
+.classStoryNumber {
+    position: absolute;
+    z-index: 2;
+    top: 1.5rem;
+    left: 1.5rem;
+    padding: .45rem .7rem;
+    border-radius: 999px;
+    background: rgba($quinary-color, .86);
+}
+
+.classes .classCard {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    grid-template-rows: auto auto 1fr auto;
+    align-items: start;
+    gap: .8rem 1.5rem;
+    width: 100%;
+    max-width: none;
+    min-height: inherit;
+    margin: 0;
+    padding: 0 1.5rem 0 0;
+    overflow: hidden;
+    background: #14253a;
+    border: 1px solid rgba($color-text, .12);
+    box-shadow: 0 18px 42px rgba(0, 0, 0, .22);
+
+    .imgContainer {
+        grid-column: 1;
+        grid-row: 1 / 5;
         width: 100%;
-
-        @media (max-width: 1024px) {
-            flex-wrap: wrap;
-        }
+        max-width: none;
+        height: 100%;
+        min-height: clamp(360px, 50dvh, 540px);
+        margin: 0;
+        border-radius: 0;
     }
+
+    .classCardTitle {
+        grid-column: 2;
+        grid-row: 1;
+        align-self: end;
+        margin: 2rem 0 0;
+        padding: 0;
+        text-align: left;
+        font-size: clamp(1.5rem, 2.5vw, 2.5rem);
+        line-height: 1.15;
+    }
+
+    .classCardDescription {
+        grid-column: 2;
+        grid-row: 2;
+        padding: 0;
+        line-height: 1.5;
+    }
+
+    .classCardList {
+        grid-column: 2;
+        grid-row: 3;
+        margin: .4rem 0 0;
+        padding: 0;
+    }
+
+    > .youtube-video-trigger {
+        grid-column: 2;
+        grid-row: 4;
+        justify-self: start;
+        margin-bottom: 1.5rem;
+    }
+}
+
+.classesNavigation {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    width: min(100%, 1200px);
+    margin: 0 auto;
+    padding: 1rem 2rem 2rem;
+    color: $color-text-secondary;
+    font-size: $font-size-small;
+    letter-spacing: .1em;
+}
+
+.classesProgress {
+    flex: 1;
+    height: 2px;
+    background: rgba($color-text, .22);
+}
+
+.classesProgressFill {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: $secondary-color;
+    transform: scaleX(0);
+    transform-origin: left;
+}
+
+@media (max-width: 768px), (prefers-reduced-motion: reduce) {
+    .classes { min-height: 0; padding: 4rem 1rem; background: $primary-color; }
+    .classesIntro { padding: 0 0 1rem; text-align: center; }
+    .classesContainer { display: grid; width: 100%; padding: 1rem 0; gap: 1.5rem; }
+    .classStory { width: 100%; min-height: 0; }
+    .classStoryNumber { display: none; }
+    .classes .classCard {
+        display: flex;
+        width: min(100%, 400px);
+        min-height: 0;
+        margin: 0 auto;
+        padding: 0;
+        .imgContainer { width: 100%; height: 200px; min-height: 0; border-radius: .5rem .5rem 0 0; }
+        .classCardTitle { margin: 0 0 .5rem; padding: 0 1rem; text-align: center; font-size: $font-size-large; }
+        .classCardDescription { padding: 0 1rem 1rem; }
+        .classCardList { margin: 0 1rem 1rem; padding: 0; }
+        > .youtube-video-trigger { margin: auto auto 1rem; }
+    }
+    .classesNavigation { display: none; }
+    .classesViewport { cursor: auto; }
 }

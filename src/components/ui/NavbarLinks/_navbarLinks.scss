@@ -33,6 +33,49 @@
     }
 }
 
+.primaryNavLinks {
+    position: relative;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: .15rem;
+    padding: .25rem;
+    border: 1px solid rgba($color-text, .12);
+    border-radius: 999px;
+    background: rgba($color-text, .055);
+
+    .navbarLink {
+        position: relative;
+        z-index: 1;
+        white-space: nowrap;
+        font-size: $font-size-normal;
+        font-weight: $font-weight-medium;
+
+        a {
+            display: block;
+            padding: .55rem .8rem;
+            border-radius: 999px;
+            transition: color .2s ease;
+            &:focus-visible { outline: 2px solid $secondary-color; outline-offset: 2px; }
+        }
+
+        &.is-active { color: $color-text; }
+        &:hover, &:focus-within { color: $secondary-color; }
+    }
+
+    .navIndicator {
+        position: absolute;
+        left: 0;
+        bottom: 3px;
+        width: 0;
+        height: 3px;
+        border-radius: 999px;
+        background: $secondary-color;
+        box-shadow: 0 0 12px rgba($secondary-color, .45);
+        opacity: 0;
+        pointer-events: none;
+    }
+}
+
 .footerLinks {
     flex-direction: row;
     align-items: flex-start;
@@ -52,4 +95,13 @@
     align-items: flex-start;
     justify-content: flex-start;
     width: 100%;
+}
+
+.navFade {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    background: #0b1c30;
+    pointer-events: none;
+    will-change: opacity;
 }

@@ -36,6 +36,8 @@
 }
 
 .student-profile-editor-modal {
+    display: flex;
+    flex-direction: column;
     width: min(100%, 760px);
     max-height: 92dvh;
     overflow: hidden;
@@ -89,7 +91,9 @@
 }
 
 .student-profile-editor-form {
-    max-height: calc(92dvh - 96px);
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
 }
 
 @media (max-width: 640px) {
@@ -105,4 +109,60 @@
     .student-profile-editor-form {
         padding: 1rem;
     }
+}
+
+.student-profile-edit-button {
+    min-height: 44px;
+    border: 1px solid $secondary-color;
+    border-radius: .7rem;
+    background: $secondary-color;
+    color: $quinary-color;
+    font-size: $font-size-normal;
+    font-weight: $font-weight-bold;
+    &:hover { background: $color-button; border-color: $color-button; color: $quinary-color; }
+    &:focus-visible { outline: 2px solid $color-text; outline-offset: 3px; }
+}
+
+.student-profile-editor-container { background: rgba(3, 11, 21, .76); backdrop-filter: blur(6px); }
+.student-profile-editor-modal { border-color: rgba($color-text, .16); border-radius: 1.25rem; background: #14283d; }
+.student-profile-editor-header {
+    padding: 1.6rem 2rem;
+    background: #0e2034;
+    border-bottom-color: rgba($color-text, .13);
+    .student-profile-editor-eyebrow { color: $secondary-color; font-size: $font-size-small; font-weight: $font-weight-bold; letter-spacing: .16em; }
+    h2 { margin-top: .4rem; font-family: $font-family; font-size: clamp(1.6rem, 3vw, 2rem); font-weight: $font-weight-bold; letter-spacing: -.03em; }
+    p { margin-top: .4rem; font-size: $font-size-normal; }
+    button { flex: 0 0 auto; width: 40px; height: 40px; border: 1px solid rgba($color-text, .2); border-radius: .65rem; background: rgba($color-text, .06); color: $color-text; }
+    button:focus-visible { outline: 2px solid $secondary-color; outline-offset: 2px; }
+}
+
+.student-profile-editor-form.user-form {
+    gap: 1.15rem;
+    padding: 1.5rem 2rem 0;
+    scrollbar-width: thin;
+    scrollbar-color: rgba($secondary-color, .5) transparent;
+    .student-profile-editor-section-heading { display: flex; align-items: baseline; gap: .75rem; margin-top: .3rem; padding-bottom: .75rem; border-bottom: 1px solid rgba($color-text, .15); }
+    .student-profile-editor-section-heading:not(:first-child) { margin-top: 1rem; }
+    .student-profile-editor-section-heading span { color: $secondary-color; font-size: $font-size-small; font-weight: $font-weight-bold; }
+    .student-profile-editor-section-heading h3 { color: $color-text; font-size: $font-size-medium-large; font-weight: $font-weight-bold; }
+    .form-group label { color: $color-text; font-size: $font-size-normal; letter-spacing: 0; text-transform: none; }
+    .form-group input { min-height: 44px; border-color: rgba($color-text, .18); border-radius: .65rem; background: $quinary-color; font-size: $font-size-medium; }
+    .form-group input:focus { outline: none; border-color: $secondary-color; box-shadow: 0 0 0 3px rgba($secondary-color, .15); }
+    .image-field .image-field-control { border-color: rgba($color-text, .15); border-radius: .75rem; background: rgba($quinary-color, .45); }
+    .image-field input[type='file'] { min-width: 0; width: 100%; color: $color-text-secondary; font-size: $font-size-small; }
+    .image-field input[type='file']::file-selector-button { margin-right: .75rem; padding: .55rem .8rem; border: 1px solid rgba($secondary-color, .6); border-radius: .5rem; background: rgba($secondary-color, .12); color: $secondary-color; font: inherit; font-weight: $font-weight-semibold; cursor: pointer; }
+    .image-field input[type='file']:hover::file-selector-button { background: rgba($secondary-color, .2); }
+    .form-error { padding: .8rem 1rem; border: 1px solid rgba($color-error, .4); border-radius: .65rem; background: rgba($color-error, .1); color: #ff9a9b; }
+    .button-group { position: sticky; bottom: 0; z-index: 2; margin: .5rem -2rem 0; padding: 1rem 2rem; border-top-color: rgba($color-text, .14); background: #14283d; }
+    .button-group .submit-button, .button-group .cancel-button { border-radius: .65rem; font-size: $font-size-normal; text-transform: none; }
+    .button-group .submit-button { color: $quinary-color; }
+    .button-group button:focus-visible { outline: 2px solid $secondary-color; outline-offset: 2px; }
+}
+
+@media (max-width: 560px) {
+    .student-profile-editor-container { padding: 0; }
+    .student-profile-editor-modal { width: 100%; max-height: 100dvh; height: 100dvh; border: 0; border-radius: 0; }
+    .student-profile-editor-header { padding: 1.25rem; }
+    .student-profile-editor-form.user-form { padding: 1.25rem 1.25rem 0; }
+    .student-profile-editor-form.user-form .button-group { margin-inline: -1.25rem; padding: 1rem 1.25rem max(1rem, env(safe-area-inset-bottom)); }
 }

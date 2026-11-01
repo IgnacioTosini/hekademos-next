@@ -9,6 +9,7 @@
     justify-content: center;
     align-items: center;
     text-align: center;
+    isolation: isolate;
 }
 
 .parallaxBg {
@@ -21,7 +22,7 @@
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    z-index: -2;
+    z-index: -1;
     will-change: transform;
 
     &::after {
@@ -150,8 +151,36 @@
     }
 }
 
-.bannerParallax {
-    transform: translate3d(0, 0, 0);
+.bannerNext {
+    position: absolute;
+    z-index: 2;
+    bottom: clamp(2rem, 8vh, 6rem);
+    left: max(1.5rem, calc((100vw - 1000px) / 2));
+    max-width: min(680px, calc(100vw - 3rem));
+    text-align: left;
+    opacity: 0;
+    pointer-events: none;
+
+    span {
+        display: block;
+        color: $secondary-color;
+        font-size: $font-size-small;
+        font-weight: $font-weight-bold;
+        letter-spacing: .18em;
+        margin-bottom: .75rem;
+    }
+
+    strong {
+        display: block;
+        color: $color-text;
+        font-size: clamp(1.8rem, 4vw, 3.5rem);
+        line-height: 1.15;
+        text-shadow: 0 2px 12px rgba(0, 0, 0, .65);
+    }
+}
+
+@media (max-width: 768px), (prefers-reduced-motion: reduce) {
+    .bannerNext { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

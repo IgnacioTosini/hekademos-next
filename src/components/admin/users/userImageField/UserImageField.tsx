@@ -4,6 +4,7 @@ import { ChangeEvent, useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { deleteImage, uploadImage, type UploadedImage } from '@/lib/client-cloudinary';
 import type { UserImage } from '@/types/schema/users';
+import type { UserImageSection } from '@/lib/user-image-sections';
 import { ImageCropModal } from '../imageCropModal/ImageCropModal';
 import '../userForm/_userForm.scss';
 
@@ -23,9 +24,9 @@ export const isUploadedUserImage = (image: UserImageValue): image is UploadedIma
     image !== null && image !== undefined && typeof image === 'object' && 'publicId' in image
 );
 
-export const resolveUserImageValue = async (image: UserImageValue) => {
+export const resolveUserImageValue = async (image: UserImageValue, imageSection: UserImageSection) => {
     if (isPendingUserImage(image)) {
-        const uploadedImage = await uploadImage(image.file);
+        const uploadedImage = await uploadImage(image.file, 'users', imageSection);
 
         return {
             image: uploadedImage,
@@ -41,17 +42,19 @@ export const resolveUserImageValue = async (image: UserImageValue) => {
 
 type SaveWithResolvedUserImageParams<Result extends { ok: boolean }> = {
     image: UserImageValue;
+    imageSection: UserImageSection;
     previousImagePublicId?: string | null;
     save: (image: UploadedImage | null | undefined) => Promise<Result>;
 };
 
 export const saveWithResolvedUserImage = async <Result extends { ok: boolean }>({
     image,
+    imageSection,
     previousImagePublicId,
     save,
 }: SaveWithResolvedUserImageParams<Result>) => {
     let uploadedImage: UploadedImage | null = null;
-    const resolvedImage = await resolveUserImageValue(image);
+    const resolvedImage = await resolveUserImageValue(image, imageSection);
     uploadedImage = resolvedImage.uploadedImage;
 
     try {

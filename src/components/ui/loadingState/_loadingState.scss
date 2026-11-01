@@ -1,0 +1,33 @@
+@use '@/styles/variables' as *;
+
+.loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .55rem;
+    min-height: 180px;
+    padding: 2rem 1.25rem;
+    color: $color-text-secondary;
+    text-align: center;
+
+    .loading-state-indicator {
+        display: block;
+        width: 2rem;
+        height: 2rem;
+        margin-bottom: .4rem;
+        border: 3px solid rgba($secondary-color, .22);
+        border-top-color: $secondary-color;
+        border-radius: 50%;
+    }
+
+    strong { color: $color-text; font-size: $font-size-medium; font-weight: $font-weight-semibold; }
+    p { max-width: 420px; font-size: $font-size-normal; line-height: 1.45; }
+}
+
+.loading-state-compact { min-height: 118px; padding: 1.35rem 1rem; }
+.loading-state-compact .loading-state-indicator { width: 1.5rem; height: 1.5rem; }
+
+@media (prefers-reduced-motion: reduce) {
+    .loading-state .loading-state-indicator { border-color: $secondary-color; }
+}

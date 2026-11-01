@@ -20,25 +20,29 @@ export const primaryNavLinks = [
 ]
 
 const defaultHeaderOffset = 80
-const titleTopSpacing = 16
+const titleTopSpacing = 48
 
-export const handleScrollTo = (sectionId: string) => {
+export const handleScrollTo = (sectionId: string, behavior: ScrollBehavior = 'smooth', pinnedStart?: number) => {
     const element = document.getElementById(sectionId)
     if (!element) return
 
     if (sectionId === 'inicio') {
-        window.scrollTo({ top: 0, behavior: 'smooth' })
+        window.scrollTo({ top: 0, behavior })
         return
     }
 
     const header = document.querySelector<HTMLElement>('.header')
     const scrollTarget = element.querySelector<HTMLElement>('h1, h2, h3') ?? element
     const headerOffset = header?.offsetHeight ?? defaultHeaderOffset
-    const targetTop = scrollTarget.getBoundingClientRect().top + window.scrollY - headerOffset - titleTopSpacing
+    const sectionTop = element.getBoundingClientRect().top + window.scrollY
+    const availableHeight = window.innerHeight - headerOffset
+    const centeredTop = sectionTop - headerOffset - Math.max(0, (availableHeight - element.offsetHeight) / 2)
+    const headingTop = scrollTarget.getBoundingClientRect().top + window.scrollY - headerOffset - titleTopSpacing
+    const targetTop = pinnedStart ?? (element.offsetHeight <= availableHeight ? centeredTop : headingTop)
 
     window.scrollTo({
         top: Math.max(targetTop, 0),
-        behavior: 'smooth',
+        behavior,
     })
 }
 

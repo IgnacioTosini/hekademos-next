@@ -63,6 +63,21 @@ export const WhatsAppIntegrationPanel = ({
     const codeRef = useRef<string | null>(null);
     const wabaIdRef = useRef<string | null>(null);
     const submissionStartedRef = useRef(false);
+    const workingIndicatorRef = useRef<HTMLSpanElement>(null);
+
+    useEffect(() => {
+        if (!isWorking || !workingIndicatorRef.current || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+        let cancelled = false;
+        let cleanup: (() => void) | undefined;
+        void import("@/animations/gsapConfig").then(({ gsap }) => {
+            if (cancelled || !workingIndicatorRef.current) return;
+            const context = gsap.context(() => {
+                gsap.to(workingIndicatorRef.current, { rotation: 360, duration: .8, ease: "none", repeat: -1 });
+            });
+            cleanup = () => context.revert();
+        });
+        return () => { cancelled = true; cleanup?.(); };
+    }, [isWorking]);
 
     const initializeSdk = useCallback(() => {
         if (!window.FB || !appId) return;
@@ -179,12 +194,12 @@ export const WhatsAppIntegrationPanel = ({
         setIsWorking(true);
         setIsError(false);
         const result = await disconnectManagedWhatsApp();
-        setIsWorking(false);
         setIsError(!result.ok);
         setMessage(result.ok
             ? "La conexión guardada se desactivó. Hekademos volverá a usar las credenciales del entorno."
             : result.error);
         if (result.ok) router.refresh();
+        setIsWorking(false);
     };
 
     const configured = Boolean(appId && configId && serverConfigured);
@@ -201,52 +216,60 @@ export const WhatsAppIntegrationPanel = ({
             <header className="whatsapp-integration-header">
                 <div className="whatsapp-integration-icon"><FaWhatsapp /></div>
                 <div>
+                    <span className="whatsapp-integration-eyebrow">CANAL DE MENSAJERÍA</span>
                     <h1>WhatsApp Business</h1>
                     <p>Conectá un número existente mediante el modo de coexistencia oficial de Meta.</p>
                 </div>
             </header>
 
             <div className="whatsapp-integration-grid">
-                <article className="whatsapp-integration-card">
-                    <h2>Conexión activa</h2>
+                <article className="whatsapp-integration-card whatsapp-integration-status">
+                    <div className="whatsapp-integration-card-heading">
+                        <div><span className="whatsapp-integration-eyebrow">ESTADO ACTUAL</span><h2>Conexión</h2></div>
+                        <span className={`whatsapp-integration-badge ${integration ? "connected" : "inactive"}`}>
+                            <span aria-hidden="true" />{integration ? "Conectado" : "Sin conexión en el panel"}
+                        </span>
+                    </div>
                     {integration ? (
-                        <dl>
-                            <div><dt>Cuenta</dt><dd>{integration.verifiedName || "Sin nombre verificado"}</dd></div>
-                            <div><dt>Número</dt><dd>{integration.displayPhoneNumber || "No informado por Meta"}</dd></div>
-                            <div><dt>Phone Number ID</dt><dd>{integration.phoneNumberId}</dd></div>
-                            <div><dt>WABA ID</dt><dd>{integration.wabaId}</dd></div>
-                            <div><dt>Token</dt><dd>{integration.tokenExpiresAt ? "Con vencimiento informado" : "Sin vencimiento informado"}</dd></div>
-                        </dl>
+                        <>
+                            <p className="whatsapp-integration-number">{integration.displayPhoneNumber || "Número no informado por Meta"}</p>
+                            <p className="whatsapp-integration-account">{integration.verifiedName || "Cuenta sin nombre verificado"}</p>
+                            <details className="whatsapp-integration-details">
+                                <summary>Ver datos técnicos</summary>
+                                <dl>
+                                    <div><dt>Phone Number ID</dt><dd>{integration.phoneNumberId}</dd></div>
+                                    <div><dt>WABA ID</dt><dd>{integration.wabaId}</dd></div>
+                                    <div><dt>Token</dt><dd>{integration.tokenExpiresAt ? "Con vencimiento informado" : "Sin vencimiento informado"}</dd></div>
+                                </dl>
+                            </details>
+                        </>
                     ) : (
                         <p className="whatsapp-integration-empty">
                             Todavía no hay un número conectado desde este panel. Los envíos siguen usando las variables actuales de Vercel.
                         </p>
                     )}
+                    <div className={`whatsapp-integration-config ${configured ? "ready" : "missing"}`}>
+                        <span aria-hidden="true" className="whatsapp-integration-config-dot" />
+                        <span>{configured ? "Configuración de Meta lista para conectar" : "Falta completar la configuración de Meta en Vercel"}</span>
+                    </div>
                 </article>
 
-                <article className="whatsapp-integration-card">
-                    <h2>{integration ? "Cambiar número" : "Conectar número"}</h2>
-                    <ol>
-                        <li>Abrí el asistente e iniciá sesión con el administrador del negocio de So Ham.</li>
-                        <li>Elegí conectar la cuenta de WhatsApp Business existente.</li>
-                        <li>Confirmá el enlace desde la app del teléfono cuando Meta lo solicite.</li>
+                <article className="whatsapp-integration-card whatsapp-integration-setup">
+                    <span className="whatsapp-integration-eyebrow">CONFIGURACIÓN GUIADA</span>
+                    <h2>{integration ? "Conectar otro número" : "Conectar un número"}</h2>
+                    <ol className="whatsapp-integration-steps">
+                        <li><span className="whatsapp-integration-step-number">01</span><span>Abrí el asistente de Meta e iniciá sesión con la cuenta administradora de Hekademos.</span></li>
+                        <li><span className="whatsapp-integration-step-number">02</span><span>Elegí la cuenta de WhatsApp Business que ya usás.</span></li>
+                        <li><span className="whatsapp-integration-step-number">03</span><span>Confirmá el enlace desde la aplicación del teléfono cuando Meta lo solicite.</span></li>
                     </ol>
-                    {!configured && (
-                        <p className="whatsapp-integration-warning">
-                            La configuración de Embedded Signup todavía está incompleta en Vercel.
-                        </p>
-                    )}
                     <div className="whatsapp-integration-actions">
-                        <button type="button" onClick={connect} disabled={!configured || !sdkReady || isWorking}>
-                            <FaWhatsapp /> {isWorking ? "Procesando…" : integration ? "Conectar otro número" : "Conectar con Meta"}
+                        <button type="button" onClick={connect} disabled={!configured || !sdkReady || isWorking} aria-busy={isWorking}>
+                            <FaWhatsapp /> {integration ? "Conectar otro número" : "Conectar con Meta"}
                         </button>
-                        {integration && (
-                            <button className="secondary" type="button" onClick={disconnect} disabled={isWorking}>
-                                Desactivar conexión
-                            </button>
-                        )}
                     </div>
-                    {message && <p className={isError ? "whatsapp-integration-error" : "whatsapp-integration-message"}>{message}</p>}
+                    {isWorking && <p className="whatsapp-integration-progress" role="status"><span ref={workingIndicatorRef} className="whatsapp-integration-spinner" aria-hidden="true" />{message || "Procesando conexión…"}</p>}
+                    {!isWorking && message && <p className={`whatsapp-integration-feedback ${isError ? "error" : "success"}`} role={isError ? "alert" : "status"}>{message}</p>}
+                    {integration && <div className="whatsapp-integration-danger"><p>Si desactivás la conexión, Hekademos volverá a usar las credenciales del entorno.</p><button className="secondary" type="button" onClick={disconnect} disabled={isWorking}>Desactivar conexión</button></div>}
                 </article>
             </div>
 

@@ -82,3 +82,250 @@
     .community-feed-comment { gap: .6rem; }
     .community-feed-avatar { width: 36px; height: 36px; }
 }
+
+.community-feed {
+    width: min(100% - 3rem, 1100px);
+    padding-top: clamp(7rem, 10vw, 10rem);
+}
+
+.community-feed-hero {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 2rem;
+    margin-bottom: 2.5rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid rgba($color-text, .18);
+    text-align: left;
+
+    .community-feed-eyebrow { color: $secondary-color; font-size: $font-size-small; font-weight: $font-weight-bold; letter-spacing: .18em; }
+    h1 { margin: .65rem 0 0; font-family: $font-family; font-size: clamp(3rem, 7vw, 5.75rem); font-weight: $font-weight-bold; letter-spacing: -.055em; line-height: 1; }
+    .community-feed-title-dot { color: $secondary-color; }
+    p { max-width: 48ch; margin: 1rem 0 0; font-size: $font-size-medium-large; line-height: 1.6; }
+}
+
+.community-feed-count {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    flex: 0 0 auto;
+    padding-bottom: .3rem;
+    color: $secondary-color;
+    strong { font-size: clamp(2.5rem, 5vw, 4rem); line-height: 1; }
+    span { margin-top: .4rem; font-size: $font-size-small; font-weight: $font-weight-bold; letter-spacing: .13em; }
+}
+
+.community-feed-list { width: min(100%, 900px); margin: 0 auto; gap: 1.5rem; }
+
+.community-feed-post {
+    padding: clamp(1.25rem, 3vw, 2.25rem);
+    border: 1px solid rgba($color-text, .14);
+    border-radius: 1.25rem;
+    background: #172a40;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, .14);
+
+    &:first-child { border-top: 3px solid $secondary-color; }
+    > h2 { margin-top: 1.5rem; font-family: $font-family; font-size: clamp(1.65rem, 3vw, 2.4rem); font-weight: $font-weight-bold; line-height: 1.2; letter-spacing: -.03em; }
+    > .youtube-video-trigger { margin-top: 1.3rem; }
+}
+
+.community-feed-post-meta { display: flex; align-items: center; gap: .75rem; }
+.community-feed-post-number { color: $secondary-color; font-size: $font-size-small; font-weight: $font-weight-bold; letter-spacing: .12em; }
+.community-feed-type { border: 1px solid rgba($secondary-color, .25); background: rgba($secondary-color, .08); }
+.community-feed-author { gap: .85rem; margin-top: 1.5rem; }
+.community-feed-author-avatar { width: 44px; height: 44px; }
+.community-feed-post-content { max-width: 75ch; margin-top: 1rem; color: $color-text; font-size: $font-size-medium; line-height: 1.75; }
+
+.community-feed-discussion {
+    margin-top: 2rem;
+    padding: clamp(1rem, 2.5vw, 1.5rem);
+    border: 1px solid rgba($color-text, .1);
+    border-radius: .9rem;
+    background: #102238;
+}
+
+.community-feed-comments-heading { margin: 0; padding: 0 0 1rem; border-top: 0; border-bottom: 1px solid rgba($color-text, .12); color: $color-text; font-size: $font-size-normal; }
+.community-feed-comments { gap: .65rem; margin-top: 1rem; }
+.community-feed-comment { padding: 1rem; border: 1px solid rgba($color-text, .09); border-radius: .75rem; background: #1b3047; }
+.community-feed-comment-body p { color: $color-text; line-height: 1.6; }
+.community-feed-comment-actions button:focus-visible { outline: 2px solid $secondary-color; outline-offset: 2px; }
+.community-feed-comment-form { margin-top: 1.3rem; padding-top: 1.3rem; border-top-color: rgba($color-text, .12); }
+.community-feed-comment-form textarea { min-height: 6rem; border-color: rgba($color-text, .18); border-radius: .7rem; background: #1b3047; }
+.community-feed-comment-form button, .community-feed-inline-edit button:last-child { color: $quinary-color; font-weight: $font-weight-bold; }
+.community-feed-comment-form button:hover:not(:disabled) { background: $color-button; }
+.community-feed-comment-form button:focus-visible, .community-feed-inline-edit button:focus-visible { outline: 2px solid $color-text; outline-offset: 2px; }
+
+.community-feed-embedded { width: 100%; padding-top: 2.5rem; }
+.community-feed-embedded .community-feed-hero h1 { font-size: clamp(2.2rem, 5vw, 3.6rem); }
+.community-feed-embedded .community-feed-count strong { font-size: clamp(2rem, 4vw, 3rem); }
+
+.community-feed { width: min(100% - 4rem, 1360px); }
+.community-feed-list { width: 100%; }
+.community-feed-post { min-width: 0; }
+.community-feed-post-main { min-width: 0; }
+.community-feed-post-main > h2 { margin-top: 1.5rem; font-family: $font-family; font-size: clamp(1.65rem, 3vw, 2.4rem); font-weight: $font-weight-bold; line-height: 1.2; letter-spacing: -.03em; }
+.community-feed-post-main > .youtube-video-trigger { margin-top: 1.3rem; }
+.community-feed-comment-heading > div { display: flex; align-items: center; flex-wrap: wrap; gap: .35rem; min-width: 0; }
+.community-feed-comment-role { margin-left: 0; }
+.community-feed-comment-actions { justify-content: flex-end; width: 100%; margin-top: .65rem; padding-top: .5rem; border-top: 1px solid rgba($color-text, .1); }
+.community-feed-comment-actions button { width: 36px; height: 36px; }
+
+@media (min-width: 1000px) {
+    .community-feed:not(.community-feed-embedded) .community-feed-post {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, .9fr);
+        gap: clamp(2rem, 4vw, 4rem);
+        align-items: start;
+        padding: clamp(2rem, 3vw, 3rem);
+    }
+
+    .community-feed:not(.community-feed-embedded) .community-feed-discussion { margin-top: 0; }
+}
+
+@media (max-width: 700px) {
+    .community-feed { width: 100%; padding-top: 6.5rem; }
+    .community-feed-hero { padding-inline: 1.25rem; }
+    .community-feed-list { gap: 1rem; }
+    .community-feed-hero { align-items: flex-start; flex-direction: column; gap: 1.25rem; }
+    .community-feed-hero p { font-size: $font-size-medium; }
+    .community-feed-count { align-items: flex-start; flex-direction: row; gap: .6rem; }
+    .community-feed-count strong { font-size: 1.5rem; }
+    .community-feed-count span { margin-top: .25rem; }
+    .community-feed-embedded { padding-top: 2rem; }
+    .community-feed-post-heading { align-items: flex-start; flex-direction: column; gap: .65rem; }
+    .community-feed-comment-heading { align-items: flex-start; flex-direction: column; gap: .2rem; }
+    .community-feed-post { padding: 1.25rem; border-right: 0; border-left: 0; border-radius: 0; }
+    .community-feed-comment { padding: .85rem; gap: .65rem; }
+    .community-feed-discussion { margin: 1.5rem -1.25rem -1.25rem; padding: 1.25rem; border-right: 0; border-left: 0; border-radius: 0; }
+    .community-feed-embedded { width: 100%; }
+    .community-feed-embedded .community-feed-post { border-right: 1px solid rgba($color-text, .14); border-left: 1px solid rgba($color-text, .14); border-radius: .85rem; }
+    .community-feed-embedded .community-feed-discussion { margin: 1.5rem -1.25rem -1.25rem; border-radius: 0 0 .85rem .85rem; }
+}
+
+.community-feed-filters {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .85rem 1.5rem;
+    margin-bottom: 1.25rem;
+}
+
+.community-feed-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: min(100%, 370px);
+
+    svg { position: absolute; left: 1rem; color: $secondary-color; pointer-events: none; }
+    input { width: 100%; min-height: 44px; padding: .75rem 1rem .75rem 2.75rem; border: 1px solid rgba($color-text, .18); border-radius: 11px; outline: none; background: #102238; color: $color-text; font: inherit; }
+    input:focus-visible { border-color: $secondary-color; box-shadow: 0 0 0 3px rgba($secondary-color, .12); }
+}
+
+.community-feed-type-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .45rem;
+
+    button { min-height: 36px; padding: .45rem .8rem; border: 1px solid rgba($color-text, .18); border-radius: 999px; background: transparent; color: $color-text-secondary; cursor: pointer; font: inherit; font-size: $font-size-small; }
+    button:hover, button.is-active { border-color: $secondary-color; background: rgba($secondary-color, .12); color: $secondary-color; }
+    button:focus-visible { outline: 2px solid $secondary-color; outline-offset: 2px; }
+}
+
+.community-feed-browser-has-navigation {
+    display: grid;
+    grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+    align-items: start;
+    gap: 1.25rem;
+}
+
+.community-feed-navigation {
+    position: sticky;
+    top: 1rem;
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid rgba($color-text, .14);
+    border-radius: 15px;
+    background: #102238;
+}
+
+.community-feed-navigation-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: .5rem;
+    padding: 1rem;
+    border-bottom: 1px solid rgba($color-text, .12);
+    strong { color: $color-text; }
+    span { color: $color-text-secondary; font-size: $font-size-small; }
+}
+
+.community-feed-navigation-list {
+    display: grid;
+    gap: .35rem;
+    max-height: min(68dvh, 650px);
+    overflow-y: auto;
+    padding: .55rem;
+
+    > p { padding: .8rem; color: $color-text-secondary; font-size: $font-size-small; }
+    button { display: grid; gap: .45rem; width: 100%; padding: .85rem; border: 1px solid transparent; border-radius: 9px; background: transparent; color: $color-text; cursor: pointer; font: inherit; text-align: left; }
+    button:hover, button.is-active { border-color: rgba($secondary-color, .35); background: rgba($secondary-color, .09); }
+    button:focus-visible { outline: 2px solid $secondary-color; outline-offset: 1px; }
+    button > span { color: $secondary-color; font-size: $font-size-xsmall; }
+    button strong { display: -webkit-box; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font-size: $font-size-normal; line-height: 1.35; }
+    button small { display: inline-flex; align-items: center; gap: .4rem; color: $color-text-secondary; font-size: $font-size-xsmall; }
+}
+
+.community-feed-navigation .list-pagination {
+    justify-content: center;
+    margin: 0;
+    padding: .75rem .5rem;
+    text-align: center;
+
+    p { width: 100%; }
+    .list-pagination-controls { justify-content: center; }
+}
+
+.community-feed-browser-has-navigation .community-feed-post { min-width: 0; }
+.community-feed-browser-has-navigation .community-feed-list { min-width: 0; }
+.community-feed-embedded { width: 100%; }
+
+.community-feed-question {
+    margin-top: 1.5rem;
+    padding-left: 1.15rem;
+    border-left: 3px solid $secondary-color;
+
+    > span { color: $secondary-color; font-size: $font-size-xsmall; font-weight: $font-weight-bold; letter-spacing: .12em; }
+    h2 { margin: .45rem 0 0; color: $color-text; font-family: $font-family; font-size: clamp(1.75rem, 3vw, 2.5rem); font-weight: $font-weight-bold; letter-spacing: -.035em; line-height: 1.18; overflow-wrap: anywhere; }
+}
+
+.community-feed-post-content {
+    max-width: none;
+    margin-top: 1.25rem;
+    padding: 1rem 1.15rem;
+    border: 1px solid rgba($color-text, .12);
+    border-radius: 11px;
+    background: rgba($primary-color, .34);
+
+    > span { display: block; margin-bottom: .55rem; color: $color-text-secondary; font-size: $font-size-xsmall; font-weight: $font-weight-semibold; text-transform: uppercase; letter-spacing: .08em; }
+    p { color: $color-text; font-size: $font-size-normal; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
+}
+
+@media (min-width: 1000px) {
+    .community-feed:not(.community-feed-embedded) .community-feed-browser-has-navigation .community-feed-post { display: block; padding: clamp(1.5rem, 2.5vw, 2.5rem); }
+    .community-feed:not(.community-feed-embedded) .community-feed-browser-has-navigation .community-feed-discussion { margin-top: 2rem; }
+}
+
+@media (max-width: 900px) {
+    .community-feed-browser-has-navigation { grid-template-columns: minmax(0, 1fr); }
+    .community-feed-navigation { position: static; }
+    .community-feed-navigation-list { display: flex; overflow-x: auto; overflow-y: hidden; max-height: none; }
+    .community-feed-navigation-list button { flex: 0 0 min(70vw, 240px); }
+}
+
+@media (max-width: 700px) {
+    .community-feed-filters { padding-inline: 1.25rem; }
+    .community-feed-search { width: 100%; }
+    .community-feed-navigation { margin-inline: 1rem; }
+    .community-feed-post { scroll-margin-top: 1rem; }
+    .community-feed-question { padding-left: .85rem; }
+}

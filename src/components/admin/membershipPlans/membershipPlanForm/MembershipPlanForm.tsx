@@ -111,6 +111,7 @@ export const MembershipPlanForm = ({ plan, categories, onClose }: Props) => {
 
     return (
         <form className="membership-plan-form" onSubmit={handleSubmit}>
+            <div className="membership-plan-form-section-heading"><span>01</span><h3>Configuración del plan</h3></div>
             <div className="membership-plan-form-row">
                 <div className="membership-plan-form-group">
                     <label htmlFor="plan-name">Nombre</label>
@@ -151,6 +152,7 @@ export const MembershipPlanForm = ({ plan, categories, onClose }: Props) => {
                 onSelectCategory={(name) => updateField('classCategory', name)}
             />
 
+            <div className="membership-plan-form-section-heading"><span>02</span><h3>Frecuencia y precio</h3></div>
             <div className="membership-plan-form-row">
                 <div className="membership-plan-form-group">
                     <label htmlFor="plan-days">Dias por semana</label>
@@ -189,6 +191,7 @@ export const MembershipPlanForm = ({ plan, categories, onClose }: Props) => {
                 </div>
             </div>
 
+            <div className="membership-plan-form-section-heading"><span>03</span><h3>Visibilidad</h3></div>
             <div className="membership-plan-form-checks">
                 <label>
                     <input

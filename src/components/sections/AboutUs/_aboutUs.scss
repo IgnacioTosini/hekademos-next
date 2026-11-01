@@ -1,113 +1,174 @@
 @use '../../../styles/variables' as *;
 
 .aboutUs {
-    display: flex;
-    flex-direction: column;
+    position: relative;
+    padding: clamp(5rem, 8vw, 8rem) 2rem;
+    color: $color-text;
+    background: linear-gradient(180deg, #1d2c3f 0%, #17283b 58%, #0f2034 100%);
+    overflow: hidden;
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 7rem;
+        right: -9rem;
+        width: 28rem;
+        height: 28rem;
+        border: 1px solid rgba($secondary-color, .13);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+}
+
+.aboutUsContent {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr);
     align-items: center;
-    text-align: center;
-    padding: 5rem 2rem;
+    gap: clamp(2rem, 6vw, 6rem);
+    width: min(100%, 1200px);
+    margin: 0 auto;
+}
 
-    @media (max-width: 768px) {
-        padding: 4rem 1.25rem;
+.aboutUsImage {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: clamp(440px, 52vw, 650px);
+    margin: 0;
+    overflow: hidden;
+    border-radius: .2rem 5rem .2rem .2rem;
+    background: $quinary-color;
+    box-shadow: 0 30px 70px rgba(0, 0, 0, .25);
+
+    &::after {
+        content: '';
+        position: absolute;
+        inset: 45% 0 0;
+        background: linear-gradient(transparent, rgba($quinary-color, .85));
+        pointer-events: none;
     }
 
-    .aboutUsTitle, .usPillarsTitle {
-        font-size: clamp($font-size-xxlarge, 10vw, $font-size-xxxlarge);
-        margin-bottom: 1rem;
+    img { display: block; width: 100%; height: 100%; object-fit: cover; }
 
-        &::after {
-            content: '';
-            display: block;
-            width: 60px;
-            height: 4px;
-            background-color: $secondary-color;
-            margin: 0.5rem auto 0;
-            border-radius: 2px;
-        }
+    figcaption {
+        position: absolute;
+        z-index: 1;
+        right: 1.75rem;
+        bottom: 1.5rem;
+        left: 1.75rem;
+        color: $color-text;
+        font-size: $font-size-small;
+        font-weight: $font-weight-bold;
+        letter-spacing: .16em;
+        span { color: $secondary-color; }
+    }
+}
+
+.aboutUsText {
+    padding: 1rem 0;
+    text-align: left;
+
+    .aboutStoryIndex {
+        display: block;
+        margin-bottom: 1.25rem;
+        color: $secondary-color;
+        font-size: $font-size-small;
+        font-weight: $font-weight-bold;
+        letter-spacing: .16em;
     }
 
-    .aboutUsContent {
+    h3 {
+        max-width: 18ch;
+        margin: 0 0 1.5rem;
+        font-size: clamp(1.9rem, 3vw, 3rem);
+        line-height: 1.15;
+        letter-spacing: -.03em;
+    }
+
+    > p:not(.especialText) {
+        max-width: 58ch;
+        margin: 0 0 1rem;
+        color: $color-text-secondary;
+        font-size: $font-size-medium;
+        line-height: 1.75;
+    }
+
+    .especialText {
+        max-width: 55ch;
+        margin: 2rem 0 0;
+        padding: 1.25rem 0 1.25rem 1.5rem;
+        border-left: 3px solid $secondary-color;
+        color: $color-text;
+        font-size: clamp(1rem, 1.8vw, 1.3rem);
+        font-weight: $font-weight-semibold;
+        line-height: 1.55;
+    }
+}
+
+.usPillars {
+    width: min(100%, 1200px);
+    margin: clamp(5rem, 9vw, 9rem) auto 0;
+    padding-top: clamp(3rem, 5vw, 5rem);
+    border-top: 1px solid rgba($color-text, .18);
+
+    .pillarsList {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        border-top: 1px solid rgba($color-text, .18);
+        border-left: 1px solid rgba($color-text, .18);
+    }
+
+    .pillarsList > div {
+        display: grid;
+        grid-template-columns: 3rem minmax(0, 1fr);
+        gap: 1rem;
+        min-width: 0;
+        padding: clamp(1.5rem, 3vw, 2.5rem);
+        border-right: 1px solid rgba($color-text, .18);
+        border-bottom: 1px solid rgba($color-text, .18);
+        background: rgba($quinary-color, .18);
+        transition: background-color .25s ease;
+        &:hover { background: rgba($secondary-color, .06); }
+    }
+
+    .pillarNumber {
+        padding-top: .2rem;
+        color: $secondary-color;
+        font-size: $font-size-small;
+        font-weight: $font-weight-bold;
+        letter-spacing: .1em;
+    }
+
+    .pillarCard {
         display: flex;
-        align-items: center;
-        justify-content: space-around;
+        align-items: flex-start;
+        text-align: left;
         width: 100%;
-        max-width: 1200px;
-        gap: 2rem;
-
-        @media screen and (max-width: 768px) {
-            flex-direction: column;
-            text-align: center;
-        }
-
-        .aboutUsText {
-            max-width: 500px;
-
-            h3 {
-                font-size: $font-size-xxlarge;
-                margin-bottom: 10px;
-            }
-
-            p {
-                font-size: $font-size-medium;
-                line-height: 1.5;
-                margin-bottom: 1rem;
-                text-align: left;
-            }
-
-            .especialText {
-                font-size: $font-size-medium-large;
-                font-weight: bold;
-                font-style: italic;
-                background-color: rgba($secondary-color, 0.2);
-                padding: 0.8rem 0.2rem;
-                border-radius: 1rem;
-                border-left: 4px solid $secondary-color;
-                text-align: center;
-                transition: background-color 0.3s ease;
-
-                &:hover {
-                    cursor: pointer;
-                    background-color: rgba($secondary-color, 0.3);
-                }
-            }
-        }
-
-        .aboutUsImage {
-            max-width: 600px;
-            border-radius: 1rem;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-
-            img {
-                width: 100%;
-                height: auto;
-                transition: transform 0.3s ease;
-
-                &:hover {
-                    transform: scale(1.05);
-                }
-            }
-
-            &:hover {
-                box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-            }
-        }
+        max-width: none;
+        min-width: 0;
+        height: 100%;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+        &:hover { transform: none; border: 0; cursor: default; }
+        .iconContainer { display: none; }
+        .pillarTitle { margin: 0 0 .65rem; font-size: clamp(1.2rem, 2vw, 1.55rem); line-height: 1.2; }
+        .pillarDescription { margin: 0; color: $color-text-secondary; font-size: $font-size-normal; line-height: 1.65; }
+        > .youtube-video-trigger { margin-top: 1.2rem; }
     }
+}
 
-    .usPillars {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        gap: 2rem;
-        flex-wrap: wrap;
-        margin-top: 3rem;
+@media (max-width: 800px) {
+    .aboutUsContent { grid-template-columns: 1fr; gap: 2.5rem; }
+    .aboutUsImage { height: clamp(350px, 65vw, 560px); }
+    .aboutUsText { padding: 0; }
+}
 
-        .pillarsList {
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 2rem;
-            width: 100%;
-        }
-    }
+@media (max-width: 600px) {
+    .aboutUs { padding: 4rem 1.25rem; }
+    .aboutUsImage { height: 420px; border-top-right-radius: 3rem; }
+    .usPillars .pillarsList { grid-template-columns: 1fr; }
+    .usPillars .pillarsList > div { grid-template-columns: 2rem minmax(0, 1fr); padding: 1.5rem 1rem; }
 }

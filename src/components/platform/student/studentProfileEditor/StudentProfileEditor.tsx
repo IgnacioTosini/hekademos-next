@@ -84,6 +84,7 @@ export const StudentProfileEditor = ({ student }: Props) => {
             try {
                 const { result, previousImageDeleteFailed } = await saveWithResolvedUserImage({
                     image,
+                    imageSection: 'alumnos',
                     previousImagePublicId: student.user.image?.publicId,
                     save: (resolvedImage) => updateStudentProfile({
                         email: form.email,
@@ -127,10 +128,11 @@ export const StudentProfileEditor = ({ student }: Props) => {
 
             {isOpen && (
                 <div className="student-profile-editor-container">
-                    <div className="student-profile-editor-modal">
+                    <div className="student-profile-editor-modal" role="dialog" aria-modal="true" aria-labelledby="student-profile-editor-title">
                         <div className="student-profile-editor-header">
                             <div>
-                                <h2>Editar perfil</h2>
+                                <span className="student-profile-editor-eyebrow">TU INFORMACIÓN</span>
+                                <h2 id="student-profile-editor-title">Editar perfil</h2>
                                 <p>Actualizá tus datos personales y tu foto de perfil.</p>
                             </div>
 
@@ -140,6 +142,7 @@ export const StudentProfileEditor = ({ student }: Props) => {
                         </div>
 
                         <form className="user-form student-profile-editor-form" onSubmit={handleSubmit}>
+                            <div className="student-profile-editor-section-heading"><span>01</span><h3>Datos personales</h3></div>
                             <UserImageField
                                 id="student-profile-image"
                                 label="Foto de perfil"
@@ -206,6 +209,19 @@ export const StudentProfileEditor = ({ student }: Props) => {
                                     />
                                 </div>
 
+                            </div>
+
+                            <div className="student-profile-editor-section-heading"><span>02</span><h3>Contacto de emergencia</h3></div>
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label htmlFor="profile-emergency-name">Nombre</label>
+                                    <input
+                                        id="profile-emergency-name"
+                                        value={form.emergencyContactName}
+                                        onChange={(event) => updateField("emergencyContactName", event.target.value)}
+                                        placeholder="Nombre del contacto"
+                                    />
+                                </div>
                                 <div className="form-group">
                                     <label htmlFor="profile-emergency-phone">Telefono emergencia</label>
                                     <input
@@ -218,17 +234,7 @@ export const StudentProfileEditor = ({ student }: Props) => {
                                 </div>
                             </div>
 
-                            <div className="form-group">
-                                <label htmlFor="profile-emergency-name">Contacto de emergencia</label>
-                                <input
-                                    id="profile-emergency-name"
-                                    value={form.emergencyContactName}
-                                    onChange={(event) => updateField("emergencyContactName", event.target.value)}
-                                    placeholder="Nombre del contacto"
-                                />
-                            </div>
-
-                            {error && <p className="form-error">{error}</p>}
+                            {error && <p className="form-error" role="alert">{error}</p>}
 
                             <div className="button-group">
                                 <button className="cancel-button" type="button" onClick={closeModal} disabled={isPending}>

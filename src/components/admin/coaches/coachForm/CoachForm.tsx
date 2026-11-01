@@ -9,6 +9,7 @@ import { createCoachUser, updateCoachUser } from '@/app/actions/coach.actions';
 import type { UserStatus, UserWithRelations } from '@/types/schema/users';
 import { saveWithResolvedUserImage, UserImageField, type UserImageValue } from '../../users/userImageField/UserImageField';
 import '../../users/userForm/_userForm.scss';
+import './_coachForm.scss';
 
 type Props = {
     coach: UserWithRelations | null;
@@ -86,6 +87,7 @@ export const CoachForm = ({ coach, onClose }: Props) => {
             try {
                 const { result, previousImageDeleteFailed } = await saveWithResolvedUserImage({
                     image,
+                    imageSection: 'profesores',
                     previousImagePublicId: coach?.image?.publicId,
                     save: (resolvedImage) => {
                         const payload = {
@@ -131,7 +133,8 @@ export const CoachForm = ({ coach, onClose }: Props) => {
     };
 
     return (
-        <form className="user-form" onSubmit={handleSubmit}>
+        <form className="user-form coach-form" onSubmit={handleSubmit}>
+            <div className="coach-form-section-heading"><span>01</span><h3>Cuenta y contacto</h3></div>
             <UserImageField
                 id="coach-image"
                 existingImage={coach?.image}
@@ -198,6 +201,7 @@ export const CoachForm = ({ coach, onClose }: Props) => {
                 />
             </div>
 
+            <div className="coach-form-section-heading"><span>02</span><h3>Perfil del coach</h3></div>
             <div className="form-row">
                 <div className="form-group">
                     <label htmlFor="coach-instagram">Instagram</label>
@@ -223,32 +227,6 @@ export const CoachForm = ({ coach, onClose }: Props) => {
                 </div>
             </div>
 
-            <div className="form-row">
-                <div className="form-group">
-                    <label htmlFor="coach-payment-alias">Alias de cobro</label>
-                    <input
-                        id="coach-payment-alias"
-                        value={form.paymentAlias}
-                        onChange={(event) => updateField('paymentAlias', event.target.value)}
-                        placeholder="ejemplo.alias.mp"
-                        maxLength={120}
-                        autoComplete="off"
-                        spellCheck={false}
-                    />
-                </div>
-
-                <div className="form-group">
-                    <label htmlFor="coach-payment-holder">Titular de la cuenta</label>
-                    <input
-                        id="coach-payment-holder"
-                        value={form.paymentAccountHolder}
-                        onChange={(event) => updateField('paymentAccountHolder', event.target.value)}
-                        placeholder="Nombre y apellido del titular"
-                        maxLength={160}
-                    />
-                </div>
-            </div>
-
             <div className="form-group checkbox-field">
                 <label htmlFor="coach-active">Coach activo</label>
                 <input
@@ -267,6 +245,18 @@ export const CoachForm = ({ coach, onClose }: Props) => {
                     onChange={(event) => updateField('bio', event.target.value)}
                     placeholder="Notas internas o descripcion del coach"
                 />
+            </div>
+
+            <div className="coach-form-section-heading"><span>03</span><h3>Datos de cobro</h3></div>
+            <div className="form-row">
+                <div className="form-group">
+                    <label htmlFor="coach-payment-alias">Alias de cobro</label>
+                    <input id="coach-payment-alias" value={form.paymentAlias} onChange={(event) => updateField('paymentAlias', event.target.value)} placeholder="ejemplo.alias.mp" maxLength={120} autoComplete="off" spellCheck={false} />
+                </div>
+                <div className="form-group">
+                    <label htmlFor="coach-payment-holder">Titular de la cuenta</label>
+                    <input id="coach-payment-holder" value={form.paymentAccountHolder} onChange={(event) => updateField('paymentAccountHolder', event.target.value)} placeholder="Nombre y apellido del titular" maxLength={160} />
+                </div>
             </div>
 
             {error && <p className="form-error">{error}</p>}

@@ -1,4 +1,4 @@
-import Image from "next/image";
+﻿import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { FaArrowLeft, FaExternalLinkAlt } from "react-icons/fa";
@@ -23,6 +23,8 @@ import { dayOrderIndex, getScheduleLabel } from "@/utils/schedule";
 import { getInitials } from "@/utils/strings";
 import { getStudentName } from "@/utils/student";
 import { CoachPaymentCard } from "./CoachPaymentCard";
+import { AttendanceFilterForm } from "./AttendanceFilterForm";
+import { StudentPaymentHistory } from "./StudentPaymentHistory";
 import "./_studentProfileContent.scss";
 
 type Props = {
@@ -45,6 +47,7 @@ type Props = {
         weeklySchedule: ScheduleDisplay;
     } | null;
     routineActions?: ReactNode;
+    selfProfile?: boolean;
 };
 
 type ScheduleDisplay = Pick<
@@ -167,6 +170,7 @@ export const StudentProfileContent = ({
     scheduleActions,
     temporaryScheduleChange,
     routineActions,
+    selfProfile = false,
 }: Props) => {
     const today = new Date();
     const attendanceMonth = selectedAttendanceMonth ?? today.getMonth() + 1;
@@ -225,8 +229,147 @@ export const StudentProfileContent = ({
             )
         ));
 
+    const scheduleCard = (
+        <article className="student-profile-card student-profile-schedule-card">
+            {temporaryScheduleChange && <RefreshAt value={temporaryScheduleChange.expiresAt} />}
+            <div className="student-profile-card-header student-profile-card-header-compact">
+                <h2>Turnos elegidos</h2>
+                {scheduleActions}
+            </div>
+            {activeSchedules.length > 0 ? (
+                <div className="student-profile-schedules">
+                    {activeSchedules.map((scheduleAssignment) => (
+                        <div key={scheduleAssignment.id} className="student-profile-schedule">
+                            <div>
+                                <strong>{getScheduleLabel(scheduleAssignment.weeklySchedule)}</strong>
+                                {scheduleAssignment.isTemporary && (
+                                    <small className="student-profile-schedule-temporary">
+                                        Solo por esta clase · {formatDate(scheduleAssignment.requestedDate)}
+                                    </small>
+                                )}
+                            </div>
+                            <span>{scheduleAssignment.isTemporary
+                                ? "Después vuelve tu turno habitual"
+                                : scheduleAssignment.weeklySchedule.capacity
+                                    ? `Cupo ${scheduleAssignment.weeklySchedule.capacity}`
+                                    : "Sin cupo definido"}</span>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <EmptyState compact className="student-profile-empty" title="Sin turnos asignados" description="Todavia no hay horarios elegidos para este alumno." />
+            )}
+        </article>
+    );
+
+    const paymentCard = (
+        <CoachPaymentCard
+            coachName={coachName}
+            paymentAlias={student.coach?.paymentAlias ?? null}
+            paymentAccountHolder={student.coach?.paymentAccountHolder ?? null}
+            coachPhone={student.coach?.user?.phone ?? null}
+            studentName={studentName}
+            amountLabel={formatCurrency(paymentSummary.visibleAmount, paymentSummary.currency)}
+            paymentPeriodLabel={paymentPeriodLabel}
+            hasActiveMembership={Boolean(activeMembership)}
+            isCurrentPaymentPaid={paymentSummary.status === "PAID"}
+            allowPaymentReport={allowPaymentReport}
+        />
+    );
+
+    const historyCards = (
+        <>
+                <article className="student-profile-card student-profile-card-wide">
+                    <div className="student-profile-card-header">
+                        <div>
+                            <h2>Historial de pagos</h2>
+                            <p>{paymentHistory.length} pagos registrados</p>
+                        </div>
+                        {paymentsHref && (
+                            <Link href={paymentsHref}>
+                                Ver detalle
+                                <FaExternalLinkAlt />
+                            </Link>
+                        )}
+                    </div>
+
+                    {paymentHistory.length > 0 ? (
+                        <StudentPaymentHistory payments={paymentHistory} />
+                    ) : (
+                        <EmptyState
+                            compact
+                            className="student-profile-empty"
+                            title="Sin pagos registrados"
+                            description="Todavia no hay movimientos de pago para este alumno."
+                        />
+                    )}
+                </article>
+
+                <article className="student-profile-card student-profile-card-wide">
+                    <div className="student-profile-card-header">
+                        <div>
+                            <h2>Asistencia</h2>
+                            <p>{attendanceMonthLabel} · {attendanceHistory.length} clases registradas</p>
+                        </div>
+
+                        {attendanceBaseHref && (
+                            <AttendanceFilterForm baseHref={attendanceBaseHref}>
+                                <select name="month" defaultValue={attendanceMonth} aria-label="Filtrar asistencia por mes">
+                                    {monthOptions.map((month) => (
+                                        <option key={month.value} value={month.value}>{month.label}</option>
+                                    ))}
+                                </select>
+
+                                <select name="year" defaultValue={attendanceYear} aria-label="Filtrar asistencia por año">
+                                    {attendanceYearOptions.map((year) => (
+                                        <option key={year} value={year}>{year}</option>
+                                    ))}
+                                </select>
+
+                            </AttendanceFilterForm>
+                        )}
+                    </div>
+
+                    {attendanceHistory.length > 0 ? (
+                        <>
+                            <div className="student-profile-attendance-summary">
+                                {attendanceStatusOrder.map((status) => (
+                                    <div key={status}>
+                                        <span>{attendanceStatusLabels[status]}</span>
+                                        <strong>{attendanceCounts[status]}</strong>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="student-profile-attendance-list" role="region" aria-label="Clases registradas" tabIndex={0}>
+                                {latestAttendance.map((attendance) => (
+                                    <div className="student-profile-attendance-item" key={attendance.id}>
+                                        <div>
+                                            <strong>{getAttendanceScheduleLabel(attendance)}</strong>
+                                            <span>{formatDate(attendance.session?.startsAt ?? attendance.createdAt)}</span>
+                                        </div>
+                                        <span className={`student-profile-attendance-status student-profile-attendance-status-${attendance.status.toLowerCase()}`}>
+                                            {attendanceStatusLabels[attendance.status]}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </>
+                    ) : (
+                        <EmptyState
+                            compact
+                            className="student-profile-empty"
+                            title="Sin asistencias registradas"
+                            description="Todavia no hay clases registradas para el filtro seleccionado."
+                        />
+                    )}
+                </article>
+
+        </>
+    );
+
     return (
-        <div className="student-profile-content">
+        <div className={`student-profile-content${selfProfile ? " student-profile-content-self" : ""}`}>
             {backHref && (
                 <Link className="student-profile-back" href={backHref}>
                     <FaArrowLeft />
@@ -245,6 +388,7 @@ export const StudentProfileContent = ({
                     </div>
 
                     <div>
+                        {selfProfile && <span className="student-profile-eyebrow">MI ESPACIO</span>}
                         <span className={`student-profile-status student-profile-status-${student.user.status.toLowerCase()}`}>
                             {userStatusLabels[student.user.status]}
                         </span>
@@ -253,23 +397,50 @@ export const StudentProfileContent = ({
                     </div>
                 </div>
 
+                {selfProfile && <div className="student-profile-hero-summary">
+                    <div>
+                        <span>Tu membresía</span>
+                        <strong>{activeMembership?.plan?.name ?? "Sin plan activo"}</strong>
+                        <p>{activeMembership?.plan
+                            ? `${getClassCategoryLabel(activeMembership.plan.classCategory)} · ${activeMembership.plan.trainingDaysPerWeek} días por semana`
+                            : "Consultá los planes disponibles para empezar."}</p>
+                    </div>
+                    <div>
+                        <span>Pago del mes</span>
+                        <strong>{paymentStatusLabels[paymentSummary.status]}</strong>
+                        <p>{formatCurrency(paymentSummary.visibleAmount, paymentSummary.currency)} · {getPaymentWindowLabel(today)}</p>
+                    </div>
+                </div>}
+
                 {actions}
             </div>
 
+            {selfProfile && <section className="student-profile-priority" aria-labelledby="student-profile-priority-title">
+                <div className="student-profile-priority-heading">
+                    <span>ORGANIZÁ TU ENTRENAMIENTO</span>
+                    <h2 id="student-profile-priority-title">Tus próximos pasos</h2>
+                    <p>Revisá tus turnos y coordiná cualquier cambio desde acá.</p>
+                </div>
+                <div className="student-profile-priority-grid">
+                    {scheduleCard}
+                    {paymentCard}
+                </div>
+            </section>}
+
             <div className="student-profile-kpis">
-                <article>
+                {!selfProfile && <article>
                     <span>Membresia</span>
                     <strong>{activeMembership?.plan?.name ?? "Sin plan"}</strong>
                     <p>{activeMembership?.plan
                         ? `${getClassCategoryLabel(activeMembership.plan.classCategory)} · ${activeMembership.plan.trainingDaysPerWeek} dias/semana`
                         : "Sin membresia activa"}</p>
-                </article>
+                </article>}
 
-                <article>
+                {!selfProfile && <article>
                     <span>Pago del mes</span>
                     <strong>{paymentStatusLabels[paymentSummary.status]}</strong>
                     <p>{formatCurrency(paymentSummary.visibleAmount, paymentSummary.currency)} · {getPaymentWindowLabel(today)}</p>
-                </article>
+                </article>}
 
                 <article>
                     <span>Coach</span>
@@ -347,158 +518,10 @@ export const StudentProfileContent = ({
                     )}
                 </article>
 
-                <article className="student-profile-card">
-                    {temporaryScheduleChange && <RefreshAt value={temporaryScheduleChange.expiresAt} />}
-                    <div className="student-profile-card-header student-profile-card-header-compact">
-                        <h2>Turnos elegidos</h2>
-                        {scheduleActions}
-                    </div>
-                    {activeSchedules.length > 0 ? (
-                        <div className="student-profile-schedules">
-                            {activeSchedules.map((scheduleAssignment) => (
-                                <div key={scheduleAssignment.id} className="student-profile-schedule">
-                                    <div>
-                                        <strong>{getScheduleLabel(scheduleAssignment.weeklySchedule)}</strong>
-                                        {scheduleAssignment.isTemporary && (
-                                            <small className="student-profile-schedule-temporary">
-                                                Solo por esta clase · {formatDate(scheduleAssignment.requestedDate)}
-                                            </small>
-                                        )}
-                                    </div>
-                                    <span>{scheduleAssignment.isTemporary
-                                        ? "Después vuelve tu turno habitual"
-                                        : scheduleAssignment.weeklySchedule.capacity
-                                            ? `Cupo ${scheduleAssignment.weeklySchedule.capacity}`
-                                            : "Sin cupo definido"}</span>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <EmptyState
-                            compact
-                            className="student-profile-empty"
-                            title="Sin turnos asignados"
-                            description="Todavia no hay horarios elegidos para este alumno."
-                        />
-                    )}
-                </article>
+                {!selfProfile && scheduleCard}
+                {!selfProfile && paymentCard}
 
-                <CoachPaymentCard
-                    coachName={coachName}
-                    paymentAlias={student.coach?.paymentAlias ?? null}
-                    paymentAccountHolder={student.coach?.paymentAccountHolder ?? null}
-                    coachPhone={student.coach?.user?.phone ?? null}
-                    studentName={studentName}
-                    amountLabel={formatCurrency(paymentSummary.visibleAmount, paymentSummary.currency)}
-                    paymentPeriodLabel={paymentPeriodLabel}
-                    hasActiveMembership={Boolean(activeMembership)}
-                    isCurrentPaymentPaid={paymentSummary.status === "PAID"}
-                    allowPaymentReport={allowPaymentReport}
-                />
-
-                <article className="student-profile-card student-profile-card-wide">
-                    <div className="student-profile-card-header">
-                        <div>
-                            <h2>Historial de pagos</h2>
-                            <p>{paymentHistory.length} pagos registrados</p>
-                        </div>
-                        {paymentsHref && (
-                            <Link href={paymentsHref}>
-                                Ver detalle
-                                <FaExternalLinkAlt />
-                            </Link>
-                        )}
-                    </div>
-
-                    {paymentHistory.length > 0 ? (
-                        <div className="student-profile-payments">
-                            {paymentHistory.map((payment) => (
-                                <div className="student-profile-payment" key={payment.id}>
-                                    <div>
-                                        <strong>{formatCurrency(payment.amountCents, payment.currency)}</strong>
-                                        <span>{payment.paidAt ? formatDate(payment.paidAt) : formatDate(payment.dueDate)}</span>
-                                        {(payment.reference || payment.notes) && (
-                                            <small>
-                                                {[payment.reference, payment.notes].filter(Boolean).join(" · ")}
-                                            </small>
-                                        )}
-                                    </div>
-                                    <span className={`student-profile-payment-status student-profile-payment-status-${payment.status.toLowerCase()}`}>
-                                        {paymentStatusLabels[payment.status]}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <EmptyState
-                            compact
-                            className="student-profile-empty"
-                            title="Sin pagos registrados"
-                            description="Todavia no hay movimientos de pago para este alumno."
-                        />
-                    )}
-                </article>
-
-                <article className="student-profile-card student-profile-card-wide">
-                    <div className="student-profile-card-header">
-                        <div>
-                            <h2>Asistencia</h2>
-                            <p>{attendanceMonthLabel} · {attendanceHistory.length} clases registradas</p>
-                        </div>
-
-                        {attendanceBaseHref && (
-                            <form className="student-profile-attendance-filters" action={attendanceBaseHref} method="get">
-                                <select name="month" defaultValue={attendanceMonth} aria-label="Filtrar asistencia por mes">
-                                    {monthOptions.map((month) => (
-                                        <option key={month.value} value={month.value}>{month.label}</option>
-                                    ))}
-                                </select>
-
-                                <select name="year" defaultValue={attendanceYear} aria-label="Filtrar asistencia por año">
-                                    {attendanceYearOptions.map((year) => (
-                                        <option key={year} value={year}>{year}</option>
-                                    ))}
-                                </select>
-
-                                <button type="submit">Ver</button>
-                            </form>
-                        )}
-                    </div>
-
-                    {attendanceHistory.length > 0 ? (
-                        <>
-                            <div className="student-profile-attendance-summary">
-                                {attendanceStatusOrder.map((status) => (
-                                    <div key={status}>
-                                        <span>{attendanceStatusLabels[status]}</span>
-                                        <strong>{attendanceCounts[status]}</strong>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <div className="student-profile-attendance-list">
-                                {latestAttendance.map((attendance) => (
-                                    <div className="student-profile-attendance-item" key={attendance.id}>
-                                        <div>
-                                            <strong>{getAttendanceScheduleLabel(attendance)}</strong>
-                                            <span>{formatDate(attendance.session?.startsAt ?? attendance.createdAt)}</span>
-                                        </div>
-                                        <span className={`student-profile-attendance-status student-profile-attendance-status-${attendance.status.toLowerCase()}`}>
-                                            {attendanceStatusLabels[attendance.status]}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        </>
-                    ) : (
-                        <EmptyState
-                            compact
-                            className="student-profile-empty"
-                            title="Sin asistencias registradas"
-                            description="Todavia no hay clases registradas para el filtro seleccionado."
-                        />
-                    )}
-                </article>
+                {!selfProfile && historyCards}
 
                 {showInternalNotes && (
                     <article className="student-profile-card">
@@ -527,6 +550,14 @@ export const StudentProfileContent = ({
                     )}
                 </article>
             </div>
+            {selfProfile && <section className="student-profile-history" aria-labelledby="student-profile-history-title">
+                <div className="student-profile-history-heading">
+                    <span>TU RECORRIDO</span>
+                    <h2 id="student-profile-history-title">Historial</h2>
+                    <p>Consultá tus pagos y asistencias cuando lo necesites.</p>
+                </div>
+                <div className="student-profile-history-grid">{historyCards}</div>
+            </section>}
         </div>
     );
 };

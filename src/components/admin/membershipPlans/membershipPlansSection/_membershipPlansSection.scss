@@ -59,12 +59,15 @@
 
     .membership-plans-toolbar {
         display: flex;
-        justify-content: flex-end;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: .75rem;
         padding: 1rem;
         border-bottom: 1px solid rgba($secondary-color, .14);
 
-        input {
-            width: min(100%, 360px);
+        input,
+        select {
+            min-height: 44px;
             padding: .75rem .9rem;
             border: 1px solid rgba($secondary-color, .22);
             border-radius: 8px;
@@ -81,7 +84,18 @@
                 border-color: rgba($secondary-color, .75);
             }
         }
+
+        input { flex: 1 1 260px; min-width: 0; }
+        select { flex: 0 1 190px; min-width: 0; background-color: $quinary-color; color-scheme: dark; cursor: pointer; }
+        select option { background: $quinary-color; color: $color-text; }
     }
+
+    .membership-plans-results { padding: .7rem 1rem; border-bottom: 1px solid rgba($secondary-color, .14); color: $color-text-secondary; font-size: $font-size-small; }
+    .membership-plans-results strong { color: $secondary-color; }
+
+    .plan-cell-price { white-space: nowrap; }
+    .plan-cell-price strong { color: $secondary-color; font-size: $font-size-medium; }
+    .plan-cell-price span { margin-left: .25rem; color: $color-text-secondary; font-size: $font-size-small; }
 
     .membership-plans-table {
         width: 100%;
@@ -182,14 +196,15 @@
         display: flex;
         align-items: center;
         justify-content: flex-end;
-        gap: .75rem;
+        gap: .5rem;
 
         button {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 34px;
-            height: 34px;
+            gap: .4rem;
+            min-height: 38px;
+            padding: .5rem .7rem;
             border: 1px solid rgba($secondary-color, .16);
             border-radius: 8px;
             background: transparent;
@@ -197,6 +212,10 @@
             cursor: pointer;
             font-size: $font-size-medium;
             transition: .2s;
+
+            span { font-size: $font-size-small; font-weight: $font-weight-semibold; }
+            &:first-child { border-color: rgba($secondary-color, .32); color: $secondary-color; }
+            &:last-child { color: $color-error; }
 
             &:hover {
                 border-color: rgba($secondary-color, .5);
@@ -227,7 +246,12 @@
         .membership-plans-toolbar {
             padding: 0 0 1rem;
             border-bottom: 0;
+
+            input { flex-basis: 100%; }
+            select { flex: 1 1 calc(50% - .4rem); }
         }
+
+        .membership-plans-results { margin-bottom: .75rem; padding: 0 0 .75rem; }
 
         .membership-plans-table {
             thead {
@@ -241,10 +265,12 @@
             }
 
             tr {
-                display: flex;
-                flex-direction: column;
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: .3rem .75rem;
+                padding: 1rem;
                 border: 1px solid rgba($secondary-color, .18);
-                border-radius: 8px;
+                border-radius: .85rem;
                 background: rgba($tertiary-color, .22);
             }
 
@@ -252,7 +278,10 @@
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                gap: 1rem;
+                gap: .5rem;
+                min-width: 0;
+                padding: .35rem 0;
+                border-bottom: 0;
 
                 &::before {
                     content: attr(data-label);
@@ -262,6 +291,37 @@
                     text-transform: uppercase;
                 }
             }
+
+            .plan-cell-name { grid-column: 1 / -1; padding: 0 0 .65rem; border-bottom: 1px solid rgba($secondary-color, .14); }
+            .plan-cell-name::before,
+            .plan-cell-price::before,
+            .plan-cell-category::before,
+            .plan-cell-status::before,
+            .plan-cell-actions::before { display: none; }
+            .plan-cell-price { grid-column: 1 / -1; justify-content: flex-start; padding: .8rem 0; }
+            .plan-cell-price strong { font-size: $font-size-large; }
+            .plan-cell-category { grid-column: 1 / -1; justify-content: flex-start; }
+            .plan-cell-days,
+            .plan-cell-students { grid-column: 1 / -1; color: $color-text-secondary; font-size: $font-size-small; }
+            .plan-cell-status { grid-column: 1 / -1; justify-content: flex-start; padding: .6rem 0; }
+            .plan-cell-actions { grid-column: 1 / -1; padding-top: .8rem; border-top: 1px solid rgba($secondary-color, .14); }
+            .membership-plan-actions { width: 100%; }
+            .membership-plan-actions button { min-height: 44px; }
+            .membership-plan-actions button:first-child { flex: 1; }
         }
     }
+
+    .membership-plan-delete-backdrop { position: fixed; inset: 0; z-index: 10030; display: grid; place-items: center; padding: 1rem; background: rgba(3, 11, 21, .78); backdrop-filter: blur(5px); }
+    .membership-plan-delete-dialog { width: min(100%, 460px); padding: clamp(1.25rem, 4vw, 2rem); border: 1px solid rgba($color-error, .3); border-radius: 1rem; background: $quinary-color; box-shadow: 0 24px 70px rgba(0, 0, 0, .35); }
+    .membership-plan-delete-eyebrow { color: $color-error; font-size: $font-size-small; font-weight: $font-weight-bold; letter-spacing: .14em; }
+    .membership-plan-delete-dialog h2 { margin-top: .5rem; color: $color-text; font-size: $font-size-large; }
+    .membership-plan-delete-dialog p { margin-top: .75rem; color: $color-text-secondary; line-height: 1.5; }
+    .membership-plan-delete-dialog p strong { color: $color-text; }
+    .membership-plan-delete-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: .65rem; margin-top: 1.5rem; }
+    .membership-plan-delete-actions button { min-height: 44px; padding: .7rem 1rem; border: 1px solid rgba($color-text, .22); border-radius: .6rem; background: transparent; color: $color-text; cursor: pointer; font: inherit; font-weight: $font-weight-semibold; }
+    .membership-plan-delete-actions button:last-child { border-color: $color-error; background: $color-error; color: $quinary-color; }
+    .membership-plan-delete-actions button:disabled { cursor: wait; opacity: .7; }
+    .membership-plan-delete-actions button:focus-visible { outline: 2px solid $secondary-color; outline-offset: 2px; }
+
+    @media (max-width: 480px) { .membership-plan-delete-actions button { flex: 1 1 100%; } }
 }

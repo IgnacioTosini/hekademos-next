@@ -1,94 +1,197 @@
-@use '@/styles/variables' as *;
+﻿@use '@/styles/variables' as *;
 
 .whatsapp-integration {
     width: 100%;
-    padding: 2rem;
+    max-width: 1500px;
+    margin: 0 auto;
+    padding: clamp(1rem, 2.5vw, 2.5rem);
     color: $color-text;
 }
 
 .whatsapp-integration-header {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
+    gap: 1.1rem;
+    margin-bottom: 1.75rem;
 
-    h1 { margin: 0 0 .25rem; font-size: 2rem; }
-    p { margin: 0; color: $color-text-secondary; }
+    h1 { margin: .25rem 0 .35rem; font-size: clamp(1.9rem, 3vw, 2.7rem); line-height: 1.1; }
+    p { margin: 0; color: $color-text-secondary; line-height: 1.5; }
+}
+
+.whatsapp-integration-eyebrow {
+    color: $secondary-color;
+    font-size: .72rem;
+    font-weight: 800;
+    letter-spacing: .14em;
 }
 
 .whatsapp-integration-icon {
     display: grid;
-    width: 3.5rem;
-    height: 3.5rem;
+    flex: 0 0 auto;
+    width: 3.8rem;
+    height: 3.8rem;
     place-items: center;
-    border-radius: 50%;
-    background: #25d366;
-    color: #fff;
+    border: 1px solid rgba(#25d366, .5);
+    border-radius: 1rem;
+    background: rgba(#25d366, .12);
+    color: #58e78d;
     font-size: 2rem;
 }
 
 .whatsapp-integration-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1rem;
+    gap: 1.25rem;
+    align-items: start;
 }
 
 .whatsapp-integration-card,
 .whatsapp-integration-note {
-    border: 1px solid rgba($secondary-color, .3);
-    border-radius: .75rem;
-    background: rgba($quinary-color, .72);
+    min-width: 0;
+    border: 1px solid rgba($secondary-color, .25);
+    border-radius: 1rem;
+    background: rgba($quinary-color, .82);
 }
 
 .whatsapp-integration-card {
-    padding: 1.5rem;
+    padding: clamp(1.1rem, 2vw, 1.8rem);
 
-    h2 { margin: 0 0 1rem; }
-    ol { padding-left: 1.25rem; color: $color-text-secondary; line-height: 1.55; }
-    dl { margin: 0; }
-    dl div { display: flex; justify-content: space-between; gap: 1rem; padding: .75rem 0; border-bottom: 1px solid rgba(#fff, .1); }
+    h2 { margin: .3rem 0 1.2rem; font-size: 1.45rem; }
+    dl { margin: .6rem 0 0; }
+    dl div { display: flex; justify-content: space-between; gap: 1rem; padding: .8rem 0; border-bottom: 1px solid rgba(#fff, .1); }
+    dl div:last-child { border-bottom: 0; }
     dt { color: $color-text-secondary; }
     dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
 }
 
-.whatsapp-integration-empty,
-.whatsapp-integration-warning,
-.whatsapp-integration-message,
-.whatsapp-integration-error { line-height: 1.5; }
-
-.whatsapp-integration-warning,
-.whatsapp-integration-error { color: #ffb4ab; }
-.whatsapp-integration-message { color: #9ee6b4; }
-
-.whatsapp-integration-actions {
+.whatsapp-integration-card-heading {
     display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
     flex-wrap: wrap;
-    gap: .75rem;
-    margin-top: 1.25rem;
-
-    button {
-        display: inline-flex;
-        align-items: center;
-        gap: .5rem;
-        border: 1px solid #25d366;
-        border-radius: .55rem;
-        padding: .75rem 1rem;
-        background: #25d366;
-        color: #071c10;
-        font: inherit;
-        font-weight: 700;
-        cursor: pointer;
-    }
-
-    button.secondary { border-color: rgba(#fff, .35); background: transparent; color: $color-text; }
-    button:disabled { cursor: not-allowed; opacity: .55; }
+    gap: .5rem 1rem;
 }
 
-.whatsapp-integration-note { margin-top: 1rem; padding: 1rem 1.25rem; color: $color-text-secondary; }
+.whatsapp-integration-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    border: 1px solid rgba(#fff, .16);
+    border-radius: 999px;
+    padding: .4rem .7rem;
+    color: $color-text-secondary;
+    font-size: .8rem;
+    font-weight: 700;
 
-@media (max-width: 850px) {
-    .whatsapp-integration { padding: 1rem; }
+    span { width: .5rem; height: .5rem; border-radius: 50%; background: currentColor; }
+    &.connected { border-color: rgba(#58e78d, .3); background: rgba(#25d366, .1); color: #84efaa; }
+}
+
+.whatsapp-integration-number {
+    margin: .2rem 0;
+    font-size: clamp(1.5rem, 2.3vw, 2.1rem);
+    font-weight: 800;
+    overflow-wrap: anywhere;
+}
+.whatsapp-integration-account { margin: 0 0 1.5rem; color: $color-text-secondary; }
+.whatsapp-integration-empty { margin: .2rem 0 1.5rem; color: $color-text-secondary; line-height: 1.6; }
+
+.whatsapp-integration-details {
+    margin: 0 0 1.5rem;
+    border-top: 1px solid rgba(#fff, .1);
+    padding-top: .9rem;
+
+    summary { width: fit-content; color: #f9a54a; font-weight: 700; cursor: pointer; }
+    summary:focus-visible { outline: 2px solid $secondary-color; outline-offset: 4px; }
+}
+
+.whatsapp-integration-config {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    border-radius: .65rem;
+    padding: .8rem .9rem;
+    background: rgba(#fff, .05);
+    color: $color-text-secondary;
+    font-size: .9rem;
+    line-height: 1.4;
+
+    &.ready { background: rgba(#25d366, .09); color: #a6edbd; }
+    &.missing { background: rgba(#f9a54a, .09); color: #ffd2a1; }
+}
+.whatsapp-integration-config-dot { flex: 0 0 auto; width: .5rem; height: .5rem; border-radius: 50%; background: currentColor; }
+
+.whatsapp-integration-steps {
+    display: grid;
+    gap: .75rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    li { display: flex; align-items: flex-start; gap: .85rem; border: 1px solid rgba(#fff, .1); border-radius: .7rem; padding: .9rem; color: $color-text-secondary; line-height: 1.5; }
+}
+.whatsapp-integration-step-number { flex: 0 0 auto; color: $secondary-color; font-size: .78rem; font-weight: 800; letter-spacing: .08em; }
+
+.whatsapp-integration-actions { margin-top: 1.25rem; }
+.whatsapp-integration-actions button,
+.whatsapp-integration-danger button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    min-height: 2.8rem;
+    border: 1px solid #25d366;
+    border-radius: .65rem;
+    padding: .7rem 1rem;
+    background: #25d366;
+    color: #071c10;
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+    transition: background .2s ease, border-color .2s ease;
+
+    &:hover:not(:disabled) { background: #51e782; }
+    &:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+    &:disabled { cursor: not-allowed; opacity: .55; }
+}
+
+.whatsapp-integration-progress,
+.whatsapp-integration-feedback {
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    margin: 1rem 0 0;
+    border-radius: .65rem;
+    padding: .9rem 1rem;
+    line-height: 1.5;
+}
+.whatsapp-integration-progress { background: rgba(#fff, .06); color: $color-text; }
+.whatsapp-integration-feedback.success { background: rgba(#25d366, .1); color: #a6edbd; }
+.whatsapp-integration-feedback.error { background: rgba(#ff786e, .1); color: #ffb4ab; }
+.whatsapp-integration-spinner { display: inline-block; flex: 0 0 auto; width: 1.1rem; height: 1.1rem; border: 2px solid rgba(#fff, .3); border-top-color: #25d366; border-radius: 50%; }
+
+.whatsapp-integration-danger {
+    margin-top: 1.5rem;
+    border-top: 1px solid rgba(#fff, .12);
+    padding-top: 1rem;
+
+    p { margin: 0 0 .7rem; color: $color-text-secondary; font-size: .88rem; line-height: 1.5; }
+    button.secondary { border-color: rgba(#ffb4ab, .4); background: transparent; color: #ffb4ab; }
+    button.secondary:hover:not(:disabled) { background: rgba(#ffb4ab, .1); }
+}
+
+.whatsapp-integration-note { margin-top: 1.25rem; padding: 1rem 1.25rem; color: $color-text-secondary; line-height: 1.55; }
+.whatsapp-integration-note strong { color: $color-text; }
+
+@media (max-width: 900px) {
     .whatsapp-integration-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 600px) {
+    .whatsapp-integration-header { align-items: flex-start; }
+    .whatsapp-integration-icon { width: 3rem; height: 3rem; font-size: 1.5rem; }
     .whatsapp-integration-card dl div { flex-direction: column; gap: .3rem; }
     .whatsapp-integration-card dd { text-align: left; }
+    .whatsapp-integration-actions button,
+    .whatsapp-integration-danger button { width: 100%; }
 }

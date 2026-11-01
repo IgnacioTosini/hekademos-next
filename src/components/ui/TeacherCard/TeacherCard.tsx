@@ -2,10 +2,12 @@ import { FaInstagram } from 'react-icons/fa';
 import Image from 'next/image';
 import './_teacherCard.scss'
 import { YoutubeVideoButton } from '../YoutubeVideoButton';
+import type { SiteContentImage } from '@/lib/home-page-content';
+import { siteImageStyle } from '@/lib/site-image-style';
 
 type TeacherCardProps = {
     name: string;
-    image: string;
+    image: SiteContentImage;
     description: string;
     instagramLink: string;
     videoUrl?: string;
@@ -15,7 +17,7 @@ export const TeacherCard = ({ name, image, description, instagramLink, videoUrl 
     return (
         <div className='teacherCard'>
             <picture className='imgContainer'>
-                <Image src={image} alt={name} width={200} height={200} quality={80} placeholder="blur" blurDataURL="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect fill='%23e5e5e5'/%3E%3C/svg%3E" />
+                <Image src={image.url} alt={name} style={siteImageStyle(image)} width={600} height={600} sizes="(max-width: 768px) 80vw, 30vw" quality={80} placeholder="blur" blurDataURL="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect fill='%23e5e5e5'/%3E%3C/svg%3E" />
             </picture>
             <h4 className='teacherTitle'>{name}</h4>
             <p className='teacherDescription'>{description}</p>

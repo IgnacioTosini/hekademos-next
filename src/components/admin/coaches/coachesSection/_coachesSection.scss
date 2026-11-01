@@ -1,0 +1,34 @@
+@use '@/styles/variables' as *;
+
+.coaches-section {
+    .coach-cell-students .students-count-button {
+        width: auto;
+        height: auto;
+        min-height: 38px;
+        gap: .45rem;
+        padding: .45rem .7rem;
+        white-space: nowrap;
+        strong { color: $secondary-color; font-size: $font-size-medium; }
+        span { font-size: $font-size-small; }
+        &:focus-visible { outline: 2px solid $secondary-color; outline-offset: 2px; }
+    }
+
+    @media (max-width: 768px) {
+        .users-table {
+            tr { display: flex; flex-direction: column; }
+            .user-cell-primary { order: 0; }
+            .coach-cell-specialty { order: 1; padding-top: .9rem; color: $color-text; font-weight: $font-weight-semibold; }
+            .user-cell-status { order: 2; padding: .4rem 0; }
+            .coach-cell-students { order: 3; padding: .5rem 0 .8rem; }
+            .coach-cell-instagram { order: 4; padding: .7rem 0; border-top: 1px solid rgba($secondary-color, .14); color: $color-text-secondary; }
+            .coach-cell-specialty,
+            .coach-cell-students { justify-content: flex-start; gap: .75rem; }
+            .coach-cell-specialty::before,
+            .coach-cell-students::before { display: none; }
+            .user-cell-actions { order: 5; padding-top: .75rem; border-top: 1px solid rgba($secondary-color, .14); }
+            .coach-cell-students .students-count-button { width: 100%; justify-content: flex-start; min-height: 44px; margin-left: 0; }
+            .user-actions { width: 100%; }
+            .user-actions button:first-child { flex: 1; }
+        }
+    }
+}

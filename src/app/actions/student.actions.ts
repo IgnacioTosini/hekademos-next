@@ -418,6 +418,7 @@ export const getStudentById = async (
             },
             include: {
                 user: {
+                    omit: { passwordHash: true },
                     include: {
                         image: true,
                     },
@@ -425,6 +426,7 @@ export const getStudentById = async (
                 coach: {
                     include: {
                         user: {
+                            omit: { passwordHash: true },
                             include: {
                                 image: true,
                             },
@@ -479,6 +481,7 @@ export const getStudentById = async (
                                 coach: {
                                     include: {
                                         user: {
+                                            omit: { passwordHash: true },
                                             include: {
                                                 image: true,
                                             },
@@ -511,6 +514,21 @@ export const getStudentById = async (
                         },
                     }
                     : student.coach,
+                schedules: student.schedules.map((assignment) => ({
+                    ...assignment,
+                    weeklySchedule: {
+                        ...assignment.weeklySchedule,
+                        coach: assignment.weeklySchedule.coach
+                            ? {
+                                ...assignment.weeklySchedule.coach,
+                                user: {
+                                    ...assignment.weeklySchedule.coach.user,
+                                    passwordHash: null,
+                                },
+                            }
+                            : null,
+                    },
+                })),
             }
             : student;
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { FaRegTrashAlt } from 'react-icons/fa';
 import { GoPencil } from 'react-icons/go';
 import { toast } from 'react-toastify';
@@ -31,6 +31,7 @@ export const ClassCategoryManager = ({
 }: Props) => {
     const router = useRouter();
     const [isOpen, setIsOpen] = useState(false);
+    const panelRef = useRef<HTMLDivElement>(null);
     const [isEditorOpen, setIsEditorOpen] = useState(false);
     const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
     const [name, setName] = useState('');
@@ -38,6 +39,20 @@ export const ClassCategoryManager = ({
     const [error, setError] = useState('');
     const [isPending, startTransition] = useTransition();
     const isEditing = editingCategoryId !== null;
+
+    useEffect(() => {
+        if (!isOpen || !panelRef.current || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        let cancelled = false;
+        let cleanup: (() => void) | undefined;
+        void import('@/animations/gsapConfig').then(({ gsap }) => {
+            if (cancelled || !panelRef.current) return;
+            const context = gsap.context(() => {
+                gsap.fromTo(panelRef.current, { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: .25, ease: 'power2.out', clearProps: 'all' });
+            }, panelRef);
+            cleanup = () => context.revert();
+        });
+        return () => { cancelled = true; cleanup?.(); };
+    }, [isOpen]);
 
     const resetEditor = () => {
         setEditingCategoryId(null);
@@ -144,6 +159,8 @@ export const ClassCategoryManager = ({
             <button
                 className="class-category-manager-toggle"
                 type="button"
+                aria-expanded={isOpen}
+                aria-controls="plan-category-manager-panel"
                 onClick={() => {
                     setIsOpen((current) => !current);
                     setError('');
@@ -153,7 +170,7 @@ export const ClassCategoryManager = ({
             </button>
 
             {isOpen && (
-                <div className="class-category-manager-panel">
+                <div className="class-category-manager-panel" id="plan-category-manager-panel" ref={panelRef}>
                     <div className="class-category-manager-header">
                         <div>
                             <strong>Categorías de clase</strong>

@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState, useTransition } from "react";
+import { FormEvent, useEffect, useRef, useState, useTransition } from "react";
 import { FaComments, FaRegTrashAlt } from "react-icons/fa";
 import { GoPencil } from "react-icons/go";
 import { IoMdClose } from "react-icons/io";
@@ -12,19 +12,21 @@ import {
     deleteCommunityComment,
     deleteCommunityPost,
     getAdminCommunityPosts,
+    getCommunityComments,
     updateCommunityComment,
     updateCommunityPost,
-    type CommunityAuthorOption,
     type CommunityCommentItem,
+    type AdminCommunityData,
     type CommunityPostInput,
     type CommunityPostItem,
 } from "@/app/actions/community.actions";
 import { EmptyState } from "@/components/ui/emptyState/EmptyState";
+import { Pagination } from "@/components/ui/pagination/Pagination";
 import { YoutubeVideoButton } from "@/components/ui/YoutubeVideoButton";
 import { formatCommunityDateTime } from "@/utils/format";
 import "./_adminCommunitySection.scss";
 
-type Props = { posts: CommunityPostItem[]; authors: CommunityAuthorOption[]; errorMessage?: string | null };
+type Props = { data: AdminCommunityData; errorMessage?: string | null };
 
 const emptyForm: CommunityPostInput = {
     type: "",
@@ -52,10 +54,13 @@ const getCommentRole = (comment: CommunityCommentItem) => (
 
 const getPostAuthor = (post: CommunityPostItem) => post.authorCoach?.user.name || "Administración";
 
-export const AdminCommunitySection = ({ posts, authors, errorMessage }: Props) => {
+export const AdminCommunitySection = ({ data, errorMessage }: Props) => {
     const [isPending, startTransition] = useTransition();
-    const [visiblePosts, setVisiblePosts] = useState(posts);
-    const [availableAuthors, setAvailableAuthors] = useState(authors);
+    const [visiblePosts, setVisiblePosts] = useState(data.posts);
+    const [availableAuthors, setAvailableAuthors] = useState(data.authors);
+    const [page, setPage] = useState(data.page);
+    const [pageData, setPageData] = useState(data);
+    const [commentPages, setCommentPages] = useState<Record<string, number>>({});
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedPost, setSelectedPost] = useState<CommunityPostItem | null>(null);
     const [form, setForm] = useState<CommunityPostInput>(emptyForm);
@@ -64,19 +69,72 @@ export const AdminCommunitySection = ({ posts, authors, errorMessage }: Props) =
     const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
     const [editingCommentContent, setEditingCommentContent] = useState("");
     const [activeOperation, setActiveOperation] = useState<string | null>(null);
+    const [query, setQuery] = useState("");
+    const [statusFilter, setStatusFilter] = useState("all");
+    const [typeFilter, setTypeFilter] = useState("all");
+    const listRef = useRef<HTMLDivElement>(null);
+    const modalRef = useRef<HTMLFormElement>(null);
+    const filtersInitialized = useRef(false);
+    const editingRef = useRef(false);
+
+    editingRef.current = isModalOpen || Boolean(editingCommentId) || Boolean(activeOperation)
+        || Object.values(commentDrafts).some((draft) => draft.trim().length > 0)
+        || Object.values(commentPages).some((commentPage) => commentPage > 1);
+
+    const loadCommentPage = async (postId: string, requestedPage: number) => {
+        const response = await getCommunityComments(postId, requestedPage);
+        if (!response.ok) { toast.error(response.error); return; }
+        setVisiblePosts((current) => current.map((post) => post.id === postId
+            ? { ...post, comments: response.data.comments, _count: { comments: response.data.total } }
+            : post));
+        setCommentPages((current) => ({ ...current, [postId]: response.data.page }));
+    };
+
+    const types = pageData.types;
+    const filteredPosts = visiblePosts;
+
+    useEffect(() => {
+        if (!filtersInitialized.current) { filtersInitialized.current = true; return; }
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+        let cancelled = false;
+        let cleanup: (() => void) | undefined;
+        void import("@/animations/gsapConfig").then(({ gsap }) => {
+            if (cancelled || !listRef.current) return;
+            const context = gsap.context(() => {
+                gsap.fromTo(listRef.current, { autoAlpha: .65, y: 8 }, { autoAlpha: 1, y: 0, duration: .25, ease: "power2.out", clearProps: "all" });
+            });
+            cleanup = () => context.revert();
+        });
+        return () => { cancelled = true; cleanup?.(); };
+    }, [query, statusFilter, typeFilter]);
+
+    useEffect(() => {
+        if (!isModalOpen || !modalRef.current || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+        let cancelled = false;
+        let cleanup: (() => void) | undefined;
+        void import("@/animations/gsapConfig").then(({ gsap }) => {
+            if (cancelled || !modalRef.current) return;
+            const context = gsap.context(() => {
+                gsap.fromTo(modalRef.current, { autoAlpha: 0, y: 16, scale: .98 }, { autoAlpha: 1, y: 0, scale: 1, duration: .28, ease: "power2.out", clearProps: "all" });
+            });
+            cleanup = () => context.revert();
+        });
+        return () => { cancelled = true; cleanup?.(); };
+    }, [isModalOpen]);
 
     useEffect(() => {
         let isMounted = true;
         let isSyncing = false;
 
-        const synchronize = async () => {
-            if (isSyncing || document.visibilityState !== "visible") return;
+        const synchronize = async (force = false) => {
+            if (isSyncing || (!force && editingRef.current) || document.visibilityState !== "visible") return;
             isSyncing = true;
             try {
-                const response = await getAdminCommunityPosts();
+                const response = await getAdminCommunityPosts({ page, query, type: typeFilter, status: statusFilter as "all" | "published" | "draft" });
                 if (isMounted && response.ok) {
                     setVisiblePosts(response.data.posts);
                     setAvailableAuthors(response.data.authors);
+                    setPageData(response.data);
                 }
             } catch {
                 // Se vuelve a intentar en el siguiente ciclo de sincronización.
@@ -85,12 +143,14 @@ export const AdminCommunitySection = ({ posts, authors, errorMessage }: Props) =
             }
         };
 
-        const intervalId = window.setInterval(synchronize, 4000);
+        const timeoutId = window.setTimeout(() => { void synchronize(true); }, 300);
+        const intervalId = window.setInterval(() => { void synchronize(); }, 30000);
         return () => {
             isMounted = false;
+            window.clearTimeout(timeoutId);
             window.clearInterval(intervalId);
         };
-    }, []);
+    }, [page, query, statusFilter, typeFilter]);
 
     const openCreate = () => {
         setSelectedPost(null);
@@ -133,6 +193,14 @@ export const AdminCommunitySection = ({ posts, authors, errorMessage }: Props) =
             setVisiblePosts((current) => selectedPost
                 ? current.map((post) => post.id === result.data.id ? result.data : post)
                 : [result.data, ...current]);
+            const refreshed = await getAdminCommunityPosts({ page: selectedPost ? page : 1, query, type: typeFilter, status: statusFilter as "all" | "published" | "draft" });
+            if (refreshed.ok) {
+                setVisiblePosts(refreshed.data.posts);
+                setPageData(refreshed.data);
+                setAvailableAuthors(refreshed.data.authors);
+                setCommentPages({});
+                if (!selectedPost) setPage(1);
+            }
             toast.success(selectedPost ? "Publicación actualizada" : "Publicación creada");
             setIsModalOpen(false);
             setSelectedPost(null);
@@ -151,6 +219,14 @@ export const AdminCommunitySection = ({ posts, authors, errorMessage }: Props) =
                 return;
             }
             setVisiblePosts((current) => current.filter((item) => item.id !== post.id));
+            const refreshed = await getAdminCommunityPosts({ page, query, type: typeFilter, status: statusFilter as "all" | "published" | "draft" });
+            if (refreshed.ok) {
+                setVisiblePosts(refreshed.data.posts);
+                setPageData(refreshed.data);
+                setAvailableAuthors(refreshed.data.authors);
+                setCommentPages({});
+                setPage(refreshed.data.page);
+            }
             toast.success("Publicación eliminada");
             setActiveOperation(null);
         });
@@ -166,9 +242,8 @@ export const AdminCommunitySection = ({ posts, authors, errorMessage }: Props) =
                 setActiveOperation(null);
                 return;
             }
-            setVisiblePosts((current) => current.map((post) => post.id === postId
-                ? { ...post, comments: [...post.comments, result.data] }
-                : post));
+            const post = visiblePosts.find((item) => item.id === postId);
+            await loadCommentPage(postId, Math.ceil(((post?._count.comments ?? 0) + 1) / 10));
             setCommentDrafts((current) => ({ ...current, [postId]: "" }));
             toast.success("Aporte publicado");
             setActiveOperation(null);
@@ -210,10 +285,8 @@ export const AdminCommunitySection = ({ posts, authors, errorMessage }: Props) =
                 setActiveOperation(null);
                 return;
             }
-            setVisiblePosts((current) => current.map((post) => ({
-                ...post,
-                comments: post.comments.filter((comment) => comment.id !== commentId),
-            })));
+            const post = visiblePosts.find((item) => item.comments.some((comment) => comment.id === commentId));
+            if (post) await loadCommentPage(post.id, commentPages[post.id] ?? 1);
             toast.success("Aporte eliminado");
             setActiveOperation(null);
         });
@@ -222,14 +295,21 @@ export const AdminCommunitySection = ({ posts, authors, errorMessage }: Props) =
     return (
         <section className="admin-community-section">
             <header className="admin-community-header">
-                <div><h1>Comunidad y foro</h1><p>Publicá contenidos y respondé como Administración o en nombre de un coach.</p></div>
+                <div><span className="admin-community-eyebrow">GESTIÓN DE CONTENIDO</span><h1>Comunidad y foro</h1><p>Publicá contenidos y respondé como Administración o en nombre de un coach.</p></div>
                 <button type="button" onClick={openCreate}><MdForum /> Nueva publicación</button>
             </header>
 
             {errorMessage && <p className="admin-community-error">{errorMessage}</p>}
 
-            <div className="admin-community-list">
-                {visiblePosts.map((post) => (
+            <div className="admin-community-toolbar">
+                <label className="admin-community-search"><span>Buscar publicaciones</span><input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); setCommentPages({}); }} placeholder="Título, contenido o autor" /></label>
+                <label><span>Estado</span><select value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setPage(1); setCommentPages({}); }}><option value="all">Todas</option><option value="published">Publicadas</option><option value="draft">Borradores</option></select></label>
+                <label><span>Categoría</span><select value={typeFilter} onChange={(event) => { setTypeFilter(event.target.value); setPage(1); setCommentPages({}); }}><option value="all">Todas</option>{types.map((type) => <option key={type} value={type}>{type}</option>)}</select></label>
+            </div>
+            <p className="admin-community-count" role="status">{pageData.filteredTotal} de {pageData.totalPosts} publicaciones</p>
+
+            <div className="admin-community-list" ref={listRef}>
+                {filteredPosts.map((post) => (
                     <article className="admin-community-card" key={post.id}>
                         <div className="admin-community-card-header">
                             <div className="admin-community-badges">
@@ -246,11 +326,11 @@ export const AdminCommunitySection = ({ posts, authors, errorMessage }: Props) =
                         <p className="admin-community-author">Por {getPostAuthor(post)}</p>
                         {post.content && <p className="admin-community-content">{post.content}</p>}
                         {post.videoUrl && <YoutubeVideoButton videoUrl={post.videoUrl} title={post.title} />}
-                        <div className="admin-community-meta"><span>{formatCommunityDateTime(post.createdAt)}</span><span><FaComments /> {post.comments.length} {post.comments.length === 1 ? "aporte" : "aportes"}</span></div>
+                        <div className="admin-community-meta"><span>{formatCommunityDateTime(post.createdAt)}</span><span><FaComments /> {post._count.comments} {post._count.comments === 1 ? "aporte" : "aportes"}</span></div>
 
                         <details className="admin-community-comments">
-                            <summary>Ver aportes ({post.comments.length})</summary>
-                            {post.comments.length === 0 ? <p className="admin-community-no-comments">Todavía no hay aportes.</p> : (
+                            <summary>Ver aportes ({post._count.comments})</summary>
+                            {post._count.comments === 0 ? <p className="admin-community-no-comments">Todavía no hay aportes.</p> : (
                                 <div className="admin-community-comment-list">
                                     {post.comments.map((comment) => (
                                         <div className="admin-community-comment" key={comment.id}>
@@ -269,6 +349,7 @@ export const AdminCommunitySection = ({ posts, authors, errorMessage }: Props) =
                                     ))}
                                 </div>
                             )}
+                            <Pagination page={commentPages[post.id] ?? 1} pageSize={10} totalItems={post._count.comments} onPageChange={(nextPage) => { void loadCommentPage(post.id, nextPage); }} label="aportes" />
 
                             <form className="admin-community-reply-form" onSubmit={(event) => submitComment(event, post.id)}>
                                 <label><span>Responder como</span><select value={commentAuthors[post.id] ?? ""} onChange={(event) => setCommentAuthors((current) => ({ ...current, [post.id]: event.target.value }))}><option value="">Administración</option>{availableAuthors.map((author) => <option value={author.id} key={author.id}>{author.name}</option>)}</select></label>
@@ -280,12 +361,14 @@ export const AdminCommunitySection = ({ posts, authors, errorMessage }: Props) =
                 ))}
             </div>
 
-            {!errorMessage && visiblePosts.length === 0 && <EmptyState title="Todavía no hay publicaciones" description="Creá la primera publicación para la comunidad." />}
+            <Pagination page={pageData.page} pageSize={6} totalItems={pageData.filteredTotal} onPageChange={(nextPage) => { setCommentPages({}); setPage(nextPage); }} label="publicaciones" />
+
+            {!errorMessage && filteredPosts.length === 0 && <EmptyState title={pageData.totalPosts ? "Sin resultados" : "Todavía no hay publicaciones"} description={pageData.totalPosts ? "Probá con otros filtros o términos de búsqueda." : "Creá la primera publicación para la comunidad."} />}
 
             {isModalOpen && (
                 <div className="admin-community-modal" role="dialog" aria-modal="true" aria-label={selectedPost ? "Editar publicación" : "Nueva publicación"} onMouseDown={closeModal}>
-                    <form className="admin-community-form" onSubmit={submitPost} onMouseDown={(event) => event.stopPropagation()}>
-                        <div className="admin-community-form-header"><div><h2>{selectedPost ? "Editar publicación" : "Nueva publicación"}</h2><p>El contenido publicado será visible para toda la comunidad.</p></div><button type="button" onClick={closeModal} aria-label="Cerrar"><IoMdClose /></button></div>
+                    <form className="admin-community-form" ref={modalRef} onSubmit={submitPost} onMouseDown={(event) => event.stopPropagation()}>
+                        <div className="admin-community-form-header"><div><h2>{selectedPost ? "Editar publicación" : "Nueva publicación"}</h2><p>{form.isPublished ? "Se publicará para toda la comunidad." : "Se guardará como borrador y solo será visible en el admin."}</p></div><button type="button" onClick={closeModal} aria-label="Cerrar"><IoMdClose /></button></div>
 
                         <label><span>Tipo o categoría</span><input value={form.type} maxLength={50} required onChange={(event) => setForm((current) => ({ ...current, type: event.target.value }))} placeholder="Ej: Pregunta semanal, Nutrición, Motivación..." /><small>Es una etiqueta libre que se mostrará en la publicación.</small></label>
                         <label><span>Autor</span><select value={form.authorCoachId ?? ""} onChange={(event) => setForm((current) => ({ ...current, authorCoachId: event.target.value }))}><option value="">Administración</option>{availableAuthors.map((author) => <option value={author.id} key={author.id}>{author.name}</option>)}</select><small>Elegí un coach si el contenido fue creado especialmente por él.</small></label>
@@ -294,7 +377,7 @@ export const AdminCommunitySection = ({ posts, authors, errorMessage }: Props) =
                         <label><span>Video de YouTube (opcional)</span><input value={form.videoUrl} onChange={(event) => setForm((current) => ({ ...current, videoUrl: event.target.value }))} placeholder="https://www.youtube.com/watch?v=..." /><small>Este campo siempre está disponible. También se aceptan enlaces youtu.be, Shorts y Live.</small></label>
                         <label className="admin-community-checkbox"><input type="checkbox" checked={form.isPublished} onChange={(event) => setForm((current) => ({ ...current, isPublished: event.target.checked }))} /><span>Publicar para la comunidad</span></label>
 
-                        <div className="admin-community-form-actions"><button type="button" onClick={closeModal}>Cancelar</button><button type="submit" disabled={isPending && activeOperation === "post"}>{isPending && activeOperation === "post" ? "Guardando..." : selectedPost ? "Guardar cambios" : "Crear publicación"}</button></div>
+                        <div className="admin-community-form-actions"><button type="button" onClick={closeModal}>Cancelar</button><button type="submit" disabled={isPending && activeOperation === "post"}>{isPending && activeOperation === "post" ? "Guardando..." : selectedPost ? "Guardar cambios" : form.isPublished ? "Publicar" : "Guardar borrador"}</button></div>
                     </form>
                 </div>
             )}

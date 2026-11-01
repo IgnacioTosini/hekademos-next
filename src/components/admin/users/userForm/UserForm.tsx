@@ -76,6 +76,7 @@ export const UserForm = ({ user, onClose }: Props) => {
             try {
                 const { result, previousImageDeleteFailed } = await saveWithResolvedUserImage({
                     image,
+                    imageSection: form.role === 'COACH' ? 'profesores' : form.role === 'STUDENT' ? 'alumnos' : 'usuarios',
                     previousImagePublicId: user?.image?.publicId,
                     save: (resolvedImage) => {
                         const payload = {

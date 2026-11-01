@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { EmptyState } from "@/components/ui/emptyState/EmptyState";
 import { FaExternalLinkAlt } from "react-icons/fa";
 import type { AdminAttendanceSummary } from "@/app/actions/attendance.actions";
 import "./_dashboardAttendanceSummary.scss";
@@ -85,9 +86,7 @@ export const DashboardAttendanceSummary = ({ summary }: Props) => {
                         ))}
                     </div>
                 ) : (
-                    <p className="dashboard-attendance-empty">
-                        {summary?.studentsCount ? "No hay turnos pendientes de asistencia." : "No hay alumnos con turnos para hoy."}
-                    </p>
+                    <EmptyState compact title="Asistencia al día" description={summary?.studentsCount ? "No hay turnos pendientes de asistencia." : "No hay alumnos con turnos para hoy."} />
                 )}
             </div>
         </section>

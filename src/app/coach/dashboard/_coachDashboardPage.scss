@@ -3,11 +3,11 @@
 .coach-dashboard-page {
     width: 100%;
     min-height: 100dvh;
-    padding: 2.5rem;
-    background: $primary-color;
+    padding: clamp(1.5rem, 3vw, 3rem);
+    background: radial-gradient(circle at 95% 0%, rgba($secondary-color, .075), transparent 26rem), $primary-color;
     color: $color-text;
 
     @media (max-width: 768px) {
-        padding: 5rem 1rem 1.5rem;
+        padding: 5rem 1rem 2rem;
     }
 }

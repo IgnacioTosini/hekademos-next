@@ -6,6 +6,15 @@
     gap: 1rem;
     padding: 1.5rem;
     overflow-y: auto;
+    min-height: 0;
+    padding-bottom: 0;
+    scrollbar-width: thin;
+    scrollbar-color: rgba($secondary-color, .5) transparent;
+
+    .membership-plan-form-section-heading { display: flex; align-items: baseline; gap: .7rem; padding-bottom: .65rem; border-bottom: 1px solid rgba($secondary-color, .2); }
+    .membership-plan-form-section-heading:not(:first-child) { margin-top: .5rem; }
+    .membership-plan-form-section-heading span { color: $secondary-color; font-size: $font-size-small; font-weight: $font-weight-bold; }
+    .membership-plan-form-section-heading h3 { color: $color-text; font-size: $font-size-medium; }
 
     .membership-plan-form-row {
         display: grid;
@@ -80,12 +89,18 @@
         display: flex;
         flex-direction: column;
         gap: .75rem;
+        padding: .9rem;
+        border: 1px solid rgba($secondary-color, .2);
+        border-radius: .7rem;
+        background: rgba($quinary-color, .3);
     }
 
     .class-category-manager-toggle {
         width: fit-content;
-        padding: 0;
-        border: 0;
+        min-height: 40px;
+        padding: .5rem .7rem;
+        border: 1px solid rgba($secondary-color, .35);
+        border-radius: .55rem;
         background: transparent;
         color: $secondary-color;
         cursor: pointer;
@@ -293,10 +308,16 @@
     }
 
     .membership-plan-form-actions {
+        position: sticky;
+        bottom: 0;
+        z-index: 2;
         display: flex;
         justify-content: flex-end;
         gap: .75rem;
-        padding-top: .5rem;
+        margin: .5rem -1.5rem 0;
+        padding: 1rem 1.5rem max(1rem, env(safe-area-inset-bottom));
+        border-top: 1px solid rgba($secondary-color, .2);
+        background: $primary-color;
 
         button {
             min-height: 40px;

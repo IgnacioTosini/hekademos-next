@@ -33,6 +33,17 @@
         font-size: $font-size-medium;
     }
 
+    .payments-overview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
+    .payments-overview > div { display: flex; flex-direction: column; gap: .4rem; min-height: 100px; padding: 1rem; border: 1px solid rgba($secondary-color, .2); border-radius: .8rem; background: rgba($tertiary-color, .22); }
+    .payments-overview > div:first-child { border-color: rgba($secondary-color, .45); background: rgba($secondary-color, .08); }
+    .payments-overview span { color: $color-text-secondary; font-size: $font-size-small; font-weight: $font-weight-semibold; }
+    .payments-overview strong { color: $color-text; font-size: $font-size-large; line-height: 1; }
+    .payments-overview > div:first-child strong { color: $secondary-color; }
+    .payments-period-status { display: inline-flex; align-items: center; gap: .55rem; align-self: flex-start; padding: .45rem .7rem; border: 1px solid rgba($secondary-color, .25); border-radius: .55rem; background: rgba($secondary-color, .09); color: $secondary-color; font-size: $font-size-small; font-weight: $font-weight-semibold; }
+    .payments-period-status span { display: block; width: 1rem; height: 1rem; border: 2px solid rgba($secondary-color, .3); border-top-color: $secondary-color; border-radius: 50%; }
+    .payments-results { padding: .7rem 1rem; border-bottom: 1px solid rgba($secondary-color, .14); color: $color-text-secondary; font-size: $font-size-small; }
+    .payments-results strong { color: $secondary-color; }
+
     .payments-table-wrapper {
         width: 100%;
         overflow: hidden;
@@ -46,6 +57,7 @@
         align-items: center;
         gap: .75rem;
         justify-content: space-between;
+        flex-wrap: wrap;
         padding: 1rem;
         border-bottom: 1px solid rgba($secondary-color, .14);
 
@@ -125,6 +137,8 @@
             border-bottom: 0;
         }
     }
+
+    .payment-row-saving { background: rgba($secondary-color, .09); }
 
     .payments-coach-header {
         display: flex;
@@ -251,6 +265,8 @@
         }
     }
 
+    .payment-amount strong { color: $secondary-color; font-size: $font-size-medium; }
+
     .payment-status {
         display: inline-flex;
         align-items: center;
@@ -320,9 +336,23 @@
     }
 
     .payment-icon-button {
-        width: 36px;
-        padding: 0;
+        min-width: 36px;
+        span { display: inline; }
     }
+
+    .payment-action-pay { border-color: rgba($color-success, .4); background: rgba($color-success, .13); color: $color-success; }
+    .payment-action-undo { border-color: rgba($secondary-color, .35); color: $secondary-color; }
+
+    .payments-reminder-backdrop { position: fixed; inset: 0; z-index: 10040; display: grid; place-items: center; padding: 1rem; background: rgba(3, 11, 21, .78); backdrop-filter: blur(5px); }
+    .payments-reminder-dialog { width: min(100%, 480px); padding: clamp(1.25rem, 4vw, 2rem); border: 1px solid rgba($secondary-color, .35); border-radius: 1rem; background: $quinary-color; box-shadow: 0 24px 70px rgba(0, 0, 0, .35); }
+    .payments-reminder-eyebrow { color: $secondary-color; font-size: $font-size-small; font-weight: $font-weight-bold; letter-spacing: .14em; }
+    .payments-reminder-dialog h2 { margin-top: .5rem; color: $color-text; font-size: $font-size-large; }
+    .payments-reminder-dialog p { margin-top: .75rem; color: $color-text-secondary; line-height: 1.5; }
+    .payments-reminder-dialog p strong { color: $color-text; }
+    .payments-reminder-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: .65rem; margin-top: 1.5rem; }
+    .payments-reminder-actions button { min-height: 44px; padding: .7rem 1rem; border: 1px solid rgba($color-text, .22); border-radius: .6rem; background: transparent; color: $color-text; cursor: pointer; font: inherit; font-weight: $font-weight-semibold; }
+    .payments-reminder-actions button:last-child { border-color: $secondary-color; background: $secondary-color; color: $quinary-color; }
+    .payments-reminder-actions button:focus-visible { outline: 2px solid $secondary-color; outline-offset: 2px; }
 
     .payments-empty {
         padding: 1.5rem;
@@ -609,6 +639,7 @@
     }
 
     @media (max-width: 900px) {
+        .payments-overview { grid-template-columns: repeat(3, minmax(0, 1fr)); }
         .payments-table-wrapper {
             border: 0;
             background: transparent;
@@ -663,19 +694,24 @@
 
             tr {
                 display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: .25rem .75rem;
+                padding: 1rem;
                 border: 1px solid rgba($secondary-color, .18);
-                border-radius: 8px;
+                border-radius: .8rem;
                 background: rgba($tertiary-color, .22);
             }
 
             td {
-                display: grid;
-                grid-template-columns: 96px minmax(0, 1fr);
-                align-items: start;
-                gap: .85rem;
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: .35rem;
+                min-width: 0;
+                padding: .45rem 0;
                 width: auto;
-                border-bottom: 1px solid rgba($secondary-color, .12);
-                text-align: right;
+                border-bottom: 0;
+                text-align: left;
 
                 &::before {
                     content: attr(data-label);
@@ -690,6 +726,22 @@
                     border-bottom: 0;
                 }
             }
+
+            .payment-cell-student { grid-column: 1 / -1; padding: 0 0 .75rem; border-bottom: 1px solid rgba($secondary-color, .14); }
+            .payment-cell-student::before,
+            .payment-cell-amount::before,
+            .payment-cell-status::before,
+            .payment-cell-actions::before { display: none; }
+            .payment-cell-amount { grid-column: 1 / -1; padding-top: .75rem; }
+            .payment-cell-amount .payment-amount strong { font-size: $font-size-large; }
+            .payment-cell-status { grid-column: 1 / -1; }
+            .payment-cell-plan,
+            .payment-cell-date { grid-column: 1 / -1; color: $color-text-secondary; font-size: $font-size-small; }
+            .payment-cell-actions { grid-column: 1 / -1; padding-top: .75rem; border-top: 1px solid rgba($secondary-color, .14); }
+            .payment-actions { width: 100%; }
+            .payment-action-button { flex: 1 1 100%; min-height: 44px; }
+            .payment-icon-button { flex: 1; min-height: 40px; }
+            .payment-icon-button span { display: inline; }
 
             td[data-label="Alumno"],
             td[data-label="Acciones"] {
@@ -738,6 +790,9 @@
     }
 
     @media (max-width: 560px) {
+        .payments-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .payments-overview > div:last-child { grid-column: 1 / -1; }
+        .payments-reminder-actions button { flex: 1 1 100%; }
         .payments-coach-header {
             align-items: flex-start;
             flex-direction: column;
@@ -747,17 +802,7 @@
             grid-template-columns: 1fr;
         }
 
-        .payments-table td {
-            grid-template-columns: 1fr;
-            gap: .35rem;
-            text-align: left;
-        }
-
-        .payment-actions,
-        .payment-action-button,
-        .payment-icon-button {
-            width: 100%;
-        }
+        .payments-table td { text-align: left; }
 
         .payment-history-header,
         .payment-details-header {

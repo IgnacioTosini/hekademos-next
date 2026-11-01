@@ -1,0 +1,39 @@
+@use '@/styles/variables' as *;
+
+.students-section {
+    .student-profile-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 38px;
+        padding: .5rem .75rem;
+        border: 1px solid rgba($secondary-color, .35);
+        border-radius: 8px;
+        background: rgba($secondary-color, .1);
+        color: $secondary-color;
+        font-size: $font-size-small;
+        font-weight: $font-weight-semibold;
+        text-decoration: none;
+        white-space: nowrap;
+        &:hover { background: rgba($secondary-color, .2); }
+        &:focus-visible { outline: 2px solid $secondary-color; outline-offset: 2px; }
+    }
+
+    @media (max-width: 768px) {
+        .users-table {
+            tr { display: flex; flex-direction: column; }
+            .user-cell-primary { order: 0; }
+            .user-cell-status { order: 1; padding: .85rem 0 .55rem; }
+            .student-cell-coach { order: 2; }
+            .student-cell-phone { order: 3; }
+            .student-cell-routine { order: 4; }
+            .student-cell-coach,
+            .student-cell-phone,
+            .student-cell-routine { width: 100%; padding: .5rem 0; color: $color-text-secondary; font-size: $font-size-small; }
+            .user-cell-actions { order: 5; margin-top: .45rem; }
+            .user-actions { flex-wrap: wrap; }
+            .student-profile-action { flex: 1 1 100%; min-height: 44px; }
+            .user-actions button:first-of-type { flex: 1; }
+        }
+    }
+}

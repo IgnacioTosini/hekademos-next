@@ -91,6 +91,7 @@ export const CoachProfileEditor = ({ account }: Props) => {
             try {
                 const { result, previousImageDeleteFailed } = await saveWithResolvedUserImage({
                     image,
+                    imageSection: 'profesores',
                     previousImagePublicId: account.image?.publicId,
                     save: (resolvedImage) => updateCoachProfile({
                         email: form.email,

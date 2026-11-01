@@ -2,6 +2,7 @@ import Link from "next/link";
 import { FaArrowRight } from "react-icons/fa";
 import type { DashboardPendingPaymentsSummary } from "@/app/actions/payment.actions";
 import { formatCurrency } from "@/utils/format";
+import { EmptyState } from "@/components/ui/emptyState/EmptyState";
 import "./_dashboardPendingPayments.scss";
 
 type Props = {
@@ -49,10 +50,7 @@ export const DashboardPendingPayments = ({ summary }: Props) => {
                     )}
                 </div>
             ) : (
-                <div className="dashboard-pending-payments-empty">
-                    <strong>Todo al dia</strong>
-                    <span>No hay pagos pendientes este mes.</span>
-                </div>
+                <EmptyState compact title="Todo al día" description="No hay pagos pendientes este mes." />
             )}
         </section>
     );

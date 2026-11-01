@@ -15,6 +15,7 @@ import { centsToPesosInput, parsePesosToCents } from '@/utils/format';
 import { dayOrder, getScheduleTimeLabel, uppercaseDayLabels } from '@/utils/schedule';
 import { saveWithResolvedUserImage, UserImageField, type UserImageValue } from '../../users/userImageField/UserImageField';
 import '../../users/userForm/_userForm.scss';
+import './_studentForm.scss';
 
 type Props = {
     student: UserWithRelations | null;
@@ -238,6 +239,7 @@ export const StudentForm = ({ student, coaches, membershipPlans, weeklySchedules
             try {
                 const { result, previousImageDeleteFailed } = await saveWithResolvedUserImage({
                     image,
+                    imageSection: 'alumnos',
                     previousImagePublicId: student?.image?.publicId,
                     save: (resolvedImage) => {
                         const payload = {
@@ -288,7 +290,8 @@ export const StudentForm = ({ student, coaches, membershipPlans, weeklySchedules
     };
 
     return (
-        <form className="user-form" onSubmit={handleSubmit}>
+        <form className="user-form student-form" onSubmit={handleSubmit}>
+            <div className="student-form-section-heading"><span>01</span><h3>Datos personales</h3></div>
             <UserImageField
                 id="student-image"
                 existingImage={student?.image}
@@ -355,6 +358,7 @@ export const StudentForm = ({ student, coaches, membershipPlans, weeklySchedules
                 />
             </div>
 
+            <div className="student-form-section-heading"><span>02</span><h3>Datos complementarios</h3></div>
             <div className="form-row">
                 <div className="form-group">
                     <label htmlFor="student-birth-date">Nacimiento</label>
@@ -398,6 +402,7 @@ export const StudentForm = ({ student, coaches, membershipPlans, weeklySchedules
                 />
             </div>
 
+            <div className="student-form-section-heading"><span>03</span><h3>Entrenamiento y membresía</h3></div>
             <div className="form-row">
                 <div className="form-group">
                     <label htmlFor="student-coach">Coach asignado</label>

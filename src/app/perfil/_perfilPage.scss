@@ -14,3 +14,92 @@
         padding: 5rem 1rem 1.5rem;
     }
 }
+
+.perfil-page .student-profile-content-self {
+    gap: 1.25rem;
+
+    .student-profile-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 1.75rem;
+        padding: clamp(1.5rem, 3vw, 2.5rem);
+        border: 1px solid rgba($secondary-color, .3);
+        border-radius: 1.25rem;
+        background: radial-gradient(circle at 100% 0, rgba($secondary-color, .12), transparent 35%), #11253b;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, .13);
+    }
+
+    .student-profile-identity { grid-column: 1; grid-row: 1; }
+    .student-profile-identity h1 { margin-top: .5rem; font-family: $font-family; font-size: clamp(1.8rem, 3vw, 2.75rem); font-weight: $font-weight-bold; letter-spacing: -.04em; }
+    .student-profile-avatar { width: 88px; height: 88px; border: 2px solid rgba($secondary-color, .6); background: rgba($secondary-color, .12); }
+    .student-profile-eyebrow { display: block; margin-bottom: .5rem; color: $secondary-color; font-size: $font-size-small; font-weight: $font-weight-bold; letter-spacing: .17em; }
+    .student-profile-actions { grid-column: 2; grid-row: 1; align-self: center; }
+
+    .student-profile-hero-summary {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-column: 1 / -1;
+        gap: 1rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid rgba($color-text, .16);
+    }
+
+    .student-profile-hero-summary > div { min-width: 0; }
+    .student-profile-hero-summary span { display: block; color: $color-text-secondary; font-size: $font-size-small; font-weight: $font-weight-bold; letter-spacing: .1em; text-transform: uppercase; }
+    .student-profile-hero-summary strong { display: block; margin-top: .45rem; color: $color-text; font-size: clamp(1.2rem, 2vw, 1.65rem); line-height: 1.2; overflow-wrap: anywhere; }
+    .student-profile-hero-summary p { margin-top: .45rem; color: $color-text-secondary; font-size: $font-size-normal; line-height: 1.5; }
+
+    .student-profile-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .student-profile-kpis article { min-height: 0; border-radius: .9rem; background: rgba($quinary-color, .38); }
+
+    .student-profile-priority { margin-top: .5rem; }
+    .student-profile-priority-heading { margin-bottom: 1.25rem; }
+    .student-profile-priority-heading span { color: $secondary-color; font-size: $font-size-small; font-weight: $font-weight-bold; letter-spacing: .16em; }
+    .student-profile-priority-heading h2 { margin: .45rem 0 .4rem; color: $color-text; font-size: clamp(1.7rem, 3vw, 2.25rem); line-height: 1.15; }
+    .student-profile-priority-heading p { margin: 0; color: $color-text-secondary; font-size: $font-size-normal; line-height: 1.5; }
+    .student-profile-priority-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 1rem; align-items: stretch; }
+    .student-profile-priority-grid .student-profile-card { min-width: 0; min-height: 0; border-radius: 1rem; background: #182b40; }
+    .student-profile-priority-grid .student-profile-schedule-card { border-color: rgba($secondary-color, .4); }
+
+    .student-profile-history { margin-top: 2rem; padding-top: 2.5rem; border-top: 1px solid rgba($color-text, .16); }
+    .student-profile-history-heading { margin-bottom: 1.25rem; }
+    .student-profile-history-heading span { color: $secondary-color; font-size: $font-size-small; font-weight: $font-weight-bold; letter-spacing: .16em; }
+    .student-profile-history-heading h2 { margin: .45rem 0 .4rem; color: $color-text; font-size: clamp(1.7rem, 3vw, 2.25rem); line-height: 1.15; }
+    .student-profile-history-heading p { margin: 0; color: $color-text-secondary; font-size: $font-size-normal; line-height: 1.5; }
+    .student-profile-history-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+    .student-profile-history-grid .student-profile-card-wide { grid-column: auto; min-width: 0; min-height: 0; border-radius: 1rem; background: rgba($quinary-color, .38); }
+    .student-profile-history-grid .student-profile-payments,
+    .student-profile-history-grid .student-profile-attendance-list { grid-template-columns: 1fr; }
+    .student-profile-history-grid .student-profile-payments,
+    .student-profile-history-grid .student-profile-attendance-list { max-height: 22rem; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba($secondary-color, .55) transparent; }
+    .student-profile-history-grid [role="region"]:focus-visible { outline: 2px solid $secondary-color; outline-offset: 3px; }
+
+    @media (max-width: 860px) {
+        .student-profile-hero { grid-template-columns: 1fr; }
+        .student-profile-actions { grid-column: 1; grid-row: 3; justify-content: flex-start; }
+        .student-profile-priority-grid { grid-template-columns: 1fr; }
+        .student-profile-history-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 560px) {
+        .student-profile-hero { gap: 1.25rem; padding: 1.25rem; }
+        .student-profile-identity { flex-direction: row; align-items: center; gap: 1rem; }
+        .student-profile-avatar { width: 68px; height: 68px; }
+        .student-profile-hero-summary { grid-template-columns: 1fr; gap: 1.25rem; padding-top: 1.25rem; }
+        .student-profile-hero-summary > div + div { padding-top: 1.25rem; border-top: 1px solid rgba($color-text, .12); }
+        .student-profile-actions { width: 100%; }
+    }
+}
+
+.perfil-page .community-feed-embedded {
+    margin-top: 3rem;
+    padding: clamp(1.5rem, 3vw, 2.5rem);
+    border: 1px solid rgba($color-text, .14);
+    border-top: 3px solid $secondary-color;
+    border-radius: 1.25rem;
+    background: #14283d;
+}
+
+@media (max-width: 560px) {
+    .perfil-page .community-feed-embedded { padding: 1.25rem; }
+}

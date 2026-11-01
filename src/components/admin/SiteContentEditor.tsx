@@ -1,13 +1,15 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { FaRegTrashAlt, FaUpload } from "react-icons/fa";
 import { IoAdd } from "react-icons/io5";
 import { toast } from "react-toastify";
 import { updateHomePageContent } from "@/app/actions/siteContent.actions";
+import { ImageCropModal } from "@/components/admin/users/imageCropModal/ImageCropModal";
 import { deleteImage, uploadImage } from "@/lib/client-cloudinary";
 import type { HomePageContent, SiteContentImage } from "@/lib/home-page-content";
+import type { SiteImageSection } from "@/lib/site-image-sections";
 import "./_siteContentEditor.scss";
 
 type Props = { initialContent: HomePageContent };
@@ -45,13 +47,23 @@ const labels: Record<string, string> = {
     messagePlaceholder: "Ayuda del campo mensaje", submitLabel: "Texto para enviar", submittingLabel: "Texto mientras se envía",
     successMessage: "Mensaje de confirmación", tagline: "Descripción", linksTitle: "Título de enlaces", socialTitle: "Título de redes",
     primaryLinks: "Enlaces de escritorio", menuLinks: "Enlaces del menú completo",
-    copyright: "Derechos reservados", credit: "Crédito", closingText: "Frase final",
+    copyright: "Derechos reservados", closingText: "Frase final",
     videoUrl: "Video de YouTube (URL opcional)",
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
 const isImage = (value: unknown): value is SiteContentImage => isRecord(value) && typeof value.url === "string" && typeof value.publicId === "string" && typeof value.alt === "string";
 const pathKey = (path: PathPart[]) => path.join(".");
+const sectionFolderByContentKey: Partial<Record<keyof HomePageContent, SiteImageSection>> = {
+    header: "cabecera",
+    banner: "inicio",
+    about: "sobre-nosotros",
+    teachers: "profesores",
+    classes: "clases",
+    community: "comunidad",
+    philosophy: "filosofia",
+    footer: "pie-de-pagina",
+};
 const clone = <T,>(value: T): T => structuredClone(value);
 
 const setValueAtPath = (target: unknown, path: PathPart[], value: unknown) => {
@@ -72,6 +84,10 @@ export const SiteContentEditor = ({ initialContent }: Props) => {
     const [persistedContent, setPersistedContent] = useState(() => clone(initialContent));
     const [pendingImages, setPendingImages] = useState<Record<string, PendingImage>>({});
     const [isSaving, setIsSaving] = useState(false);
+    const [cropTarget, setCropTarget] = useState<{ path: PathPart[]; file: File } | null>(null);
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+    const [previewMobile, setPreviewMobile] = useState(false);
+    const previewFrameRef = useRef<HTMLIFrameElement>(null);
     const sections = useMemo(() => Object.entries(content) as Array<[keyof HomePageContent, HomePageContent[keyof HomePageContent]]>, [content]);
 
     const updateValue = (path: PathPart[], value: unknown) => {
@@ -97,12 +113,64 @@ export const SiteContentEditor = ({ initialContent }: Props) => {
         if (!file.type.startsWith("image/")) return toast.error("El archivo debe ser una imagen");
         if (file.size > 5 * 1024 * 1024) return toast.error("La imagen no puede superar los 5 MB");
 
-        const key = pathKey(path);
+        setCropTarget({ path, file });
+    };
+
+    const adjustCurrentImage = async (path: PathPart[], image: SiteContentImage) => {
+        try {
+            const response = await fetch(pendingImages[pathKey(path)]?.previewUrl || image.url);
+            if (!response.ok) throw new Error("No se pudo abrir la imagen.");
+            const blob = await response.blob();
+            setCropTarget({ path, file: new File([blob], "imagen-actual", { type: blob.type || "image/jpeg" }) });
+        } catch {
+            toast.error("No se pudo abrir la imagen actual. Subí el archivo para ajustarla.");
+        }
+    };
+
+    const confirmCrop = (file: File) => {
+        if (!cropTarget) return;
+        const key = pathKey(cropTarget.path);
         setPendingImages((current) => {
             if (current[key]) URL.revokeObjectURL(current[key].previewUrl);
             return { ...current, [key]: { file, previewUrl: URL.createObjectURL(file) } };
         });
+        const currentImage = cropTarget.path.reduce<unknown>((current, part) => (current as Record<string | number, unknown>)[part], content) as SiteContentImage;
+        updateValue(cropTarget.path, { ...currentImage, scale: 100, positionX: 50, positionY: 50 });
+        setCropTarget(null);
     };
+
+    const cropAspectRatio = cropTarget ? (() => {
+        const key = pathKey(cropTarget.path);
+        if (key === "banner.background") return 16 / 9;
+        if (key === "about.image") return 5 / 6;
+        if (key === "philosophy.image") return 4 / 5;
+        if (key.startsWith("teachers.")) return 3 / 4;
+        if (key.startsWith("classes.")) return 16 / 10;
+        if (key.startsWith("community.")) return 4 / 3;
+        return 1;
+    })() : 1;
+
+    const getPreviewContent = () => {
+        const draft = clone(content);
+        Object.entries(pendingImages).forEach(([key, pending]) => {
+            const path = key.split(".").map((part) => /^\d+$/.test(part) ? Number(part) : part);
+            const image = path.reduce<unknown>((current, part) => (current as Record<string | number, unknown>)[part], draft) as SiteContentImage;
+            setValueAtPath(draft, path, { ...image, url: pending.previewUrl });
+        });
+        return draft;
+    };
+
+    useEffect(() => {
+        if (!isPreviewOpen) return;
+        const handleReady = (event: MessageEvent) => {
+            if (event.origin !== window.location.origin || event.source !== previewFrameRef.current?.contentWindow || event.data?.type !== "HEKADEMOS_SITE_PREVIEW_READY") return;
+            previewFrameRef.current?.contentWindow?.postMessage({ type: "HEKADEMOS_SITE_PREVIEW", content: getPreviewContent() }, window.location.origin);
+        };
+        window.addEventListener("message", handleReady);
+        return () => window.removeEventListener("message", handleReady);
+        // The preview receives the current draft when its frame reports readiness.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isPreviewOpen]);
 
     const renderImageField = (image: SiteContentImage, path: PathPart[], label: string) => {
         const key = pathKey(path);
@@ -114,7 +182,7 @@ export const SiteContentEditor = ({ initialContent }: Props) => {
                 <span className="site-content-field-label">{label}</span>
                 <div className="site-content-image-row">
                     <div className="site-content-image-preview">
-                        {preview ? <Image src={preview} alt={image.alt || label} width={180} height={110} unoptimized /> : <span>Sin imagen</span>}
+                        {preview ? <Image src={preview} alt={image.alt || label} width={360} height={220} unoptimized style={{ objectPosition: `${image.positionX ?? 50}% ${image.positionY ?? 50}%`, transform: `scale(${(image.scale ?? 100) / 100})` }} /> : <span>Sin imagen</span>}
                     </div>
                     <div className="site-content-image-controls">
                         <label className="site-content-upload-button">
@@ -122,11 +190,13 @@ export const SiteContentEditor = ({ initialContent }: Props) => {
                             <input type="file" accept="image/*" onChange={(event) => chooseImage(path, event.target.files?.[0])} />
                         </label>
                         {pending && <button type="button" className="site-content-secondary-button" onClick={() => clearPendingImage(key)}>Cancelar selección</button>}
+                        {preview && <button type="button" className="site-content-secondary-button" onClick={() => void adjustCurrentImage(path, image)}>Ajustar encuadre</button>}
                     </div>
                 </div>
                 <label className="site-content-field">
                     <span>URL de la imagen</span>
-                    <input value={image.url} onChange={(event) => { clearPendingImage(key); updateValue(path, { ...image, url: event.target.value, publicId: "" }); }} />
+                    <input value={pending ? `Pendiente de subir: ${pending.file.name}` : image.url} readOnly={Boolean(pending)} onChange={(event) => { clearPendingImage(key); updateValue(path, { ...image, url: event.target.value, publicId: "" }); }} />
+                    {pending && <small className="site-content-field-hint">La URL de Cloudinary aparecerá aquí al guardar los cambios.</small>}
                 </label>
                 <label className="site-content-field">
                     <span>Texto alternativo</span>
@@ -139,6 +209,8 @@ export const SiteContentEditor = ({ initialContent }: Props) => {
     const renderField = (value: unknown, path: PathPart[], label: string): React.ReactNode => {
         const key = pathKey(path);
         const last = String(path[path.length - 1] ?? "");
+
+        if (path[0] === "footer" && last === "credit") return null;
 
         if (isImage(value)) return renderImageField(value, path, label);
 
@@ -188,7 +260,7 @@ export const SiteContentEditor = ({ initialContent }: Props) => {
                     </label>
                 );
             }
-            const isLong = value.length > 80 || /(description|subtitle|message|answer|quote|tagline|copyright|credit|closing)/i.test(last);
+            const isLong = value.length > 80 || /(description|subtitle|message|answer|quote|tagline|copyright|closing)/i.test(last);
             return (
                 <label className={`site-content-field${isLong ? " site-content-field-wide" : ""}`} key={key}>
                     <span>{label}</span>
@@ -210,7 +282,9 @@ export const SiteContentEditor = ({ initialContent }: Props) => {
 
         try {
             for (const [key, pending] of Object.entries(pendingImages)) {
-                const uploaded = await uploadImage(pending.file, "site");
+                const section = sectionFolderByContentKey[key.split(".")[0] as keyof HomePageContent];
+                if (!section) throw new Error("No se pudo identificar la sección de la imagen.");
+                const uploaded = await uploadImage(pending.file, "site", section);
                 uploadedPublicIds.push(uploaded.publicId);
                 const path = key.split(".").map((part) => /^\d+$/.test(part) ? Number(part) : part);
                 const currentImage = path.reduce<unknown>((current, part) => (current as Record<string | number, unknown>)[part], nextContent) as SiteContentImage;
@@ -242,7 +316,7 @@ export const SiteContentEditor = ({ initialContent }: Props) => {
             <div className="site-content-editor-header">
                 <div><h1>Contenido web</h1><p>Editá los textos, imágenes y enlaces de la pantalla principal.</p></div>
                 <div className="site-content-header-actions">
-                    <a href="/" target="_blank" rel="noreferrer">Ver portada</a>
+                    <button type="button" className="site-content-preview-button" onClick={() => setIsPreviewOpen(true)}>Vista previa</button>
                     <button type="submit" disabled={isSaving}>{isSaving ? "Guardando..." : "Guardar cambios"}</button>
                 </div>
             </div>
@@ -260,7 +334,20 @@ export const SiteContentEditor = ({ initialContent }: Props) => {
                 ))}
             </div>
 
-            <div className="site-content-sticky-save"><button type="submit" disabled={isSaving}>{isSaving ? "Guardando..." : "Guardar cambios"}</button></div>
+            {isPreviewOpen && <div className="site-content-preview-overlay" role="dialog" aria-modal="true" aria-label="Vista previa de los cambios" onMouseDown={() => setIsPreviewOpen(false)}>
+                <div className="site-content-preview-dialog" onMouseDown={(event) => event.stopPropagation()}>
+                    <div className="site-content-preview-toolbar">
+                        <div><strong>Vista previa del inicio</strong><span>Cambios sin guardar</span></div>
+                        <button type="button" onClick={() => setPreviewMobile((current) => !current)}>{previewMobile ? "Escritorio" : "Móvil"}</button>
+                        <button type="button" onClick={() => setIsPreviewOpen(false)}>Cerrar</button>
+                    </div>
+                    <div className={`site-content-preview-frame-wrap${previewMobile ? " is-mobile" : ""}`}>
+                        <iframe ref={previewFrameRef} title="Vista previa completa del inicio" src="/vista-previa" onLoad={(event) => event.currentTarget.contentWindow?.postMessage({ type: "HEKADEMOS_SITE_PREVIEW", content: getPreviewContent() }, window.location.origin)} />
+                    </div>
+                </div>
+            </div>}
+            <ImageCropModal file={cropTarget?.file ?? null} isOpen={Boolean(cropTarget)} onCancel={() => setCropTarget(null)} onConfirm={confirmCrop} aspectRatio={cropAspectRatio} outputWidth={cropAspectRatio > 1.5 ? 1200 : 800} outputFormat={cropTarget && pathKey(cropTarget.path).endsWith(".logo") ? "image/png" : "image/jpeg"} description="Arrastrá y ampliá la imagen hasta encuadrarla en esta sección. Se aplicará al guardar los cambios." />
         </form>
     );
 };
+

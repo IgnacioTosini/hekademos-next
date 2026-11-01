@@ -1,0 +1,30 @@
+@use '@/styles/variables' as *;
+
+.student-form.user-form {
+    min-height: 0;
+    padding-bottom: 0;
+    scrollbar-width: thin;
+    scrollbar-color: rgba($secondary-color, .5) transparent;
+
+    .student-form-section-heading {
+        display: flex;
+        align-items: baseline;
+        gap: .7rem;
+        padding-bottom: .65rem;
+        border-bottom: 1px solid rgba($secondary-color, .2);
+        &:not(:first-child) { margin-top: .5rem; }
+        span { color: $secondary-color; font-size: $font-size-small; font-weight: $font-weight-bold; }
+        h3 { color: $color-text; font-size: $font-size-medium; line-height: 1.25; }
+    }
+
+    .button-group {
+        position: sticky;
+        bottom: 0;
+        z-index: 2;
+        margin: .5rem -1.5rem 0;
+        padding: 1rem 1.5rem max(1rem, env(safe-area-inset-bottom));
+        border-top: 1px solid rgba($secondary-color, .2);
+        background: $primary-color;
+    }
+
+}

@@ -320,6 +320,10 @@
         }
 
         button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: .5rem;
             padding: .55rem .8rem;
             background: rgba($secondary-color, .1);
             cursor: pointer;
@@ -329,6 +333,17 @@
                 background: rgba($secondary-color, .18);
                 color: $secondary-color;
             }
+
+            &:disabled { cursor: wait; opacity: .8; }
+        }
+
+        .student-profile-loading-indicator {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid rgba($color-text, .3);
+            border-top-color: $secondary-color;
+            border-radius: 50%;
         }
     }
 
@@ -810,7 +825,7 @@
         }
 
         .student-profile-actions,
-        .student-profile-actions button {
+        .student-profile-actions > button {
             width: 100%;
         }
 

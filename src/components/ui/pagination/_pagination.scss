@@ -1,0 +1,33 @@
+@use '@/styles/variables' as *;
+
+.list-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .8rem 1.25rem;
+    width: 100%;
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba($color-text, .13);
+
+    p { margin: 0; color: $color-text-secondary; font-size: $font-size-small; }
+}
+
+.list-pagination-controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .35rem;
+
+    button { min-width: 36px; min-height: 36px; padding: .4rem .65rem; border: 1px solid rgba($color-text, .18); border-radius: 8px; background: rgba($tertiary-color, .3); color: $color-text; cursor: pointer; font: inherit; font-size: $font-size-small; }
+    button:hover:not(:disabled), button.is-current { border-color: $secondary-color; background: rgba($secondary-color, .14); color: $secondary-color; }
+    button:disabled { opacity: .4; cursor: not-allowed; }
+    button:focus-visible { outline: 2px solid $secondary-color; outline-offset: 2px; }
+    span { padding-inline: .2rem; color: $color-text-secondary; }
+}
+
+@media (max-width: 600px) {
+    .list-pagination { justify-content: center; text-align: center; }
+    .list-pagination-controls { justify-content: center; width: 100%; }
+}

@@ -74,10 +74,16 @@
         }
 
         select option {
-            background: $primary-color;
+            background: $quinary-color;
             color: $color-text;
         }
+
+        select { color-scheme: dark; cursor: pointer; }
+        input[type='date'] { color-scheme: dark; }
     }
+
+    .attendance-filter-status { display: inline-flex; align-items: center; gap: .55rem; align-self: flex-start; margin-top: -.75rem; padding: .45rem .7rem; border: 1px solid rgba($secondary-color, .25); border-radius: .55rem; background: rgba($secondary-color, .09); color: $secondary-color; font-size: $font-size-small; font-weight: $font-weight-semibold; }
+    .attendance-filter-status span { display: block; width: 1rem; height: 1rem; border: 2px solid rgba($secondary-color, .3); border-top-color: $secondary-color; border-radius: 50%; }
 
     .attendance-monthly-summary {
         overflow: hidden;
@@ -275,6 +281,9 @@
         &:last-child {
             border-bottom: 0;
         }
+
+        &.attendance-student-unmarked { border-left: 3px solid $secondary-color; background: rgba($secondary-color, .04); }
+        &.attendance-student-saving { background: rgba($secondary-color, .08); }
     }
 
     .attendance-student-main {
@@ -303,6 +312,9 @@
             font-size: $font-size-small;
         }
     }
+
+    .attendance-student-unmarked .attendance-student-main span { color: $secondary-color; font-weight: $font-weight-semibold; }
+    .attendance-student-saving .attendance-student-main span { color: $secondary-color; }
 
     .attendance-avatar {
         display: grid;
@@ -333,7 +345,7 @@
 
         button {
             flex: 0 0 auto;
-            min-height: 34px;
+            min-height: 40px;
             padding: .48rem .65rem;
             border: 1px solid rgba($secondary-color, .18);
             border-radius: 8px;
@@ -351,6 +363,11 @@
                 background: rgba($secondary-color, .14);
                 color: $secondary-color;
             }
+
+            &.attendance-action-present.attendance-action-active { border-color: $color-success; background: rgba($color-success, .16); color: $color-success; }
+            &.attendance-action-absent.attendance-action-active { border-color: $color-error; background: rgba($color-error, .14); color: $color-error; }
+            &.attendance-action-late.attendance-action-active { border-color: $secondary-color; background: rgba($secondary-color, .16); color: $secondary-color; }
+            &.attendance-action-excused.attendance-action-active { border-color: #76b4ef; background: rgba(#76b4ef, .14); color: #9accfa; }
 
             &:disabled {
                 cursor: not-allowed;
@@ -414,20 +431,23 @@
 
             tr {
                 display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: .4rem;
                 overflow: hidden;
-                border: 1px solid rgba($secondary-color, .14);
-                border-radius: 8px;
-                background: rgba($primary-color, .05);
+                padding: .85rem;
+                border: 1px solid rgba($secondary-color, .18);
+                border-radius: .8rem;
+                background: rgba($quinary-color, .38);
             }
 
             td {
-                display: grid;
-                grid-template-columns: 96px minmax(0, 1fr);
-                align-items: start;
-                gap: .85rem;
-                padding: .75rem .85rem;
-                border-bottom: 1px solid rgba($secondary-color, .1);
-                text-align: right;
+                display: flex;
+                flex-direction: column;
+                gap: .3rem;
+                min-width: 0;
+                padding: .45rem .55rem;
+                border-bottom: 0;
+                text-align: left;
 
                 &:last-child {
                     border-bottom: 0;
@@ -449,17 +469,27 @@
             }
 
             td[data-label="Alumno"] {
-                grid-template-columns: 1fr;
+                grid-column: 1 / -1;
+                padding-bottom: .75rem;
+                border-bottom: 1px solid rgba($secondary-color, .14);
                 text-align: left;
             }
+            td[data-label="Alumno"]::before { display: none; }
+            td[data-label="Coach"],
+            td[data-label="Ultima"] { grid-column: 1 / -1; }
+            td[data-label="Total"],
+            td[data-label="Presentes"] { color: $secondary-color; font-weight: $font-weight-semibold; }
         }
 
         .attendance-student {
             align-items: stretch;
+            grid-template-columns: minmax(0, 1fr);
         }
 
         .attendance-actions {
             justify-content: flex-start;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
         }
     }
 
@@ -477,23 +507,14 @@
             flex-direction: column;
         }
 
-        .attendance-actions,
-        .attendance-actions button {
-            width: 100%;
-        }
+        .attendance-actions button { width: 100%; min-height: 44px; }
 
-        .attendance-monthly-kpis {
-            grid-template-columns: 1fr;
-        }
+        .attendance-monthly-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
         .attendance-monthly-table {
             padding: .65rem;
 
-            td {
-                grid-template-columns: 1fr;
-                gap: .35rem;
-                text-align: left;
-            }
+            td { text-align: left; }
         }
 
         .attendance-student-main {

@@ -1,153 +1,119 @@
 @use '@/styles/variables' as *;
 
-.admin-layout {
-    display: flex;
-    align-items: stretch;
-    min-height: 100dvh;
-    width: 100%;
-    background: $primary-color;
-    color: $color-text;
-}
+.admin-layout { display: flex; align-items: stretch; min-height: 100dvh; width: 100%; background: $primary-color; color: $color-text; }
 
 .dashboard {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    max-width: 280px;
-    min-width: 280px;
-    height: 100dvh;
-    background-color: $quinary-color;
-    border-right: 1px solid rgba($secondary-color, 0.22);
     position: sticky;
     top: 0;
+    display: flex;
+    flex: 0 0 264px;
+    flex-direction: column;
+    width: 264px;
+    height: 100dvh;
     overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba($secondary-color, .4) transparent;
+    border-right: 1px solid rgba($secondary-color, .18);
+    background: $quinary-color;
 
     .dashboard-header {
         display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: .65rem;
-        padding: 2rem 1.25rem 1.75rem;
-        border-bottom: 1px solid rgba($secondary-color, .2);
+        align-items: center;
+        gap: .8rem;
+        padding: 1.5rem 1.15rem;
+        border-bottom: 1px solid rgba($secondary-color, .14);
     }
 
-    .dashboard-title {
-        color: $color-text;
+    .dashboard-brand-mark {
+        display: grid;
+        flex: 0 0 2.5rem;
+        place-items: center;
+        width: 2.5rem;
+        height: 2.5rem;
+        border: 1px solid rgba($secondary-color, .3);
+        border-radius: .7rem;
+        background: rgba($secondary-color, .12);
+        color: $secondary-color;
         font-family: $font-family-display;
-        font-size: $font-size-medium-large;
-        line-height: 1.1;
-        text-transform: uppercase;
+        font-size: 1.35rem;
+        font-weight: $font-weight-bold;
     }
 
-    .dashboard-subtitle {
-        color: $color-text-secondary;
-        font-size: $font-size-small;
-        letter-spacing: .1em;
-        text-transform: uppercase;
-    }
+    .dashboard-title { display: block; color: $color-text; font-family: $font-family-display; font-size: $font-size-medium; line-height: 1.15; text-transform: uppercase; }
+    .dashboard-subtitle { margin-top: .2rem; color: $color-text-secondary; font-size: $font-size-xsmall; letter-spacing: .08em; text-transform: uppercase; }
 
-    .dashboard-links {
-        display: flex;
-        flex-direction: column;
-        flex: 1;
-        gap: .35rem;
-        padding: 1rem .85rem;
-    }
-
-    .dashboard-footer {
-        display: flex;
-        flex-direction: column;
-        gap: .35rem;
-        padding: .85rem;
-        border-top: 1px solid rgba($secondary-color, .2);
-    }
+    .dashboard-links { display: flex; flex: 1; flex-direction: column; gap: 1.15rem; padding: 1rem .75rem 1.5rem; }
+    .dashboard-link-group { display: flex; flex-direction: column; gap: .15rem; }
+    .dashboard-group-title { padding: .4rem .75rem .35rem; color: $color-text-secondary; font-size: $font-size-xsmall; font-weight: $font-weight-bold; letter-spacing: .13em; text-transform: uppercase; }
 
     .dashboard-link {
+        position: relative;
         display: flex;
         align-items: center;
-        gap: .75rem;
-        color: $color-text;
-        text-decoration: none;
-        padding: .9rem 1rem;
-        border-radius: 8px;
-        font-size: $font-size-normal;
+        gap: .7rem;
+        min-height: 40px;
+        padding: .6rem .75rem;
+        border: 1px solid transparent;
+        border-radius: .6rem;
+        color: $color-text-secondary;
+        font-size: $font-size-small;
         font-weight: $font-weight-medium;
-        transition: .2s;
+        text-decoration: none;
+        transition: background .2s ease, border-color .2s ease, color .2s ease;
 
-        svg {
-            flex: 0 0 auto;
-            color: $secondary-color;
-            font-size: 1.05rem;
-        }
-
-        &:hover {
-            background-color: rgba($secondary-color, .12);
-            color: $color-text;
-        }
+        svg { flex: 0 0 auto; color: $secondary-color; font-size: 1.05rem; }
+        &:hover { background: rgba($secondary-color, .09); color: $color-text; }
+        &:focus-visible { outline: 2px solid $secondary-color; outline-offset: 2px; }
+        &.active { border-color: rgba($secondary-color, .3); background: rgba($secondary-color, .13); color: $color-text; font-weight: $font-weight-bold; }
+        &.active::before { position: absolute; left: -.75rem; top: .55rem; bottom: .55rem; width: 3px; border-radius: 3px; background: $secondary-color; content: ''; }
     }
+
+    .dashboard-footer { display: flex; flex-direction: column; gap: .2rem; padding: .8rem .75rem max(.8rem, env(safe-area-inset-bottom)); border-top: 1px solid rgba($secondary-color, .14); }
 }
 
-@media (max-width: 768px) {
-    .admin-layout {
-        display: block;
-    }
+.dashboard-toggle, .dashboard-overlay { display: none; }
 
+@media (max-width: 768px) {
+    .admin-layout { display: block; }
     .dashboard {
         position: fixed;
         top: 0;
         left: 0;
         z-index: 1000;
-
-        width: 280px;
+        width: min(300px, calc(100vw - 4rem));
         height: 100dvh;
-
+        visibility: hidden;
         transform: translateX(-100%);
-        transition: transform .3s ease;
-
-        &.open {
-            transform: translateX(0);
-        }
+        transition: transform .3s ease, visibility .3s ease;
+        &.open { visibility: visible; transform: translateX(0); }
     }
-}
-
-.dashboard-toggle {
-    display: none;
-}
-
-@media (max-width: 768px) {
     .dashboard-toggle {
-        display: flex;
         position: fixed;
+        z-index: 1100;
         top: 1rem;
         right: 1rem;
-        z-index: 1100;
-
-        width: 44px;
-        height: 44px;
-
-        border: none;
-        cursor: pointer;
-
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-
-        background: $secondary-color;
+        gap: .4rem;
+        min-height: 44px;
+        padding: .55rem .8rem;
+        border: 1px solid rgba($secondary-color, .55);
+        border-radius: .65rem;
+        background: $quinary-color;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, .2);
         color: $color-text;
-        border-radius: 8px;
+        cursor: pointer;
+        font: inherit;
+        font-size: $font-size-small;
+        font-weight: $font-weight-semibold;
+        svg { color: $secondary-color; font-size: 1.3rem; }
+        &:focus-visible { outline: 2px solid $secondary-color; outline-offset: 3px; }
+        &.is-open { border-color: $secondary-color; }
     }
+    .dashboard-overlay { position: fixed; z-index: 999; inset: 0; display: block; width: 100%; border: 0; background: rgba(0, 0, 0, .65); backdrop-filter: blur(3px); cursor: pointer; }
 }
 
-.dashboard-overlay {
-    display: none;
-}
-
-@media (max-width: 768px) {
-    .dashboard-overlay {
-        display: block;
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.45);
-        backdrop-filter: blur(2px);
-        z-index: 999;
-    }
+@media (prefers-reduced-motion: reduce) {
+    .dashboard, .dashboard .dashboard-link { transition: none; }
 }

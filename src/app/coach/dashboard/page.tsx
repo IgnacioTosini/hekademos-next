@@ -11,7 +11,7 @@ import { prisma } from '@/lib/prisma';
 import { getClassCategoryLabel } from '@/utils/class-category';
 import { formatCurrency } from '@/utils/format';
 import { getActiveMembership, getMembershipAmountCents } from '@/utils/membership';
-import { getAmountWithLateSurcharge, getPaymentForPeriod, getPaymentMonthRange, shouldApplyLateSurcharge } from '@/utils/payment';
+import { getAmountWithLateSurcharge, getPaymentForPeriod, getPaymentMonthRange, getPaymentPeriodStart, shouldApplyLateSurcharge } from '@/utils/payment';
 import { addMinutesToTime, dayLabels } from '@/utils/schedule';
 import { getStudentName } from '@/utils/student';
 import './_coachDashboardPage.scss';
@@ -31,6 +31,15 @@ export default async function CoachDashboardPage() {
         redirect('/perfil');
     }
 
+    const today = new Date();
+    const { start, end, dueDate } = getPaymentMonthRange(today);
+    const currentPaymentWhere = {
+        OR: [
+            { periodStart: getPaymentPeriodStart(start) },
+            { dueDate: { gte: start, lt: end } },
+            { paidAt: { gte: start, lt: end } },
+        ],
+    };
     const [coach, attendanceResponse, communityResponse] = await Promise.all([
         prisma.coach.findUnique({
         where: {
@@ -38,7 +47,10 @@ export default async function CoachDashboardPage() {
         },
         include: {
             user: {
-                include: {
+                select: {
+                    email: true,
+                    name: true,
+                    phone: true,
                     image: true,
                 },
             },
@@ -53,27 +65,39 @@ export default async function CoachDashboardPage() {
                 ],
                 include: {
                     user: {
-                        include: {
+                        select: {
+                            email: true,
+                            name: true,
+                            phone: true,
                             image: true,
                         },
                     },
                     memberships: {
+                        where: {
+                            status: 'ACTIVE',
+                            OR: [{ endDate: null }, { endDate: { gte: today } }],
+                        },
                         orderBy: {
                             createdAt: 'desc',
                         },
+                        take: 1,
                         include: {
                             plan: true,
                             payments: {
+                                where: currentPaymentWhere,
                                 orderBy: {
                                     createdAt: 'desc',
                                 },
+                                take: 1,
                             },
                         },
                     },
                     payments: {
+                        where: currentPaymentWhere,
                         orderBy: {
                             createdAt: 'desc',
                         },
+                        take: 1,
                     },
                     schedules: {
                         where: {
@@ -98,9 +122,7 @@ export default async function CoachDashboardPage() {
         redirect('/');
     }
 
-    const today = new Date();
     const attendanceSchedules = attendanceResponse.ok ? attendanceResponse.data : [];
-    const { start, end, dueDate } = getPaymentMonthRange(today);
     const students: CoachDashboardStudent[] = coach.students.map((student) => {
         const activeMembership = getActiveMembership(student.memberships, today);
         const membershipPayments = activeMembership?.payments ?? [];

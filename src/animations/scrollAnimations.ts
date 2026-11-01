@@ -1,4 +1,4 @@
-import { gsap } from './gsapConfig'
+import { gsap, ScrollTrigger } from './gsapConfig'
 
 const SECTION_TRIGGER_START = "top 88%"
 const ELEMENT_TRIGGER_START = "top 88%"
@@ -8,9 +8,7 @@ export const createScrollAnimations = () => {
     // Animaciones de secciones
     const animateSections = () => {
         const sections = [
-            '.about-us-section',
             '.teachers-section',
-            '.classes-section',
             '.training-schedule-section',
             '.membership-plans-section',
             '.comunity-section',
@@ -42,7 +40,7 @@ export const createScrollAnimations = () => {
     const animateElements = () => {
         (gsap.utils.toArray('.animate-on-scroll') as Element[]).forEach((element: Element) => {
             // Excluir elementos que están dentro de filosofía Y contacto
-            if (!element.closest('.philosophyContainer') && !element.closest('.contactSection')) {
+            if (!element.closest('.aboutUs') && !element.closest('.philosophyContainer') && !element.closest('.contactSection')) {
                 gsap.fromTo(element,
                     { autoAlpha: 0, y: 24 },
                     {
@@ -66,7 +64,7 @@ export const createScrollAnimations = () => {
         const cardGroups = new Map<Element, Element[]>()
 
         ;(gsap.utils.toArray('.stagger-card') as Element[]).forEach((element: Element) => {
-            if (!element.closest('.contactSection') && element.parentElement) {
+            if (!element.closest('.aboutUs') && !element.closest('.contactSection') && !(element.closest('.teachers') && window.matchMedia('(max-width: 768px)').matches) && element.parentElement) {
                 const parent = element.parentElement
                 const group = cardGroups.get(parent) ?? []
                 group.push(element)
@@ -98,6 +96,39 @@ export const createScrollAnimations = () => {
         animateElements,
         animateStaggeredCards
     }
+}
+
+export const createAboutAnimations = () => {
+    const about = document.querySelector<HTMLElement>('.aboutUs')
+    if (!about) return
+
+    const story = about.querySelector<HTMLElement>('.aboutUsContent')
+    const pillars = about.querySelector<HTMLElement>('.usPillars')
+    if (!story || !pillars) return
+
+    gsap.timeline({
+        scrollTrigger: {
+            trigger: story,
+            start: 'top 82%',
+            toggleActions: 'play none none none',
+        },
+    })
+        .fromTo(about.querySelector('.aboutUsTitle'), { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.55, ease: 'power2.out' })
+        .fromTo(about.querySelector('.aboutUsText'), { autoAlpha: 0, x: 36 }, { autoAlpha: 1, x: 0, duration: 0.85, ease: 'power2.out' }, '-=0.2')
+        .fromTo(about.querySelector('.aboutUsImage'), { autoAlpha: 0, x: -36, scale: 0.96 }, { autoAlpha: 1, x: 0, scale: 1, duration: 0.9, ease: 'power2.out' }, '<')
+
+    gsap.timeline({
+        scrollTrigger: {
+            trigger: pillars,
+            start: 'top 82%',
+            toggleActions: 'play none none none',
+        },
+    })
+        .fromTo(pillars.querySelector('.usPillarsTitle'), { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.55, ease: 'power2.out' })
+        .fromTo(pillars.querySelector('.sectionLead'), { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, duration: 0.5, ease: 'power2.out' }, '-=0.2')
+        .fromTo(pillars.querySelectorAll('.pillarsList > div'), { autoAlpha: 0, y: 36, scale: 0.96 }, {
+            autoAlpha: 1, y: 0, scale: 1, duration: 0.65, ease: 'power2.out', stagger: 0.18,
+        }, '-=0.1')
 }
 
 // Animaciones específicas para diferentes tipos de contenido
@@ -262,29 +293,40 @@ export const createPhilosophyAnimations = () => {
         )
     }
 
-    // Animación de items de lista
-    const animateListItems = () => {
-        (gsap.utils.toArray('.animate-list-item') as Element[]).forEach((item: Element, index: number) => {
-            gsap.fromTo(item,
-                {
-                    autoAlpha: 0,
-                    x: 32,
-                    y: 20
-                },
-                {
-                    autoAlpha: 1,
-                    x: 0,
-                    y: 0,
-                    duration: 0.7,
-                    delay: index * 0.1,
-                    ease: "power2.out",
-                    scrollTrigger: {
-                        trigger: item,
-                        start: "top 90%",
-                        toggleActions: "play none none none"
-                    }
-                }
-            )
+    const animateScrollFocus = () => {
+        const list = document.querySelector<HTMLElement>('.philosophyList')
+        if (!list) return
+        const items = Array.from(list.querySelectorAll<HTMLElement>('.philosophyListItem'))
+        if (items.length < 2) return
+        let current = 0
+
+        const focus = (index: number) => {
+            if (index === current) return
+            items[current]?.classList.remove('is-current')
+            items[index]?.classList.add('is-current')
+            current = index
+        }
+
+        const updateFocus = () => {
+            const focusLine = window.innerHeight * 0.5
+            const closest = items.reduce((best, item, index) => {
+                const rect = item.getBoundingClientRect()
+                const distance = Math.abs(rect.top + rect.height / 2 - focusLine)
+                return distance < best.distance ? { index, distance } : best
+            }, { index: 0, distance: Number.POSITIVE_INFINITY })
+            focus(closest.index)
+        }
+
+        ScrollTrigger.create({
+            trigger: list.closest('.philosophyContainer') ?? list,
+            start: 'top bottom',
+            end: 'bottom top',
+            onUpdate: updateFocus,
+            onRefresh: updateFocus,
+            onEnter: updateFocus,
+            onEnterBack: updateFocus,
+            onLeaveBack: () => focus(0),
+            onLeave: () => focus(items.length - 1),
         })
     }
 
@@ -293,7 +335,7 @@ export const createPhilosophyAnimations = () => {
         animateFadeUp,
         animateSplitContainer,
         animateQuoteReveal,
-        animateListItems
+        animateScrollFocus
     }
 }
 

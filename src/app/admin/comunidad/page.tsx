@@ -10,8 +10,7 @@ export default async function AdminCommunityPage() {
     return (
         <main className="admin-community-page">
             <AdminCommunitySection
-                posts={response.ok ? response.data.posts : []}
-                authors={response.ok ? response.data.authors : []}
+                data={response.ok ? response.data : { posts: [], authors: [], page: 1, totalPosts: 0, filteredTotal: 0, types: [] }}
                 errorMessage={response.ok ? null : response.error}
             />
         </main>

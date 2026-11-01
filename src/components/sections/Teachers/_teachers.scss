@@ -39,12 +39,126 @@
 
     .teacherList {
         display: flex;
-        justify-content: space-evenly;
+        justify-content: center;
         gap: 1.5rem;
         perspective: 1000px;
+        width: min(100%, 1200px);
+        margin: 0 auto;
+
+        .teacher-item {
+            flex: 1 1 0;
+            min-width: 0;
+            max-width: 350px;
+            transition: flex-grow .45s ease;
+        }
+
+        .teacher-item.is-active { flex-grow: 1.18; }
+
+        .teacherCard { max-width: none; overflow: hidden; border: 1px solid rgba($color-text, .12); }
+        .teacher-item.is-active .teacherCard { border-color: rgba($secondary-color, .9); box-shadow: 0 16px 38px rgba(0, 0, 0, .3); }
+
+        .teacherFocusButton {
+            display: flex;
+            align-items: center;
+            gap: .6rem;
+            width: 100%;
+            margin-bottom: .6rem;
+            padding: .55rem .25rem;
+            border: 0;
+            background: transparent;
+            color: $color-text;
+            font-size: $font-size-normal;
+            text-align: left;
+            cursor: pointer;
+            transition: color .2s ease;
+            span:first-child { color: $secondary-color; font-weight: $font-weight-bold; }
+            &:hover { color: $secondary-color; }
+            &:focus-visible { outline: 2px solid $secondary-color; outline-offset: 3px; border-radius: .25rem; }
+        }
 
         @media (max-width: 1200px) {
             flex-wrap: wrap;
+            .teacher-item, .teacher-item.is-active { flex: 0 1 250px; }
         }
     }
+}
+
+.teachers {
+    background: linear-gradient(180deg, #112237, #0c1d31);
+    .teacherList { flex-direction: column; gap: 0; align-items: center; flex-wrap: nowrap; overflow: visible; border: 0; border-radius: 0; background: transparent; }
+    .teacherList .teacherRow { display: flex; width: 100%; min-width: 0; overflow: hidden; border: 1px solid rgba($color-text, .18); border-radius: 0; background: #172a40; }
+    .teacherList .teacherRow:first-child { border-radius: 1rem 1rem 0 0; }
+    .teacherList .teacherRow:last-child { border-radius: 0 0 1rem 1rem; }
+    .teacherList .teacherRow:only-child { border-radius: 1rem; }
+    .teacherList .teacherRow + .teacherRow { border-top: 0; }
+    .teacherList.has-multiple-rows .teacherRow { width: var(--row-width); }
+    .teacherList .teacher-item { position: relative; display: flex; flex: 1 1 0; flex-direction: column; max-width: none; min-width: 0; }
+    .teacherList .teacher-item.is-active { flex-grow: 1.18; z-index: 1; }
+    .teacherList .teacher-item + .teacher-item { border-left: 1px solid rgba($color-text, .18); }
+    .teacherList .teacherFocusButton {
+        flex: 0 0 auto;
+        min-height: 4.5rem;
+        margin: 0;
+        padding: .85rem 1rem;
+        border-bottom: 2px solid transparent;
+        background: #102238;
+        font-size: $font-size-small;
+        font-weight: $font-weight-bold;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
+    .teacherList .teacher-item.is-active .teacherFocusButton { border-bottom-color: $secondary-color; background: #1c3046; color: $secondary-color; }
+    .teacherList .teacherCard {
+        flex: 1 1 auto;
+        max-width: none;
+        background: #172a40;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+        overflow: hidden;
+        &:hover { background: #172a40; transform: none; box-shadow: none; }
+        .imgContainer { height: clamp(260px, 28vw, 380px); }
+        .imgContainer img { border-radius: 0; }
+        .teacherTitle { margin-top: 1.25rem; font-size: clamp(1.25rem, 2vw, 1.6rem); }
+        .teacherDescription { line-height: 1.6; }
+        .teacherCardActions { padding: 1rem; }
+        .teacherCardActions .instagramLink,
+        .teacherCardActions .youtube-video-trigger {
+            background: rgba($secondary-color, .12);
+            border: 1px solid rgba($secondary-color, .8);
+            color: $secondary-color;
+            opacity: 1;
+        }
+        .teacherCardActions .instagramIcon { color: $secondary-color; }
+        .teacherCardActions .instagramLink:hover,
+        .teacherCardActions .youtube-video-trigger:hover {
+            background: $secondary-color;
+            border-color: $secondary-color;
+            color: $quinary-color;
+        }
+        .teacherCardActions .instagramLink:hover .instagramIcon { color: $quinary-color; }
+    }
+    .teacherList .teacher-item.is-active .teacherCard { border: 0; box-shadow: inset 0 0 0 1px rgba($secondary-color, .65); }
+    @media (max-width: 900px) {
+        .teacherList { justify-content: flex-start; overflow-x: auto; scroll-snap-type: x proximity; }
+        .teacherList .teacherRow { min-width: 0; overflow-x: auto; scroll-snap-type: x proximity; }
+        .teacherList.has-multiple-rows .teacherRow { width: 100%; max-width: 100%; }
+        .teacherList .teacher-item, .teacherList .teacher-item.is-active { flex: 0 0 min(72vw, 320px); scroll-snap-align: start; }
+        .teacherList .teacher-item.is-active { flex-basis: min(78vw, 360px); }
+    }
+
+    @media (max-width: 768px) {
+        .teacherList { flex-direction: column; overflow: hidden; scroll-snap-type: none; }
+        .teacherList .teacherRow, .teacherList.has-multiple-rows .teacherRow { flex-direction: column; width: 100%; min-width: 0; overflow: hidden; scroll-snap-type: none; }
+        .teacherList .teacher-item, .teacherList .teacher-item.is-active { flex: 0 0 auto; width: 100%; }
+        .teacherList .teacher-item + .teacher-item { border-left: 0; border-top: 1px solid rgba($color-text, .18); }
+        .teacherList .teacherFocusButton { min-height: 3.75rem; padding: .75rem 1rem; }
+        .teacherList .teacherCard, .teacherList .teacher-item.is-active .teacherCard { display: flex; width: 100%; }
+        .teacherList .teacherCard .imgContainer { height: clamp(250px, 70vw, 360px); }
+        .teacherList .teacher-item.is-active .teacherCard { box-shadow: none; }
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .teachers .teacherList .teacher-item { transition: none; }
 }

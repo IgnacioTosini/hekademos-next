@@ -1,4 +1,4 @@
-@use '../../../styles/variables' as *;
+﻿@use '../../../styles/variables' as *;
 
 .philosophyContainer {
     position: relative;
@@ -94,10 +94,28 @@
                 background-color: $primary-color;
                 padding: 1rem 1.5rem;
                 border-radius: 8px;
+                border-left: 4px solid transparent;
                 max-width: 500px;
                 box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-                transition: background-color 0.3s ease;
-                cursor: pointer;
+                opacity: .74;
+                transition: background-color .35s ease, border-color .35s ease, opacity .35s ease, transform .35s ease;
+
+                .philosophyStep {
+                    display: block;
+                    margin-bottom: .35rem;
+                    color: $secondary-color;
+                    font-size: $font-size-small;
+                    font-weight: $font-weight-bold;
+                    letter-spacing: .15em;
+                }
+
+                &.is-current {
+                    background-color: rgba($secondary-color, .14);
+                    border-left-color: $secondary-color;
+                    opacity: 1;
+                    transform: translateX(-8px);
+                    p { color: $color-text; }
+                }
 
                 h3 {
                     margin-top: 0;
@@ -119,3 +137,67 @@
         }
     }
 }
+
+.philosophyContainer {
+    background: linear-gradient(180deg, #101f32, #17283d);
+    .philosophySection { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); align-items: start; gap: clamp(2rem, 5vw, 5rem); width: min(100%, 1200px); max-width: none; }
+    .philosophySection .imgContainer { position: sticky; top: 7rem; max-width: none; margin: 0; border-radius: 1rem; }
+    .philosophySection .imgContainer img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; }
+    .philosophySection .imgContainer .textOnImage { bottom: 1.25rem; width: calc(100% - 2.5rem); padding: 1rem; background: rgba($quinary-color, .8); line-height: 1.5; }
+    .philosophySection .philosophyList { gap: 0; width: 100%; border-top: 1px solid rgba($color-text, .18); }
+    .philosophySection .philosophyList .philosophyListItem { max-width: none; padding: 1.5rem 0; border: 0; border-bottom: 1px solid rgba($color-text, .18); border-radius: 0; background: transparent; box-shadow: none; }
+    .philosophySection .philosophyList .philosophyListItem.is-current { padding-left: 1rem; border-left: 3px solid $secondary-color; background: rgba($secondary-color, .06); transform: none; }
+    .philosophySection .philosophyList .philosophyListItem h3 { color: $color-text; }
+    @media (max-width: 850px) { .philosophySection { grid-template-columns: 1fr; } .philosophySection .imgContainer { position: relative; top: auto; max-width: 600px; } }
+}
+
+@media (max-width: 600px) {
+    .philosophyContainer .philosophySection .philosophyList {
+        gap: .85rem;
+        border-top: 0;
+    }
+
+    .philosophyContainer .philosophySection .philosophyList .philosophyListItem,
+    .philosophyContainer .philosophySection .philosophyList .philosophyListItem.is-current {
+        position: relative;
+        width: 100%;
+        padding: 1.25rem 1.35rem;
+        border: 1px solid rgba($color-text, .15);
+        border-radius: .8rem;
+        background: #1c3046;
+        opacity: 1;
+        transform: none;
+    }
+
+    .philosophyContainer .philosophySection .philosophyList .philosophyListItem.is-current {
+        border-color: rgba($secondary-color, .7);
+        background: #243345;
+        box-shadow: 0 10px 28px rgba(0, 0, 0, .15);
+    }
+
+    .philosophyContainer .philosophySection .philosophyList .philosophyListItem::before {
+        content: '';
+        position: absolute;
+        top: 1.2rem;
+        bottom: 1.2rem;
+        left: 0;
+        width: 3px;
+        border-radius: 0 3px 3px 0;
+        background: $secondary-color;
+        opacity: 0;
+    }
+
+    .philosophyContainer .philosophySection .philosophyList .philosophyListItem.is-current::before { opacity: 1; }
+    .philosophyContainer .philosophySection .philosophyList .philosophyListItem .philosophyStep { margin-bottom: .7rem; }
+    .philosophyContainer .philosophySection .philosophyList .philosophyListItem h3 { margin: 0; font-size: 1.35rem; line-height: 1.25; }
+    .philosophyContainer .philosophySection .philosophyList .philosophyListItem p { margin-top: .7rem; font-size: .95rem; line-height: 1.6; }
+}
+
+@media (max-width: 768px), (prefers-reduced-motion: reduce) {
+    .philosophyContainer .philosophySection .philosophyList .philosophyListItem {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
+}
+

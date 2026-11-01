@@ -3,118 +3,84 @@
 .login-form {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-    width: min(100%, 440px);
-    padding: 2rem;
-    border: 1px solid rgba($secondary-color, .18);
-    border-radius: 8px;
-    background: rgba($tertiary-color, .22);
+    gap: 1.25rem;
+    width: 100%;
+    max-width: 430px;
 
-    .login-form-header {
-        margin-bottom: .5rem;
+    .login-form-header { margin-bottom: 1rem; }
+    .login-form-eyebrow { color: $secondary-color; font-size: $font-size-small; font-weight: $font-weight-bold; letter-spacing: .18em; }
+    .login-form-header h1 { margin: .7rem 0 .6rem; color: $color-text; font-size: clamp(2rem, 3vw, 2.65rem); line-height: 1.12; letter-spacing: -.04em; }
+    .login-form-header p { margin: 0; color: $color-text-secondary; font-size: $font-size-normal; line-height: 1.55; }
 
-        h1 {
-            color: $color-text;
-            font-family: $font-family-display;
-            font-size: $font-size-xxlarge;
-            font-weight: $font-weight-semibold;
-            line-height: 1.1;
-        }
-
-        p {
-            margin-top: .5rem;
-            color: $color-text-secondary;
-            font-size: $font-size-normal;
-            line-height: 1.45;
-        }
-    }
-
-    .login-form-group {
-        display: flex;
-        flex-direction: column;
-        gap: .45rem;
-
-        label {
-            color: $color-text-secondary;
-            font-size: $font-size-small;
-            font-weight: $font-weight-semibold;
-            text-transform: uppercase;
-        }
-
-        input {
-            width: 100%;
-            min-height: 44px;
-            padding: .75rem .85rem;
-            border: 1px solid rgba($secondary-color, .22);
-            border-radius: 8px;
-            background: rgba($primary-color, .65);
-            color: $color-text;
-            font: inherit;
-
-            &::placeholder {
-                color: $color-text-secondary;
-            }
-
-            &:focus {
-                outline: 2px solid rgba($secondary-color, .42);
-                border-color: rgba($secondary-color, .75);
-            }
-        }
-    }
-
-    .login-form-error {
-        padding: .75rem .85rem;
-        border-radius: 8px;
-        background: rgba($color-error, .12);
-        color: $color-error;
-        font-size: $font-size-small;
-        font-weight: $font-weight-semibold;
-    }
-
-    .login-form-message {
-        padding: .75rem .85rem;
-        border-radius: 8px;
-        background: rgba($color-success, .12);
-        color: $color-success;
-        font-size: $font-size-small;
-        font-weight: $font-weight-semibold;
-    }
-
-    button {
-        min-height: 44px;
-        margin-top: .25rem;
-        border: 0;
-        border-radius: 8px;
-        background: $color-primary-button;
+    .login-form-group { display: flex; flex-direction: column; gap: .55rem; }
+    .login-form-group label { color: $color-text; font-size: $font-size-normal; font-weight: $font-weight-semibold; }
+    .login-form-group input {
+        width: 100%;
+        min-height: 3.3rem;
+        padding: .85rem 1rem;
+        border: 1px solid rgba($color-text, .18);
+        border-radius: .7rem;
+        background: $quinary-color;
         color: $color-text;
+        font: inherit;
+        font-size: $font-size-medium;
+        transition: border-color .2s ease, box-shadow .2s ease;
+        &::placeholder { color: $color-text-secondary; }
+        &:focus { outline: 0; border-color: $secondary-color; box-shadow: 0 0 0 3px rgba($secondary-color, .16); }
+    }
+
+    .login-password-field { position: relative; }
+    .login-password-field input { padding-right: 3.5rem; }
+    .login-password-toggle {
+        position: absolute;
+        top: 50%;
+        right: .35rem;
+        display: grid;
+        place-items: center;
+        width: 2.7rem;
+        height: 2.7rem;
+        padding: 0;
+        border: 0;
+        border-radius: .5rem;
+        background: transparent;
+        color: $color-text-secondary;
         cursor: pointer;
-        font-size: $font-size-normal;
-        font-weight: $font-weight-semibold;
-        transition: .2s;
+        transform: translateY(-50%);
+        &:hover { color: $secondary-color; background: rgba($color-text, .06); }
+        &:focus-visible { outline: 2px solid $secondary-color; outline-offset: 1px; }
+    }
 
-        &:hover:not(:disabled) {
-            background: $secondary-color;
-        }
+    .login-form-error, .login-form-message { margin: 0; padding: .85rem 1rem; border-radius: .65rem; font-size: $font-size-normal; line-height: 1.5; }
+    .login-form-error { border: 1px solid rgba($color-error, .35); background: rgba($color-error, .1); color: #ff9a9b; }
+    .login-form-message { border: 1px solid rgba($color-success, .35); background: rgba($color-success, .1); color: #9de6a1; }
 
-        &:disabled {
-            cursor: not-allowed;
-            opacity: .7;
-        }
+    .login-submit {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 3.4rem;
+        margin-top: .5rem;
+        border: 0;
+        border-radius: .7rem;
+        background: $secondary-color;
+        color: $quinary-color;
+        cursor: pointer;
+        font: inherit;
+        font-size: $font-size-medium;
+        font-weight: $font-weight-bold;
+        transition: background-color .2s ease, transform .2s ease;
+        &:hover:not(:disabled) { background: $color-button; transform: translateY(-2px); }
+        &:focus-visible { outline: 2px solid $color-text; outline-offset: 3px; }
+        &:disabled { opacity: .6; cursor: not-allowed; }
     }
 
     .login-form-reset-link {
+        align-self: center;
         color: $color-text-secondary;
-        font-size: $font-size-small;
-        font-weight: $font-weight-semibold;
-        text-align: center;
+        font-size: $font-size-normal;
+        font-weight: $font-weight-medium;
         text-decoration: none;
-
-        &:hover {
-            color: $secondary-color;
-        }
-    }
-
-    @media (max-width: 560px) {
-        padding: 1.25rem;
+        &:hover { color: $secondary-color; }
+        &:focus-visible { outline: 2px solid $secondary-color; outline-offset: 4px; }
     }
 }

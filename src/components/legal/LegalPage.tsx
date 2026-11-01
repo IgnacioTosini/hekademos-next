@@ -8,7 +8,7 @@ export function LegalPage({ title, children }: { title: string; children: ReactN
       <article>
         <Link href="/">← Volver al inicio</Link>
         <h1>{title}</h1>
-        <p className="legalDate">Última actualización: <time dateTime="2026-10-19">19 de octubre de 2026</time></p>
+        <p className="legalDate">Última actualización: <time dateTime="2026-11-01">1 de noviembre de 2026</time></p>
         {children}
         <nav aria-label="Información legal">
           <Link href="/privacidad">Política de privacidad</Link>

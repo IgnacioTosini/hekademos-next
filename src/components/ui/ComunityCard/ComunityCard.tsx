@@ -5,17 +5,18 @@ import { FaRegHeart } from "react-icons/fa";
 import { FaArrowTrendUp } from "react-icons/fa6";
 import './_comunityCard.scss';
 import { YoutubeVideoButton } from '../YoutubeVideoButton';
+import type { SiteContentImage } from '@/lib/home-page-content';
+import { siteImageStyle } from '@/lib/site-image-style';
 
 type ComunityCardProps = {
     title: string;
     description: string;
     icon: "people" | "heart" | "trend";
-    imageAlt: string;
-    imageUrl: string;
+    image: SiteContentImage;
     videoUrl?: string;
 }
 
-export const ComunityCard = ({ title, description, icon, imageAlt, imageUrl, videoUrl }: ComunityCardProps) => {
+export const ComunityCard = ({ title, description, icon, image, videoUrl }: ComunityCardProps) => {
     const iconMap: Record<ComunityCardProps['icon'], JSX.Element> = {
         people: <IoPeopleSharp className="icon" />,
         heart: <FaRegHeart className="icon" />,
@@ -29,8 +30,9 @@ export const ComunityCard = ({ title, description, icon, imageAlt, imageUrl, vid
                     {iconMap[icon]}
                 </div>
                 <Image
-                    src={imageUrl}
-                    alt={imageAlt}
+                    src={image.url}
+                    alt={image.alt}
+                    style={siteImageStyle(image)}
                     width={300}
                     height={300}
                     quality={80}

@@ -109,3 +109,20 @@
         padding-bottom: 1.2rem;
     }
 }
+
+.faqSection {
+    background: #1d2c3f;
+    .faqList { max-width: 1200px; gap: 0; margin-top: 0; border-top: 1px solid rgba($color-text, .2); }
+    .faqItem {
+        border: 0;
+        border-bottom: 1px solid rgba($color-text, .2);
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+        &.open { border-color: rgba($secondary-color, .65); background: rgba($secondary-color, .04); }
+    }
+    .faqQuestion { padding: 1.5rem .75rem; font-size: clamp(1.05rem, 2vw, 1.35rem); &:focus-visible { outline: 2px solid $secondary-color; outline-offset: -2px; } }
+    .faqQuestionLabel { display: flex; align-items: baseline; gap: clamp(1rem, 3vw, 2.5rem); }
+    .faqNumber { flex: none; color: $secondary-color; font-size: $font-size-small; font-weight: $font-weight-bold; letter-spacing: .1em; }
+    .faqAnswer p { padding-left: clamp(2.2rem, 4vw, 3.5rem); max-width: 75ch; }
+}

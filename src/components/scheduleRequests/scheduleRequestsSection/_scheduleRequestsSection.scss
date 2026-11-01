@@ -5,7 +5,7 @@
     flex-direction: column;
     gap: 1.5rem;
     width: 100%;
-    max-width: 1180px;
+    max-width: 1500px;
     margin: 0 auto;
 
     .schedule-requests-header {
@@ -50,8 +50,12 @@
     }
 
     .schedule-requests-toolbar {
-        input {
-            width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        gap: .75rem;
+
+        input,
+        select {
             min-height: 46px;
             padding: .75rem .95rem;
             border: 1px solid rgba($secondary-color, .22);
@@ -65,12 +69,36 @@
                 color: rgba($color-text-secondary, .75);
             }
 
-            &:focus {
+            &:focus-visible {
                 outline: 2px solid rgba($secondary-color, .28);
                 border-color: rgba($secondary-color, .65);
             }
         }
+
+        input { flex: 1 1 280px; min-width: 0; }
+        select {
+            flex: 0 1 210px;
+            min-width: 0;
+            padding-right: 2.5rem;
+            appearance: none;
+            background-color: $quinary-color;
+            background-image: linear-gradient(45deg, transparent 50%, $secondary-color 50%), linear-gradient(135deg, $secondary-color 50%, transparent 50%);
+            background-position: calc(100% - 19px) 50%, calc(100% - 13px) 50%;
+            background-size: 6px 6px, 6px 6px;
+            background-repeat: no-repeat;
+            color: $color-text;
+            color-scheme: dark;
+            cursor: pointer;
+
+            option { background: $quinary-color; color: $color-text; }
+            option:checked { background: $secondary-color; color: $quinary-color; }
+            &:hover { border-color: rgba($secondary-color, .55); }
+        }
     }
+
+    .schedule-requests-results { margin-top: -.5rem; color: $color-text-secondary; font-size: $font-size-small; }
+    .schedule-requests-results strong { color: $secondary-color; }
+    .schedule-requests-groups { display: flex; flex-direction: column; gap: 2rem; }
 
     .schedule-requests-error {
         padding: .9rem 1rem;
@@ -95,6 +123,12 @@
         }
     }
 
+    .schedule-requests-group-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; padding-bottom: .8rem; border-bottom: 1px solid rgba($secondary-color, .18); }
+    .schedule-requests-group-heading span { color: $secondary-color; font-size: $font-size-small; font-weight: $font-weight-bold; letter-spacing: .12em; }
+    .schedule-requests-group-heading h2 { margin-top: .35rem; }
+    .schedule-requests-group-heading > strong { color: $secondary-color; font-size: $font-size-large; }
+    .schedule-requests-group-pending { padding: 1rem; border: 1px solid rgba($secondary-color, .24); border-radius: 1rem; background: rgba($secondary-color, .04); }
+
     .schedule-requests-list {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -108,7 +142,7 @@
         min-width: 0;
         padding: 1rem;
         border: 1px solid rgba($secondary-color, .2);
-        border-radius: 8px;
+        border-radius: .85rem;
         background: rgba($tertiary-color, .22);
     }
 
@@ -217,13 +251,18 @@
     }
 
     .schedule-request-grid {
+        position: relative;
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: .85rem;
 
+        > div { min-width: 0; padding: .9rem; border: 1px solid rgba($secondary-color, .18); border-radius: .65rem; background: rgba($quinary-color, .35); }
+        > div:last-child { border-color: rgba($secondary-color, .38); background: rgba($secondary-color, .08); }
+        &::after { position: absolute; top: 50%; left: 50%; display: grid; place-items: center; width: 1.5rem; height: 1.5rem; border-radius: 50%; background: $secondary-color; color: $quinary-color; font-weight: $font-weight-bold; content: '→'; transform: translate(-50%, -50%); }
+
         h4 {
             margin-bottom: .45rem;
-            color: $color-text-secondary;
+            color: $secondary-color;
             font-size: $font-size-small;
             font-weight: $font-weight-semibold;
             text-transform: uppercase;
@@ -304,6 +343,8 @@
                 background: rgba($secondary-color, .16);
                 color: $secondary-color;
             }
+
+            &:first-child { border-color: rgba($color-error, .32); color: $color-error; }
         }
     }
 
@@ -361,6 +402,8 @@
             }
         }
     }
+
+    .schedule-request-modal-reject .schedule-request-modal-actions button:last-child { border-color: $color-error; background: $color-error; color: $quinary-color; }
 
     .schedule-request-modal-header {
         justify-content: space-between;
@@ -424,9 +467,24 @@
         .schedule-request-grid {
             grid-template-columns: 1fr;
         }
+        .schedule-request-grid > div:first-child { grid-row: 1; }
+        .schedule-request-grid > div:last-child { grid-row: 3; }
+        .schedule-request-grid::after {
+            position: relative;
+            top: auto;
+            left: auto;
+            grid-row: 2;
+            justify-self: center;
+            margin-block: -.4rem;
+            content: '↓';
+            transform: none;
+        }
     }
 
     @media (max-width: 640px) {
+        .schedule-requests-toolbar input,
+        .schedule-requests-toolbar select { flex: 1 1 100%; width: 100%; }
+
         .schedule-requests-header,
         .schedule-request-card-header {
             flex-direction: column;

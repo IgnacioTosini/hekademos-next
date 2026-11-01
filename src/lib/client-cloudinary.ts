@@ -1,3 +1,6 @@
+import type { SiteImageSection } from "@/lib/site-image-sections";
+import type { UserImageSection } from "@/lib/user-image-sections";
+
 export type UploadedImage = {
     url: string;
     publicId: string;
@@ -5,10 +8,11 @@ export type UploadedImage = {
 
 export type ImageUploadArea = "users" | "site";
 
-export const uploadImage = async (file: File, area: ImageUploadArea = "users"): Promise<UploadedImage> => {
+export const uploadImage = async (file: File, area: ImageUploadArea = "users", section?: SiteImageSection | UserImageSection): Promise<UploadedImage> => {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("area", area);
+    if (section) formData.append("section", section);
 
     const response = await fetch("/api/upload-image", {
         method: "POST",
@@ -38,3 +42,4 @@ export const deleteImage = async (publicId: string) => {
         throw new Error(data.error ?? "No se pudo eliminar la imagen.");
     }
 };
+

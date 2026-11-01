@@ -3,7 +3,7 @@
 .navbar {
     display: flex;
     align-items: center;
-    padding: 1rem;
+    padding: 0;
 
     .mobileMenuButton {
         @media (min-width: 769px) {
@@ -11,18 +11,20 @@
         }
 
         @media (max-width: 768px) {
-            background-color: transparent;
+            background-color: rgba($color-text, .08);
             color: white;
-            border: none;
-            border-radius: 6px;
-            width: 40px;
-            height: 40px;
+            border: 1px solid rgba($color-text, .14);
+            border-radius: 12px;
+            width: 44px;
+            height: 44px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             font-size: 1.2rem;
             transition: background-color 0.2s ease;
+            &:hover { background-color: rgba($secondary-color, .16); }
+            &:focus-visible { outline: 2px solid $secondary-color; outline-offset: 3px; }
         }
     }
 

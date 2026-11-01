@@ -6,10 +6,6 @@ export const metadata: Metadata = {
   description: "Resumen administrativo de Hekademos.",
 };
 
-export default async function AdminPage() {
-  return (
-    <>
-      <DashboardSection />
-    </>
-  );
+export default function AdminPage() {
+  return <DashboardSection />;
 }

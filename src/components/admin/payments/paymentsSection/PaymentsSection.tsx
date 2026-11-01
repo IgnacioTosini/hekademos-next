@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { FormEvent, useMemo, useState, useTransition } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { FaCheck, FaDownload, FaEnvelope, FaHistory, FaRegEdit, FaUndo } from 'react-icons/fa';
 import { IoMdClose } from 'react-icons/io';
 import { toast } from 'react-toastify';
@@ -14,6 +14,9 @@ import {
     sendPaymentReminderEmails,
 } from '@/app/actions/payment.actions';
 import { EmptyState } from '@/components/ui/emptyState/EmptyState';
+import { LoadingState } from '@/components/ui/loadingState/LoadingState';
+import { Pagination } from '@/components/ui/pagination/Pagination';
+import { usePagination } from '@/hooks/usePagination';
 import type { Payment, PaymentOverviewRow, PaymentOverviewStatus } from '@/types/schema/payments';
 import { getClassCategoryLabel } from '@/utils/class-category';
 import { formatCurrency, formatDate } from '@/utils/format';
@@ -161,9 +164,17 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
     const router = useRouter();
     const [query, setQuery] = useState('');
     const [selectedCoachId, setSelectedCoachId] = useState('all');
+    const [selectedStatus, setSelectedStatus] = useState('ALL');
+    const [showReminderConfirm, setShowReminderConfirm] = useState(false);
+    const cancelReminderRef = useRef<HTMLButtonElement>(null);
+    const [isChangingPeriod, startPeriodTransition] = useTransition();
+    const periodIndicatorRef = useRef<HTMLSpanElement>(null);
+    const groupsRef = useRef<HTMLDivElement>(null);
+    const filtersInitialized = useRef(false);
     const [pendingStudentId, setPendingStudentId] = useState<string | null>(null);
     const [historyRow, setHistoryRow] = useState<PaymentOverviewRow | null>(null);
     const [paymentHistory, setPaymentHistory] = useState<Payment[]>([]);
+    const historyPages = usePagination(paymentHistory, 8, historyRow?.student.id ?? '');
     const [historyError, setHistoryError] = useState('');
     const [detailsRow, setDetailsRow] = useState<PaymentOverviewRow | null>(null);
     const [reference, setReference] = useState('');
@@ -172,6 +183,46 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
     const [isPending, startTransition] = useTransition();
     const [isLoadingHistory, startHistoryTransition] = useTransition();
     const [isSendingReminders, startReminderTransition] = useTransition();
+
+    useEffect(() => {
+        if (!showReminderConfirm) return;
+        cancelReminderRef.current?.focus();
+        const onEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') setShowReminderConfirm(false);
+        };
+        window.addEventListener('keydown', onEscape);
+        return () => window.removeEventListener('keydown', onEscape);
+    }, [showReminderConfirm]);
+
+    useEffect(() => {
+        if (!isChangingPeriod || !periodIndicatorRef.current || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        let cancelled = false;
+        let cleanup: (() => void) | undefined;
+        void import('@/animations/gsapConfig').then(({ gsap }) => {
+            if (cancelled || !periodIndicatorRef.current) return;
+            const context = gsap.context(() => {
+                gsap.to(periodIndicatorRef.current, { rotation: 360, duration: .8, ease: 'none', repeat: -1 });
+            });
+            cleanup = () => context.revert();
+        });
+        return () => { cancelled = true; cleanup?.(); };
+    }, [isChangingPeriod]);
+
+    useEffect(() => {
+        if (!filtersInitialized.current) { filtersInitialized.current = true; return; }
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        let cancelled = false;
+        let cleanup: (() => void) | undefined;
+        void import('@/animations/gsapConfig').then(({ gsap }) => {
+            if (cancelled || !groupsRef.current) return;
+            const groups = groupsRef.current.querySelectorAll('.payments-coach-group');
+            const context = gsap.context(() => {
+                gsap.fromTo(groups, { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: .32, stagger: .05, ease: 'power2.out', clearProps: 'all' });
+            }, groupsRef);
+            cleanup = () => context.revert();
+        });
+        return () => { cancelled = true; cleanup?.(); };
+    }, [selectedCoachId, selectedStatus]);
 
     const paidCount = rows.filter((row) => row.status === 'PAID').length;
     const pendingCount = rows.filter((row) => row.status === 'PENDING').length;
@@ -190,7 +241,7 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
     const yearOptions = useMemo(() => getYearOptions(selectedYear), [selectedYear]);
 
     const replacePeriod = (nextMonth: number, nextYear: number) => {
-        router.replace(`/admin/pagos?month=${nextMonth}&year=${nextYear}`);
+        startPeriodTransition(() => router.replace(`/admin/pagos?month=${nextMonth}&year=${nextYear}`, { scroll: false }));
     };
 
     const coachOptions = useMemo(() => {
@@ -232,15 +283,17 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
     }, [query, rows]);
 
     const filteredRows = useMemo(() => {
-        if (selectedCoachId === 'all') return searchedRows;
-
-        return searchedRows.filter((row) => getCoachId(row) === selectedCoachId);
-    }, [searchedRows, selectedCoachId]);
+        return searchedRows.filter((row) => (
+            (selectedCoachId === 'all' || getCoachId(row) === selectedCoachId)
+            && (selectedStatus === 'ALL' || row.status === selectedStatus)
+        ));
+    }, [searchedRows, selectedCoachId, selectedStatus]);
+    const paymentPages = usePagination(filteredRows, 15, `${query}|${selectedCoachId}|${selectedStatus}|${selectedMonth}|${selectedYear}`);
 
     const groupedRows = useMemo(() => {
         const groups = new Map<string, CoachGroup>();
 
-        filteredRows.forEach((row) => {
+        paymentPages.pageItems.forEach((row) => {
             const coachId = getCoachId(row);
             const group = groups.get(coachId) ?? {
                 coachId,
@@ -253,7 +306,7 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
         });
 
         return Array.from(groups.values()).sort((a, b) => a.coachName.localeCompare(b.coachName));
-    }, [filteredRows]);
+    }, [paymentPages.pageItems]);
 
     const handleExportCsv = () => {
         if (filteredRows.length === 0) {
@@ -269,12 +322,7 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
     };
 
     const handleSendReminders = () => {
-        const confirmed = window.confirm(
-            `Se enviarán recordatorios por WhatsApp (email de respaldo) a los alumnos pendientes de ${currentMonthLabel}. No se repetirán los ya enviados. ¿Continuar?`
-        );
-
-        if (!confirmed) return;
-
+        setShowReminderConfirm(false);
         startReminderTransition(async () => {
             const result = await sendPaymentReminderEmails(selectedPeriod);
 
@@ -413,13 +461,35 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
                 <div className="payments-header-text">
                     <h1 className="payments-title">Pagos</h1>
                     <p className="payments-description">
-                        {currentMonthLabel}: vencimiento {paymentWindowLabel} · {paidCount} pagados · {pendingCount} pendientes · {activeMembershipsCount} membresias activas
+                        {currentMonthLabel} · vencimiento {paymentWindowLabel}
                     </p>
                 </div>
             </div>
 
+            <div className="payments-overview" aria-label="Resumen de pagos del período">
+                <div><span>Pendientes</span><strong>{pendingCount}</strong></div>
+                <div><span>Pagados</span><strong>{paidCount}</strong></div>
+                <div><span>Membresías activas</span><strong>{activeMembershipsCount}</strong></div>
+            </div>
+
+            {isChangingPeriod && <div className="payments-period-status" role="status"><span ref={periodIndicatorRef} aria-hidden="true" />Actualizando período...</div>}
+
+            {showReminderConfirm && (
+                <div className="payments-reminder-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowReminderConfirm(false); }}>
+                    <div className="payments-reminder-dialog" role="alertdialog" aria-modal="true" aria-labelledby="payments-reminder-title" aria-describedby="payments-reminder-description">
+                        <span className="payments-reminder-eyebrow">ENVÍO MASIVO</span>
+                        <h2 id="payments-reminder-title">Enviar recordatorios</h2>
+                        <p id="payments-reminder-description">Se enviarán recordatorios de <strong>{currentMonthLabel}</strong> a los alumnos con pago pendiente. Se usará WhatsApp y email como respaldo. Los ya enviados no se repetirán.</p>
+                        <div className="payments-reminder-actions">
+                            <button type="button" ref={cancelReminderRef} onClick={() => setShowReminderConfirm(false)}>Cancelar</button>
+                            <button type="button" onClick={handleSendReminders}>Enviar recordatorios</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="payments-table-wrapper">
-                <div className="payments-table-toolbar">
+                <div className="payments-table-toolbar" aria-busy={isChangingPeriod}>
                     <div className="payments-period-filters">
                         <select
                             value={selectedMonth}
@@ -458,8 +528,8 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
                     <button
                         className="payments-export-button"
                         type="button"
-                        onClick={handleSendReminders}
-                        disabled={isSendingReminders}
+                        onClick={() => setShowReminderConfirm(true)}
+                        disabled={isSendingReminders || pendingCount === 0}
                     >
                         <FaEnvelope />
                         {isSendingReminders ? 'Enviando...' : 'Enviar recordatorios'}
@@ -478,6 +548,15 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
                         ))}
                     </select>
 
+                    <select value={selectedStatus} onChange={(event) => setSelectedStatus(event.target.value)} aria-label="Filtrar por estado de pago">
+                        <option value="ALL">Todos los estados</option>
+                        <option value="PENDING">Pendientes</option>
+                        <option value="PAID">Pagados</option>
+                        <option value="NO_MEMBERSHIP">Sin membresía</option>
+                        <option value="REFUNDED">Reembolsados</option>
+                        <option value="CANCELLED">Cancelados</option>
+                    </select>
+
                     <input
                         value={query}
                         onChange={(event) => setQuery(event.target.value)}
@@ -485,6 +564,10 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
                         aria-label="Buscar pago"
                     />
                 </div>
+
+                <p className="payments-results" aria-live="polite">Mostrando <strong>{filteredRows.length}</strong> de {rows.length} alumnos</p>
+
+                <div className="payments-groups" ref={groupsRef}>
 
                 {groupedRows.map((group) => {
                     const counts = getGroupCounts(group.rows);
@@ -518,8 +601,8 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
                                         const canMarkPending = row.status === 'PAID';
 
                                         return (
-                                            <tr key={row.student.id}>
-                                                <td data-label="Alumno">
+                                            <tr className={isMarkingPaid ? 'payment-row-saving' : ''} key={row.student.id} aria-busy={isMarkingPaid}>
+                                                <td className="payment-cell-student" data-label="Alumno">
                                                     <div className="payment-student">
                                                         <div className="payment-avatar">
                                                             <span>{getInitials(studentName)}</span>
@@ -532,8 +615,8 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
                                                     </div>
                                                 </td>
 
-                                                <td data-label="Membresia">{getPlanLabel(row)}</td>
-                                                <td data-label="Monto">
+                                                <td className="payment-cell-plan" data-label="Membresía">{getPlanLabel(row)}</td>
+                                                <td className="payment-cell-amount" data-label="Monto">
                                                     <div className="payment-amount">
                                                         <strong>{formatCurrency(row.amountCents, row.currency)}</strong>
                                                         {row.isLate && row.status === 'PENDING' && (
@@ -541,7 +624,7 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td data-label="Fecha">
+                                                <td className="payment-cell-date" data-label="Fecha">
                                                     <div className="payment-date">
                                                         <strong>{getPaymentDateLabel(row)}</strong>
                                                         {row.isLate && row.status === 'PENDING' && (
@@ -554,29 +637,29 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td data-label="Estado">
+                                                <td className="payment-cell-status" data-label="Estado">
                                                     <span className={`payment-status payment-status-${row.status.toLowerCase().replace('_', '-')}`}>
                                                         {statusLabels[row.status]}
                                                     </span>
                                                 </td>
-                                                <td data-label="Acciones">
+                                                <td className="payment-cell-actions" data-label="Acciones">
                                                     <div className="payment-actions">
                                                         {canMarkPending ? (
                                                             <button
-                                                                className="payment-action-button"
+                                                                className="payment-action-button payment-action-undo"
                                                                 type="button"
                                                                 onClick={() => handleMarkPending(row)}
-                                                                disabled={isMarkingPaid}
+                                                                disabled={isPending}
                                                             >
                                                                 <FaUndo />
                                                                 {isMarkingPaid ? 'Guardando' : 'Desmarcar'}
                                                             </button>
                                                         ) : (
                                                             <button
-                                                                className="payment-action-button"
+                                                                className="payment-action-button payment-action-pay"
                                                                 type="button"
                                                                 onClick={() => handleMarkPaid(row)}
-                                                                disabled={!canMarkPaid || isMarkingPaid}
+                                                                disabled={!canMarkPaid || isPending}
                                                             >
                                                                 <FaCheck />
                                                                 {isMarkingPaid ? 'Guardando' : 'Marcar pagado'}
@@ -589,7 +672,7 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
                                                             disabled={!row.activeMembership}
                                                             aria-label={`Editar detalle de pago de ${studentName}`}
                                                         >
-                                                            <FaRegEdit />
+                                                            <FaRegEdit /><span>Detalle</span>
                                                         </button>
                                                         <button
                                                             className="payment-icon-button"
@@ -597,7 +680,7 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
                                                             onClick={() => openHistoryModal(row)}
                                                             aria-label={`Ver historial de ${studentName}`}
                                                         >
-                                                            <FaHistory />
+                                                            <FaHistory /><span>Historial</span>
                                                         </button>
                                                     </div>
                                                 </td>
@@ -609,6 +692,8 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
                         </div>
                     );
                 })}
+                </div>
+                <Pagination page={paymentPages.page} pageSize={paymentPages.pageSize} totalItems={filteredRows.length} onPageChange={paymentPages.setPage} label="alumnos" />
 
                 {filteredRows.length === 0 && (
                     <EmptyState
@@ -642,7 +727,7 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
 
                         <div className="payment-history-list">
                             {isLoadingHistory ? (
-                                <EmptyState
+                                <LoadingState
                                     compact
                                     title="Cargando historial"
                                     description="Estamos buscando los pagos registrados de este alumno."
@@ -654,7 +739,7 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
                                     description={historyError}
                                 />
                             ) : paymentHistory.length > 0 ? (
-                                paymentHistory.map((payment) => (
+                                historyPages.pageItems.map((payment) => (
                                     <div className="payment-history-item" key={payment.id}>
                                         <div className="payment-history-item-main">
                                             <div>
@@ -681,6 +766,7 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
                                 />
                             )}
                         </div>
+                        <Pagination page={historyPages.page} pageSize={historyPages.pageSize} totalItems={paymentHistory.length} onPageChange={historyPages.setPage} label="pagos" />
                     </div>
                 </div>
             )}

@@ -7,12 +7,16 @@ type Props = { content: HomePageContent['community'] }
 export const Comunity = ({ content }: Props) => {
     return (
         <div className="comunity" id='comunidad'>
-            <h2 className='comunityTitle animate-on-scroll'>{content.title}</h2>
-            <h3 className='comunitySubtitle animate-on-scroll'>{content.subtitle}</h3>
+            <div className="sectionHeader">
+                <span className="sectionEyebrow">CRECEMOS JUNTOS</span>
+                <h2 className='comunityTitle sectionTitle animate-on-scroll'>{content.title}</h2>
+                <p className='comunitySubtitle sectionLead animate-on-scroll'>{content.subtitle}</p>
+            </div>
             <div className='comunityCardList'>
                 {content.items.map((item, index) => (
-                    <div className="stagger-card" key={`${item.title}-${index}`}>
-                        <ComunityCard title={item.title} description={item.description} icon={item.icon} imageAlt={item.image.alt} imageUrl={item.image.url} videoUrl={item.videoUrl} />
+                    <div className="stagger-card communityItem" key={`${item.title}-${index}`}>
+                        <span className="communityIndex" aria-hidden="true">{String(index + 1).padStart(2, '0')} / {String(content.items.length).padStart(2, '0')}</span>
+                        <ComunityCard title={item.title} description={item.description} icon={item.icon} image={item.image} videoUrl={item.videoUrl} />
                     </div>
                 ))}
             </div>

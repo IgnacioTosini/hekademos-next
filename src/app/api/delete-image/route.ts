@@ -20,12 +20,18 @@ export async function DELETE(req: NextRequest) {
     }
 
     const uploadRootFolder = (process.env.CLOUDINARY_UPLOAD_FOLDER ?? "Hekademos").replace(/^\/+|\/+$/g, "");
-    const userFolderPrefix = `${uploadRootFolder}/users/`;
-    const siteFolderPrefix = `${uploadRootFolder}/site/`;
+    if (!publicId.startsWith(`${uploadRootFolder}/`) || publicId.includes("..") || publicId.includes("\\")) {
+        return Response.json(
+            { success: false, error: "El identificador de la imagen no es válido." },
+            { status: 400 }
+        );
+    }
+    const userFolderPrefixes = ["users", "usuarios", "alumnos", "profesores"].map((folder) => `${uploadRootFolder}/${folder}/`);
+    const siteFolderPrefixes = ["site", "contenidoInicio"].map((folder) => `${uploadRootFolder}/${folder}/`);
 
     if (session.role !== "ADMIN") {
-        const isUserImage = publicId.startsWith(userFolderPrefix);
-        const isSiteImage = publicId.startsWith(siteFolderPrefix);
+        const isUserImage = userFolderPrefixes.some((prefix) => publicId.startsWith(prefix));
+        const isSiteImage = siteFolderPrefixes.some((prefix) => publicId.startsWith(prefix));
         const ownedImage = isUserImage
             ? await prisma.userImage.findFirst({
                 where: {
