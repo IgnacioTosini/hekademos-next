@@ -3,6 +3,7 @@ import { cache } from "react";
 import { cloneDefaultHomePageContent, defaultHomePageContent, type HomePageContent } from "@/lib/home-page-content";
 import { prisma } from "@/lib/prisma";
 import { isValidYoutubeUrl } from "@/utils/youtube";
+import { businessAddressLabel } from "@/lib/business-location";
 
 export const HOME_PAGE_CONTENT_KEY = "home-page";
 export const HOME_PAGE_CONTENT_CACHE_TAG = "home-page-content";
@@ -78,6 +79,9 @@ const normalizeFromTemplate = (template: unknown, value: unknown, path = "home")
 
 export const normalizeHomePageContent = (value: unknown): HomePageContent => {
     const content = normalizeFromTemplate(defaultHomePageContent, value) as HomePageContent;
+    if (!content.contact.address.trim() || /ejemplo/i.test(content.contact.address)) {
+        content.contact.address = businessAddressLabel;
+    }
     content.classes.items.forEach((item, index) => {
         if ((item.image.url === "/hekademosTitle.jpg" || (index === 2 && item.image.url === "/classes/planificacion.png")) && !item.image.publicId && defaultHomePageContent.classes.items[index]) {
             item.image = { ...defaultHomePageContent.classes.items[index].image };

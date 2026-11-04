@@ -1,3 +1,5 @@
+import { businessAddressLabel } from "@/lib/business-location";
+
 export type SiteContentImage = { url: string; publicId: string; alt: string; scale?: number; positionX?: number; positionY?: number };
 
 export type HomePageContent = {
@@ -127,7 +129,7 @@ export const defaultHomePageContent: HomePageContent = {
     contact: {
         title: "Contacto", subtitle: "Da el primer paso hacia tu transformación. Estamos aquí para acompañarte en tu camino.",
         form: { title: "Envíanos un mensaje", namePlaceholder: "Tu nombre", emailPlaceholder: "Tu email", messagePlaceholder: "Tu mensaje", submitLabel: "Enviar", submittingLabel: "Enviando...", successMessage: "¡Mensaje enviado correctamente!" },
-        infoTitle: "Información de Contacto", email: "info@hekademos.com", phone: "+54 9 11 2234-5698", address: "Av. Ejemplo 1234, Buenos Aires",
+        infoTitle: "Información de Contacto", email: "info@hekademos.com", phone: "+54 9 11 2234-5698", address: businessAddressLabel,
         whatsappLabel: "Escribir por WhatsApp", whatsappMessage: "Hola Hekademos, quiero consultar por las clases.",
         instagramLabel: "Seguir en Instagram", instagramUrl: "https://www.instagram.com/hekademos.em", scheduleTitle: "Horario de Atención",
         schedule: [

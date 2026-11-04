@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { isDeliverableEmail } from '@/lib/form-validation'
+import { businessAddressLabel } from '@/lib/business-location'
 
 export function LegalContact() {
   const email = process.env.CONTACT_TO_EMAIL?.trim()
@@ -12,7 +13,7 @@ export function LegalContact() {
         ? <>escribí a <a href={`mailto:${email}`}>{email}</a> o utilizá el </>
         : <>utilizá el </>}
       <Link href="/#contacto">formulario de contacto</Link>.
-      {' '}Para conocer la dirección actual de las actividades, consultá al equipo.
+      {' '}La dirección de las actividades es {businessAddressLabel}.
     </p>
   )
 }

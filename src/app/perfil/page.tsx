@@ -18,6 +18,7 @@ import "./_perfilPage.scss";
 export const metadata: Metadata = {
     title: "Mi perfil",
     description: "Perfil del alumno en Hekademos.",
+    robots: { index: false, follow: false },
 };
 
 type Props = {

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type { CSSProperties } from "react";
 import { ToastProvider } from "@/components/providers/ToastProvider";
 import { Analytics } from "@vercel/analytics/next"
+import { getSiteUrl, isSearchIndexingEnabled } from "@/lib/seo";
 import "./globals.css";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -10,33 +11,24 @@ const fontVariables = {
   "--font-playfair-display": "Georgia, serif",
 } as CSSProperties;
 
+const siteUrl = getSiteUrl();
+const siteDescription = "Clases de calistenia, entrenamiento funcional y planes personalizados en Mar del Plata. Entrená fuerza y movilidad con el equipo de Hekademos.";
+
 export const metadata: Metadata = {
-  metadataBase: new URL("https://hekademos.vercel.app"),
+  metadataBase: new URL(siteUrl),
 
   title: {
-    default: "Hekademos - Transformá tu relación con el movimiento",
+    default: "Hekademos | Calistenia en Mar del Plata",
     template: "%s | Hekademos",
   },
 
-  description:
-    "Mejorá tu relación con el cuerpo, creá consciencia en cada movimiento y pertenecé a una comunidad donde el respeto y compañerismo van antes que todo.",
-
-  keywords: [
-    "hekademos",
-    "movimiento consciente",
-    "entrenamiento corporal",
-    "comunidad fitness",
-    "consciencia corporal",
-    "transformación personal",
-    "movilidad",
-    "crecimiento personal",
-  ],
+  description: siteDescription,
 
   authors: [{ name: "Hekademos" }],
 
   robots: {
-    index: true,
-    follow: true,
+    index: isSearchIndexingEnabled(),
+    follow: isSearchIndexingEnabled(),
   },
 
   icons: {
@@ -45,37 +37,32 @@ export const metadata: Metadata = {
 
   openGraph: {
     type: "website",
-    url: "https://hekademos.vercel.app",
-    title: "Hekademos - Transformá tu relación con el movimiento",
-    description:
-      "Una práctica que te transforma desde adentro hacia afuera.",
+    url: siteUrl,
+    title: "Hekademos | Calistenia en Mar del Plata",
+    description: siteDescription,
     siteName: "Hekademos",
-    locale: "es_ES",
+    locale: "es_AR",
     images: [
       {
         url: "/banner.png",
-        width: 1200,
-        height: 630,
+        width: 1024,
+        height: 1024,
         alt: "Hekademos - Comunidad de movimiento consciente",
       },
     ],
   },
 
   twitter: {
-    card: "summary_large_image",
-    title: "Hekademos - Transformá tu relación con el movimiento",
-    description:
-      "Mejorá tu relación con el cuerpo y entrená con consciencia.",
+    card: "summary",
+    title: "Hekademos | Calistenia en Mar del Plata",
+    description: siteDescription,
     images: ["/banner.png"],
   },
 
-  alternates: {
-    canonical: "/",
-  },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#4f46e5",
+  themeColor: "#0b1b2e",
 };
 
 export default function RootLayout({

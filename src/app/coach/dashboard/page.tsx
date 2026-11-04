@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import type { Metadata } from 'next';
 import { getCoachTodayAttendance } from '@/app/actions/attendance.actions';
 import { getCommunityFeed } from '@/app/actions/community.actions';
 import { ChangePasswordButton } from '@/components/account/changePasswordButton/ChangePasswordButton';
@@ -15,6 +16,8 @@ import { getAmountWithLateSurcharge, getPaymentForPeriod, getPaymentMonthRange, 
 import { addMinutesToTime, dayLabels } from '@/utils/schedule';
 import { getStudentName } from '@/utils/student';
 import './_coachDashboardPage.scss';
+
+export const metadata: Metadata = { title: 'Panel de coach', robots: { index: false, follow: false } };
 
 export default async function CoachDashboardPage() {
     const session = await getCurrentAuthSession();
