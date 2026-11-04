@@ -8,7 +8,8 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { writeAuditLog } from "@/lib/audit-log";
 import { getCurrentAuthSession, setAuthSessionCookie } from "@/lib/auth-session";
-import { isValidBirthDate, isValidOptionalPhone, isValidOptionalUrl } from "@/lib/form-validation";
+import { isDeliverableEmail, isValidBirthDate, isValidOptionalPhone, isValidOptionalUrl } from "@/lib/form-validation";
+import { normalizeWhatsappPhoneNumber } from "@/utils/whatsapp";
 import { getEffectiveScheduleStudentIds, getOneTimeScheduleChangesForDate } from "@/lib/one-time-schedule-change";
 import { sendAutomaticScheduleChangeNotification } from "@/services/schedule-change-notification";
 import type { ScheduleChangeRequestType, WeeklyClassSchedule } from "@/types/schema/classes";
@@ -67,6 +68,7 @@ const getProfileErrorMessage = (error: unknown, fallback: string) => {
     if (error.message === "Solo los alumnos pueden editar este perfil") return error.message;
     if (error.message === "No se encontro el perfil del alumno") return error.message;
     if (error.message === "Ese email ya esta en uso") return error.message;
+    if (error.message === "Necesitás un teléfono válido para recibir avisos por WhatsApp") return error.message;
     if (error.message === "La cantidad de turnos supera lo permitido por tu plan") return error.message;
     if (error.message === "Uno de los turnos seleccionados ya no existe") return error.message;
     if (error.message === "Uno de los turnos seleccionados no tiene cupos disponibles") return error.message;
@@ -283,6 +285,7 @@ export const updateStudentProfile = async (
             },
         });
 
+        const normalizedPhone = normalizeContactPhone(input.phone);
         await prisma.student.update({
             where: {
                 id: student.id,
@@ -293,6 +296,7 @@ export const updateStudentProfile = async (
                 birthDate: toDate(input.birthDate),
                 emergencyContactName: input.emergencyContactName?.trim() || null,
                 emergencyContactPhone: input.emergencyContactPhone?.trim() || null,
+                ...(normalizedPhone !== student.user.phone ? { whatsappConsentAt: null, whatsappConsentPhone: null } : {}),
             },
         });
 
@@ -357,6 +361,44 @@ export const updateStudentProfile = async (
             data: null,
             error: getProfileErrorMessage(error, "No se pudo actualizar el perfil"),
         };
+    }
+};
+
+export const updateStudentWhatsAppConsent = async (
+    enabled: boolean
+): Promise<ActionResponse<{ enabled: boolean } | null>> => {
+    try {
+        const session = await getCurrentAuthSession();
+        if (!session) throw new Error("Necesitas iniciar sesion");
+        if (session.role !== "STUDENT") throw new Error("Solo los alumnos pueden editar este perfil");
+        const student = await prisma.student.findUnique({
+            where: { userId: session.userId },
+            select: { id: true, user: { select: { phone: true, email: true } } },
+        });
+        if (!student) throw new Error("No se encontro el perfil del alumno");
+        const consentPhone = normalizeWhatsappPhoneNumber(student.user.phone);
+        if (enabled && !consentPhone) {
+            throw new Error("Necesitás un teléfono válido para recibir avisos por WhatsApp");
+        }
+        // A request to stop WhatsApp must always be honored, even if email is missing.
+        await prisma.student.update({
+            where: { id: student.id },
+            data: {
+                whatsappConsentAt: enabled ? new Date() : null,
+                whatsappConsentPhone: enabled ? consentPhone : null,
+            },
+        });
+        await writeAuditLog({
+            action: enabled ? "STUDENT_WHATSAPP_OPT_IN" : "STUDENT_WHATSAPP_OPT_OUT",
+            entityType: "Student",
+            entityId: student.id,
+            metadata: { hasEmailFallback: isDeliverableEmail(student.user.email) },
+        });
+        revalidatePath(profilePath);
+        return { ok: true, data: { enabled } };
+    } catch (error) {
+        console.error("Error al actualizar la preferencia de WhatsApp:", error);
+        return { ok: false, data: null, error: getProfileErrorMessage(error, "No se pudo guardar la preferencia") };
     }
 };
 
@@ -615,6 +657,7 @@ export const createStudentScheduleChangeRequest = async (
             type: input.type,
             requestedScheduleIds,
             requestedDate: confirmedRequestedDate,
+            requestId,
         });
 
         revalidatePath(profilePath);

@@ -74,20 +74,41 @@ const sortSchedules = (schedules: WeeklyClassScheduleWithRelations[]) => (
     ))
 );
 
+const getRequestCoachIds = (request: ScheduleChangeRequestReviewItem) => [
+    request.student?.coachId,
+    ...request.currentSchedules.map((schedule) => schedule.coachId),
+    ...request.requestedSchedules.map((schedule) => schedule.coachId),
+].filter((id): id is string => Boolean(id));
+
 export const ScheduleRequestsSection = ({ errorMessage, requests }: Props) => {
     const [modalState, setModalState] = useState<ReviewModalState | null>(null);
     const [notes, setNotes] = useState("");
     const [query, setQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState("ALL");
     const [typeFilter, setTypeFilter] = useState("ALL");
+    const [coachFilter, setCoachFilter] = useState("ALL");
     const listsRef = useRef<HTMLDivElement>(null);
     const filtersInitialized = useRef(false);
     const [isPending, startTransition] = useTransition();
     const normalizedQuery = query.trim().toLowerCase();
+    const coachOptions = useMemo(() => {
+        const coaches = new Map<string, string>();
+        for (const request of requests) {
+            const studentCoach = request.student?.coach;
+            if (studentCoach) coaches.set(studentCoach.id, studentCoach.user?.name || studentCoach.user?.email || "Coach sin nombre");
+            for (const schedule of [...request.currentSchedules, ...request.requestedSchedules]) {
+                if (schedule.coachId) {
+                    coaches.set(schedule.coachId, schedule.coach?.user?.name || schedule.coach?.user?.email || "Coach sin nombre");
+                }
+            }
+        }
+        return [...coaches].sort((a, b) => a[1].localeCompare(b[1], "es"));
+    }, [requests]);
     const filteredRequests = useMemo(() => (
         requests.filter((request) => {
                 if (statusFilter !== "ALL" && request.status !== statusFilter) return false;
                 if (typeFilter !== "ALL" && request.type !== typeFilter) return false;
+                if (coachFilter !== "ALL" && !getRequestCoachIds(request).includes(coachFilter)) return false;
                 if (!normalizedQuery) return true;
                 const studentName = getStudentName(request);
                 const values = [
@@ -103,10 +124,10 @@ export const ScheduleRequestsSection = ({ errorMessage, requests }: Props) => {
 
                 return values.some((value) => value?.toLowerCase().includes(normalizedQuery));
             })
-    ), [normalizedQuery, requests, statusFilter, typeFilter]);
+    ), [coachFilter, normalizedQuery, requests, statusFilter, typeFilter]);
     const pendingRequests = sortRequests(filteredRequests.filter((request) => request.status === "PENDING"));
     const reviewedRequests = sortRequests(filteredRequests.filter((request) => request.status !== "PENDING"));
-    const filterKey = `${query}|${statusFilter}|${typeFilter}`;
+    const filterKey = `${query}|${statusFilter}|${typeFilter}|${coachFilter}`;
     const pendingPages = usePagination(pendingRequests, 8, filterKey);
     const reviewedPages = usePagination(reviewedRequests, 8, filterKey);
 
@@ -124,7 +145,7 @@ export const ScheduleRequestsSection = ({ errorMessage, requests }: Props) => {
             cleanup = () => context.revert();
         });
         return () => { cancelled = true; cleanup?.(); };
-    }, [statusFilter, typeFilter]);
+    }, [coachFilter, statusFilter, typeFilter]);
 
     const openModal = (intent: ReviewModalState["intent"], request: ScheduleChangeRequestReviewItem) => {
         setModalState({
@@ -304,6 +325,10 @@ export const ScheduleRequestsSection = ({ errorMessage, requests }: Props) => {
                     <option value="ALL">Todos los tipos</option>
                     <option value="ONE_TIME">Una clase</option>
                     <option value="PERMANENT">Permanente</option>
+                </select>
+                <select value={coachFilter} onChange={(event) => setCoachFilter(event.target.value)} aria-label="Filtrar por coach">
+                    <option value="ALL">Todos los coaches</option>
+                    {coachOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
                 </select>
             </div>
 

@@ -18,6 +18,25 @@ type IntegrationSummary = {
     tokenExpiresAt: string | null;
 };
 
+type RecentMessage = {
+    messageId: string;
+    kind: string | null;
+    referenceId: string | null;
+    status: string;
+    statusAt: string | null;
+    acceptedAt: string | null;
+    errorCode: number | null;
+    errorText: string | null;
+};
+
+const deliveryLabels: Record<string, string> = {
+    ACCEPTED: "Aceptado por Meta",
+    SENT: "Enviado",
+    DELIVERED: "Entregado",
+    READ: "Leído",
+    FAILED: "Falló la entrega",
+};
+
 type FacebookLoginResponse = {
     authResponse?: { code?: string };
     status?: string;
@@ -48,12 +67,14 @@ export const WhatsAppIntegrationPanel = ({
     serverConfigured,
     apiVersion,
     integration,
+    recentMessages,
 }: {
     appId: string | null;
     configId: string | null;
     serverConfigured: boolean;
     apiVersion: string;
     integration: IntegrationSummary | null;
+    recentMessages: RecentMessage[];
 }) => {
     const router = useRouter();
     const [sdkReady, setSdkReady] = useState(false);
@@ -276,6 +297,40 @@ export const WhatsAppIntegrationPanel = ({
             <aside className="whatsapp-integration-note">
                 <strong>Importante:</strong> este flujo no borra la cuenta ni los chats del teléfono. No uses la opción directa “Agregar número” de Configuración de la API, porque esa pantalla inicia una migración.
             </aside>
+            <section className="whatsapp-integration-deliveries" aria-labelledby="whatsapp-deliveries-title">
+                <div className="whatsapp-integration-deliveries-heading">
+                    <div>
+                        <span className="whatsapp-integration-eyebrow">SEGUIMIENTO</span>
+                        <h2 id="whatsapp-deliveries-title">Entregas recientes</h2>
+                    </div>
+                    <button type="button" onClick={() => router.refresh()}>Actualizar estados</button>
+                </div>
+                <p>«Aceptado por Meta» confirma la recepción por la API. «Entregado» confirma la llegada al dispositivo según el webhook.</p>
+                {recentMessages.length === 0 ? <p>Todavía no hay mensajes registrados.</p> : (
+                    <div className="whatsapp-integration-delivery-list">
+                        {recentMessages.map((message) => (
+                            <article className="whatsapp-integration-delivery" key={message.messageId}>
+                                <div>
+                                    <strong>{message.kind === "PAYMENT_REMINDER" ? "Recordatorio de cuota" : "Cambio de horario"}</strong>
+                                    <small>{message.referenceId ? `Referencia ${message.referenceId}` : message.messageId}</small>
+                                </div>
+                                <div>
+                                    <span className={`whatsapp-integration-delivery-status ${message.status.toLowerCase()}`}>
+                                        {deliveryLabels[message.status] ?? message.status}
+                                    </span>
+                                    <small>{message.statusAt || message.acceptedAt
+                                        ? new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Argentina/Buenos_Aires" })
+                                            .format(new Date(message.statusAt ?? message.acceptedAt!))
+                                        : "Sin fecha informada"}</small>
+                                    {message.status === "FAILED" && (message.errorCode || message.errorText) && (
+                                        <small>{message.errorCode ? `Error ${message.errorCode}: ` : ""}{message.errorText}</small>
+                                    )}
+                                </div>
+                            </article>
+                        ))}
+                    </div>
+                )}
+            </section>
         </section>
     );
 };

@@ -180,7 +180,7 @@ export const updateMembershipPlan = async (
         const plan = await prisma.$transaction(async (tx) => {
             const currentPlan = await tx.membershipPlan.findUnique({
                 where: { id },
-                select: { classCategory: true },
+                select: { classCategory: true, priceCents: true },
             });
             const category = normalizedInput.classCategory === undefined
                 ? null
@@ -199,7 +199,7 @@ export const updateMembershipPlan = async (
                 }
             }
 
-            return tx.membershipPlan.update({
+            const updatedPlan = await tx.membershipPlan.update({
                 where: {
                     id,
                 },
@@ -213,12 +213,27 @@ export const updateMembershipPlan = async (
                     isActive: normalizedInput.isActive,
                 },
             });
+
+            if (currentPlan && updatedPlan.priceCents !== currentPlan.priceCents) {
+                await tx.studentMembership.updateMany({
+                    where: {
+                        planId: id,
+                        status: "ACTIVE",
+                        monthlyPriceCents: currentPlan.priceCents,
+                    },
+                    data: { monthlyPriceCents: updatedPlan.priceCents },
+                });
+            }
+
+            return updatedPlan;
         });
 
         revalidatePath(adminMembershipPlansPath);
         revalidatePath(adminClassSchedulesPath);
         revalidatePath(adminStudentsPath);
         revalidatePath(adminPaymentsPath);
+        revalidatePath("/perfil");
+        revalidatePath("/coach/dashboard");
         revalidatePath(publicHomePath);
 
         return {

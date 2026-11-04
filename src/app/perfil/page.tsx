@@ -12,7 +12,9 @@ import { CommunityFeed } from "@/components/community/CommunityFeed";
 import { StudentProfileEditor } from "@/components/platform/student/studentProfileEditor/StudentProfileEditor";
 import { StudentRoutineEditor } from "@/components/platform/student/studentRoutineEditor/StudentRoutineEditor";
 import { StudentScheduleChangeRequest } from "@/components/platform/student/studentScheduleChangeRequest/StudentScheduleChangeRequest";
+import { WhatsAppConsent } from "@/components/platform/student/whatsappConsent/WhatsAppConsent";
 import { getLocalDayRange, getNextScheduleOccurrence } from "@/utils/schedule";
+import { normalizeWhatsappPhoneNumber } from "@/utils/whatsapp";
 import "./_perfilPage.scss";
 
 export const metadata: Metadata = {
@@ -289,6 +291,13 @@ export default async function PerfilPage({ searchParams }: Props) {
                 attendanceBaseHref="/perfil"
                 selectedAttendanceMonth={attendancePeriod.selectedMonth}
                 selectedAttendanceYear={attendancePeriod.selectedYear}
+            />
+            <WhatsAppConsent
+                key={`${student.user.phone ?? ""}:${student.whatsappConsentAt?.toISOString() ?? ""}`}
+                enabled={Boolean(student.whatsappConsentAt && student.whatsappConsentPhone
+                    && student.whatsappConsentPhone === normalizeWhatsappPhoneNumber(student.user.phone))}
+                phone={student.user.phone}
+                email={student.user.email}
             />
             {communityResponse.ok && <CommunityFeed data={communityResponse.data} embedded />}
         </main>

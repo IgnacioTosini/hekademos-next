@@ -242,7 +242,7 @@ export const StudentsSection = ({ students, coaches, membershipPlans, weeklySche
                                     <td className="student-cell-coach" data-label="Coach">{getCoachName(student, coaches)}</td>
                                     <td className="student-cell-routine" data-label="Rutina">
                                         {student.student?.routineExcelUrl ? (
-                                            <a className="user-badge" href={student.student.routineExcelUrl} target="_blank" rel="noreferrer">
+                                            <a className="user-badge student-routine-link" href={student.student.routineExcelUrl} target="_blank" rel="noreferrer">
                                                 Ver rutina
                                             </a>
                                         ) : (

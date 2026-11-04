@@ -29,10 +29,15 @@ mock.module("../src/lib/whatsapp.ts", {
         },
     },
 });
+mock.module("../src/lib/whatsapp-delivery.ts", { namedExports: {
+    recordAcceptedWhatsAppMessage: async () => {},
+} });
 
 const { sendAutomaticScheduleChangeNotification } = await import("../src/services/schedule-change-notification.ts");
 const student = {
     firstName: "Alumno", lastName: "Prueba",
+    whatsappConsentAt: new Date("2026-08-01"),
+    whatsappConsentPhone: "5492230000000",
     user: { name: "Alumno Prueba", email: " alumno@gmail.com ", phone: "5492230000000" },
 };
 const input = { student, type: "ONE_TIME", requestedScheduleIds: ["turno-prueba"], requestedDate: new Date(2026, 8, 4, 7, 30) };
@@ -53,6 +58,15 @@ test("WhatsApp exitoso confirma la fecha temporal y evita el email", async () =>
     assert.equal(messages[0].requestedSchedulesLabel, "Calistenia · Viernes 07:30 a 09:00");
     assert.match(messages[0].validityLabel, /4 de septiembre/);
     assert.match(messages[0].validityLabel, /horario habitual/);
+});
+
+test("sin autorización no se intenta WhatsApp y se usa el email", async () => {
+    const result = await sendAutomaticScheduleChangeNotification({
+        ...input, student: { ...student, whatsappConsentAt: null },
+    });
+    assert.equal(result.whatsappStatus, "DISABLED");
+    assert.equal(messages.length, 0);
+    assert.equal(emails.length, 1);
 });
 
 test("si WhatsApp falla, el respaldo va únicamente al alumno", async () => {
@@ -77,7 +91,7 @@ test("sin teléfono se utiliza el email del alumno", async () => {
         ...input, student: { ...student, user: { ...student.user, phone: null } },
     });
     assert.equal(result.status, "SENT");
-    assert.equal(result.whatsappStatus, "SKIPPED_NO_RECIPIENT");
+    assert.equal(result.whatsappStatus, "DISABLED");
     assert.equal(emails.length, 1);
 });
 

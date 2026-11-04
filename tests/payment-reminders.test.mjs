@@ -38,11 +38,14 @@ mock.module("../src/lib/whatsapp.ts", { namedExports: { sendPaymentReminderWhats
     if (whatsappStatus === "FAILED") throw new Error("Meta failed");
     return { status: message.studentPhone ? whatsappStatus : "SKIPPED_NO_RECIPIENT", messageId: "test-id", testMode: false };
 } } });
+mock.module("../src/lib/whatsapp-delivery.ts", { namedExports: {
+    recordAcceptedWhatsAppMessage: async () => {},
+} });
 const { sendPaymentReminders } = await import("../src/services/payment-reminders.ts");
 const { getArgentinaCalendarDate } = await import("../src/lib/payment-reminder-calendar.ts");
 const { GET } = await import("../src/app/api/cron/payment-reminders/route.ts");
 const input = { year: 2026, month: 9, now: new Date("2026-09-01T12:00:00Z") };
-const student = () => ({ id: "qa-student", firstName: "Ana", lastName: "Prueba",
+const student = () => ({ id: "qa-student", firstName: "Ana", lastName: "Prueba", whatsappConsentAt: new Date("2026-08-01"), whatsappConsentPhone: "5492230000000",
     user: { name: "Ana Prueba", status: "ACTIVE", email: "ana@gmail.com", phone: "+5492230000000" },
     memberships: [{ status: "ACTIVE", startDate: new Date("2026-08-01"), endDate: null, monthlyPriceCents: 5500000, plan: { name: "Plan 2", priceCents: 6000000, currency: "ARS" } }],
 });
@@ -69,6 +72,20 @@ test("sin teléfono o WhatsApp desactivado se usa email", async () => {
     assert.equal((await sendPaymentReminders(input)).emailCount, 1);
     deliveries.clear(); students[0].user.phone = "+5492230000000"; whatsappStatus = "DISABLED";
     assert.equal((await sendPaymentReminders(input)).emailCount, 1);
+});
+
+test("sin autorización de WhatsApp se usa solo email aunque haya teléfono", async () => {
+    prepare(); students[0].whatsappConsentAt = null;
+    const result = await sendPaymentReminders(input);
+    assert.equal(result.emailCount, 1);
+    assert.equal(messages.length, 0);
+});
+
+test("un teléfono distinto del autorizado no recibe WhatsApp", async () => {
+    prepare(); students[0].user.phone = "+5492230000001";
+    const result = await sendPaymentReminders(input);
+    assert.equal(result.emailCount, 1);
+    assert.equal(messages.length, 0);
 });
 test("email inválido no impide WhatsApp; sin ambos canales se registra fallo", async () => {
     prepare(); students[0].user.email = "invalido";

@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { parseWhatsAppStatusEvents, recordWhatsAppStatusEvent } from "@/lib/whatsapp-delivery";
 
 export const runtime = "nodejs";
 
@@ -43,7 +44,22 @@ export const POST = async (request: Request) => {
 
     if (!valid) return textResponse("Firma inválida", 401);
 
-    // Los eventos de mensajes e historial se aceptan para mantener activa la
-    // suscripción de coexistencia. El producto todavía no usa su contenido.
+    let payload: unknown;
+    try {
+        payload = JSON.parse(body);
+    } catch {
+        return textResponse("JSON inválido", 400);
+    }
+
+    try {
+        for (const event of parseWhatsAppStatusEvents(payload)) {
+            await recordWhatsAppStatusEvent(event);
+        }
+    } catch (error) {
+        console.error("No se pudo registrar el estado de WhatsApp", error);
+        return textResponse("No se pudo registrar el evento", 500);
+    }
+
+    // Incoming messages and history are acknowledged but not processed here.
     return textResponse("EVENT_RECEIVED");
 };

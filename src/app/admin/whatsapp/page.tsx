@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { WhatsAppIntegrationPanel } from "@/components/admin/WhatsAppIntegrationPanel";
 import { getWhatsAppIntegrationSummary } from "@/lib/whatsapp-integration";
+import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
     title: "WhatsApp Business",
@@ -11,6 +12,15 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminWhatsAppPage() {
     const integration = await getWhatsAppIntegrationSummary();
+    const recentMessages = await prisma.whatsAppMessageDelivery.findMany({
+        where: { kind: { not: null } },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+        select: {
+            messageId: true, kind: true, referenceId: true, status: true,
+            statusAt: true, acceptedAt: true, errorCode: true, errorText: true,
+        },
+    });
 
     return (
         <WhatsAppIntegrationPanel
@@ -29,6 +39,11 @@ export default async function AdminWhatsAppPage() {
                 verifiedName: integration.verifiedName,
                 tokenExpiresAt: integration.tokenExpiresAt?.toISOString() || null,
             } : null}
+            recentMessages={recentMessages.map((message) => ({
+                ...message,
+                statusAt: message.statusAt?.toISOString() ?? null,
+                acceptedAt: message.acceptedAt?.toISOString() ?? null,
+            }))}
         />
     );
 }

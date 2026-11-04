@@ -1,6 +1,16 @@
 @use '@/styles/variables' as *;
 
 .students-section {
+    .student-cell-routine { text-align: center; }
+
+    .student-routine-link {
+        justify-content: center;
+        white-space: nowrap;
+        text-decoration: none;
+        &:hover { background: rgba($secondary-color, .22); }
+        &:focus-visible { outline: 2px solid $secondary-color; outline-offset: 2px; }
+    }
+
     .student-profile-action {
         display: inline-flex;
         align-items: center;
@@ -29,7 +39,7 @@
             .student-cell-routine { order: 4; }
             .student-cell-coach,
             .student-cell-phone,
-            .student-cell-routine { width: 100%; padding: .5rem 0; color: $color-text-secondary; font-size: $font-size-small; }
+            .student-cell-routine { width: 100%; padding: .5rem 0; color: $color-text-secondary; font-size: $font-size-small; text-align: center; }
             .user-cell-actions { order: 5; margin-top: .45rem; }
             .user-actions { flex-wrap: wrap; }
             .student-profile-action { flex: 1 1 100%; min-height: 44px; }

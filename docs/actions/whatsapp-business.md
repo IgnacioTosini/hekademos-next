@@ -89,6 +89,14 @@ Antes de desactivar `WHATSAPP_TEST_MODE` se debe:
 - revisar plantillas y bajas de suscripcion;
 - configurar webhooks si se necesitan estados de entrega o respuestas.
 
+## Estados de entrega
+
+El webhook `GET/POST /api/webhooks/whatsapp` verifica el token de alta y la firma `x-hub-signature-256` de Meta. Para recibir estados, la app debe estar suscripta al campo `messages` de la cuenta WhatsApp Business y el webhook público debe apuntar a esa ruta. La conexión guiada intenta suscribir la app al vincular la cuenta.
+
+Cada mensaje de cuota o confirmación de horario guarda el `messageId` que devuelve Meta. Los eventos posteriores actualizan el estado en `WhatsAppMessageDelivery`: aceptado por la API, enviado, entregado, leído o fallido. Admin → WhatsApp muestra los 20 mensajes recientes y el error que Meta informa para un fallo. Los eventos repetidos o fuera de orden no hacen retroceder el estado. La migración `20261104120000_whatsapp_delivery_status` debe aplicarse antes de habilitar el webhook con estados.
+
+La aceptación por la API no prueba que el mensaje llegó. Si un webhook indica fallo, queda visible para revisión del equipo; por ahora no se envía automáticamente un segundo mensaje por email tras un fallo posterior. El email de respaldo inmediato sigue funcionando cuando la petición inicial a Meta falla.
+
 Una vez completados esos requisitos, se habilita expresamente el envio real:
 
 ```env

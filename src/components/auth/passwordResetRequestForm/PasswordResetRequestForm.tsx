@@ -26,7 +26,7 @@ export const PasswordResetRequestForm = () => {
                 return;
             }
 
-            setMessage("Si el email existe y la cuenta esta activa, vas a recibir un link para restablecer la contraseña.");
+            setMessage("Si el correo corresponde a una cuenta activa, vas a recibir un enlace para crear una contraseña nueva. Revisá también la carpeta de spam.");
             setDevResetUrl(result.data?.resetUrl ?? "");
         });
     };
@@ -34,12 +34,13 @@ export const PasswordResetRequestForm = () => {
     return (
         <form className="password-reset-request-form" onSubmit={handleSubmit}>
             <div className="password-reset-request-form-header">
-                <h1>Recuperar contraseña</h1>
-                <p>Ingresá el email de tu cuenta y generamos un link temporal.</p>
+                <span className="password-reset-request-form-eyebrow">RECUPERÁ TU ACCESO</span>
+                <h1>Volvé a entrar.</h1>
+                <p>Escribí el correo de tu cuenta y te enviaremos un enlace para restablecer tu contraseña.</p>
             </div>
 
             <div className="password-reset-request-form-group">
-                <label htmlFor="password-reset-email">Email</label>
+                <label htmlFor="password-reset-email">Correo electrónico</label>
                 <input
                     id="password-reset-email"
                     type="email"
@@ -51,22 +52,22 @@ export const PasswordResetRequestForm = () => {
                 />
             </div>
 
-            {error && <p className="password-reset-request-form-error">{error}</p>}
-            {message && <p className="password-reset-request-form-message">{message}</p>}
+            {error && <p className="password-reset-request-form-error" role="alert">{error}</p>}
+            {message && <p className="password-reset-request-form-message" role="status">{message}</p>}
 
             {devResetUrl && (
-                <div className="password-reset-request-dev-link">
+                <div className="password-reset-request-form-dev-link">
                     <span>Link de prueba</span>
                     <Link href={devResetUrl}>Abrir restablecimiento</Link>
                 </div>
             )}
 
-            <button type="submit" disabled={isPending}>
-                {isPending ? "Generando..." : "Enviar link"}
+            <button className="password-reset-request-form-submit" type="submit" disabled={isPending}>
+                {isPending ? "Enviando..." : "Enviar enlace de recuperación"}
             </button>
 
-            <Link className="password-reset-request-back" href="/auth/login">
-                Volver a ingresar
+            <Link className="password-reset-request-form-back" href="/auth/login">
+                ← Volver a ingresar
             </Link>
         </form>
     );

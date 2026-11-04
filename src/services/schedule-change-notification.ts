@@ -3,11 +3,15 @@ import { buildEmailMessage, sendEmail } from "@/lib/email";
 import { isDeliverableEmail } from "@/lib/form-validation";
 import { prisma } from "@/lib/prisma";
 import { sendScheduleChangeWhatsApp } from "@/lib/whatsapp";
+import { recordAcceptedWhatsAppMessage } from "@/lib/whatsapp-delivery";
 import type { ScheduleChangeRequestType } from "@/types/schema/classes";
 import { dayOrderIndex, getScheduleLabel } from "@/utils/schedule";
 import { getStudentName } from "@/utils/student";
+import { normalizeWhatsappPhoneNumber } from "@/utils/whatsapp";
 
 type ScheduleChangeStudent = {
+    whatsappConsentAt: Date | null;
+    whatsappConsentPhone: string | null;
     user: {
         email: string;
         name: string | null;
@@ -64,11 +68,13 @@ export const sendAutomaticScheduleChangeNotification = async ({
     type,
     requestedScheduleIds,
     requestedDate,
+    requestId,
 }: {
     student: ScheduleChangeStudent;
     type: ScheduleChangeRequestType;
     requestedScheduleIds: string[];
     requestedDate?: Date | null;
+    requestId?: string;
 }): Promise<ScheduleNotificationResult> => {
     const studentEmail = student.user.email.trim().toLowerCase();
     const canSendEmail = isDeliverableEmail(studentEmail);
@@ -80,20 +86,33 @@ export const sendAutomaticScheduleChangeNotification = async ({
     let studentNotificationSent = false;
 
     try {
-        const whatsappResult = await sendScheduleChangeWhatsApp({
+        const canUseWhatsApp = Boolean(student.whatsappConsentAt && student.whatsappConsentPhone
+            && student.whatsappConsentPhone === normalizeWhatsappPhoneNumber(student.user.phone));
+        const whatsappResult = canUseWhatsApp ? await sendScheduleChangeWhatsApp({
             studentName,
             studentPhone: student.user.phone,
             requestedSchedulesLabel,
             validityLabel: type === "ONE_TIME"
                 ? `${requestedDateLabel ? `Solo para ${requestedDateLabel}. ` : ""}Después volvés a tu horario habitual.`
                 : "Este cambio queda como tu horario permanente.",
-        });
+        }) : { status: "DISABLED" as const, messageId: null };
 
         whatsappStatus = whatsappResult.status;
 
         if (whatsappResult.status === "SENT") {
             studentNotificationSent = true;
             deliveredRecipients.push("student:whatsapp");
+            if (whatsappResult.messageId && requestId) {
+                try {
+                    await recordAcceptedWhatsAppMessage({
+                        messageId: whatsappResult.messageId,
+                        kind: "SCHEDULE_CHANGE",
+                        referenceId: requestId,
+                    });
+                } catch (error) {
+                    console.error("No se pudo registrar el estado de la confirmación por WhatsApp", error);
+                }
+            }
         }
     } catch (error) {
         whatsappStatus = "FAILED";

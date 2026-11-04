@@ -1,0 +1,47 @@
+@use '@/styles/variables' as *;
+
+.student-whatsapp-consent {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 1rem 2rem;
+    margin-top: 1.25rem;
+    border: 1px solid rgba($secondary-color, .3);
+    border-radius: 1rem;
+    padding: clamp(1.25rem, 2.5vw, 2rem);
+    background: #14283d;
+    color: $color-text;
+
+    h2 { margin: .35rem 0 .65rem; font-size: clamp(1.35rem, 2vw, 1.75rem); }
+    p { max-width: 68ch; margin: .4rem 0; color: $color-text-secondary; line-height: 1.5; }
+    a { color: #ffab55; text-decoration: underline; text-underline-offset: 3px; }
+}
+.student-whatsapp-consent-eyebrow { color: $secondary-color; font-size: .75rem; font-weight: 800; letter-spacing: .14em; }
+.student-whatsapp-consent-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: .7rem;
+    min-height: 2.8rem;
+    border: 1px solid rgba(#fff, .3);
+    border-radius: 999px;
+    padding: .55rem .9rem;
+    background: rgba(#fff, .07);
+    color: $color-text;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+
+    > span { position: relative; width: 2.35rem; height: 1.35rem; border-radius: 999px; background: #6c7887; }
+    > span::after { position: absolute; top: .2rem; left: .2rem; width: .95rem; height: .95rem; border-radius: 50%; background: #fff; content: ""; transition: transform .2s ease; }
+    &.enabled { border-color: rgba(#25d366, .5); color: #a6edbd; }
+    &.enabled > span { background: #208b4b; }
+    &.enabled > span::after { transform: translateX(1rem); }
+    &:focus-visible { outline: 2px solid $secondary-color; outline-offset: 3px; }
+    &:disabled { opacity: .6; cursor: not-allowed; }
+}
+.student-whatsapp-consent-hint { grid-column: 1 / -1; }
+
+@media (max-width: 600px) {
+    .student-whatsapp-consent { grid-template-columns: 1fr; }
+    .student-whatsapp-consent-toggle { justify-self: start; }
+}

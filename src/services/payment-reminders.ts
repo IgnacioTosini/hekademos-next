@@ -2,11 +2,13 @@ import { prisma } from "@/lib/prisma";
 import { buildEmailMessage, sendEmail } from "@/lib/email";
 import { isDeliverableEmail } from "@/lib/form-validation";
 import { sendPaymentReminderWhatsApp } from "@/lib/whatsapp";
+import { recordAcceptedWhatsAppMessage } from "@/lib/whatsapp-delivery";
 import { getArgentinaCalendarDate } from "@/lib/payment-reminder-calendar";
 import { getMembershipAmountCents } from "@/utils/membership";
 import { getAmountWithLateSurcharge, PAYMENT_DUE_DAY, LATE_SURCHARGE_PERCENT, type PaymentReminderType } from "@/utils/payment";
 import { formatCurrency } from "@/utils/format";
 import { getStudentName } from "@/utils/student";
+import { normalizeWhatsappPhoneNumber } from "@/utils/whatsapp";
 
 export type PaymentReminderResult = {
     reminderType: PaymentReminderType;
@@ -84,11 +86,14 @@ export const sendPaymentReminders = async ({
                 let channel: "WHATSAPP" | "EMAIL" | null = null;
                 let messageId: string | null = null;
                 try {
-                    const whatsapp = await sendPaymentReminderWhatsApp({
-                        studentName: name, studentPhone: student.user.phone, periodLabel,
-                        planName: membership.plan.name, amountLabel, dueDateLabel,
-                    });
-                    if (whatsapp.status === "SENT") { channel = "WHATSAPP"; messageId = whatsapp.messageId; }
+                    if (student.whatsappConsentAt && student.whatsappConsentPhone
+                        && student.whatsappConsentPhone === normalizeWhatsappPhoneNumber(student.user.phone)) {
+                        const whatsapp = await sendPaymentReminderWhatsApp({
+                            studentName: name, studentPhone: student.user.phone, periodLabel,
+                            planName: membership.plan.name, amountLabel, dueDateLabel,
+                        });
+                        if (whatsapp.status === "SENT") { channel = "WHATSAPP"; messageId = whatsapp.messageId; }
+                    }
                 } catch (error) {
                     console.warn("Recordatorio de cuota: WhatsApp no disponible; se intentara email", {
                         studentId: student.id,
@@ -115,6 +120,17 @@ export const sendPaymentReminders = async ({
                 await prisma.paymentReminderDelivery.update({ where, data: {
                     status: channel ? "SENT" : "FAILED", channel, messageId, sentAt: channel ? new Date() : null,
                 } });
+                if (channel === "WHATSAPP" && messageId) {
+                    try {
+                        await recordAcceptedWhatsAppMessage({
+                            messageId, kind: "PAYMENT_REMINDER", referenceId: student.id,
+                        });
+                    } catch (error) {
+                        console.error("No se pudo registrar el estado del recordatorio de WhatsApp", {
+                            studentId: student.id, error,
+                        });
+                    }
+                }
                 if (channel) {
                     result.sentCount++;
                     if (channel === "WHATSAPP") result.whatsappCount++; else result.emailCount++;

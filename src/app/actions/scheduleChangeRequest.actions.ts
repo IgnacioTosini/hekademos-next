@@ -405,7 +405,6 @@ export const getScheduleChangeRequests = async (): Promise<ActionResponse<Schedu
             ORDER BY
                 CASE WHEN "status" = 'PENDING' THEN 0 ELSE 1 END,
                 "createdAt" DESC
-            LIMIT 100
         `;
         const data = await getScheduleRequestDetails(requests);
 

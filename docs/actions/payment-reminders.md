@@ -8,7 +8,7 @@
 - Se incluyen alumnos con usuario ACTIVE y membresía ACTIVE ya iniciada y no vencida. Se toma la membresía más reciente y su precio personalizado, si existe.
 - Se omite la cuota del período marcada PAID. Un pago realizado pero todavía no registrado por el coach puede recibir recordatorio.
 - Se intenta WhatsApp; si falla la API, falta teléfono válido o WhatsApp está desactivado, se intenta el email del alumno por SMTP/Gmail. No se envía al coach ni al administrador.
-- Aceptación de la API de WhatsApp no equivale a entrega al teléfono: no hay webhook de estados de entrega. Un rechazo posterior a la aceptación no dispara email. Un timeout ambiguo podría producir ambos mensajes si Meta aceptó antes del corte.
+- Aceptación de la API de WhatsApp no equivale a entrega al teléfono: los estados posteriores se registran mediante el webhook de Meta y se muestran en Admin → WhatsApp. Un rechazo posterior a la aceptación queda visible para revisión, pero no dispara email automáticamente. Un timeout ambiguo podría producir ambos mensajes si Meta aceptó antes del corte.
 - La tarea no registra pagos ni realiza cobros.
 
 ## Variables nuevas en Vercel → Settings → Environment Variables → Production
