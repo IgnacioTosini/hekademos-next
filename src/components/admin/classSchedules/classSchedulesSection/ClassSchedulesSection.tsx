@@ -6,13 +6,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { FaRegTrashAlt } from 'react-icons/fa';
 import { GoPencil } from 'react-icons/go';
 import { toast } from 'react-toastify';
-import { deleteWeeklyClassSchedule } from '@/app/actions/class.actions';
+import { deleteWeeklyClassSchedule, type AdminWeeklyClassSchedule } from '@/app/actions/class.actions';
+import type { AdminCoachOption } from '@/app/actions/coach.actions';
 import { EmptyState } from '@/components/ui/emptyState/EmptyState';
 import { Pagination } from '@/components/ui/pagination/Pagination';
 import { usePagination } from '@/hooks/usePagination';
 import type { DayOfWeek, WeeklyClassScheduleWithRelations } from '@/types/schema/classes';
 import type { ClassCategoryOption } from '@/types/schema/common';
-import type { UserWithRelations } from '@/types/schema/users';
 import { getClassCategoryLabel } from '@/utils/class-category';
 import { addMinutesToTime, dayLabels, dayOrder } from '@/utils/schedule';
 import './_classSchedulesSection.scss';
@@ -20,16 +20,12 @@ import './_classSchedulesSection.scss';
 const ClassScheduleModal = dynamic(() => import('../classScheduleModal/ClassScheduleModal').then((module) => module.ClassScheduleModal));
 
 type Props = {
-    schedules: WeeklyClassScheduleWithRelations[];
-    coaches: UserWithRelations[];
+    schedules: AdminWeeklyClassSchedule[];
+    coaches: AdminCoachOption[];
     categories: ClassCategoryOption[];
 };
 
-const getCoachName = (schedule: WeeklyClassScheduleWithRelations) => (
-    schedule.coach?.user?.name || schedule.coach?.user?.email || 'Sin asignar'
-);
-
-const getCoachOptionName = (coach: UserWithRelations) => coach.name || coach.email;
+const getCoachName = (schedule: AdminWeeklyClassSchedule) => schedule.coachName;
 
 const getCapacityLabel = (schedule: WeeklyClassScheduleWithRelations) => {
     const occupiedSpots = schedule.occupiedSpots ?? schedule.studentAssignments?.length ?? 0;
@@ -55,13 +51,7 @@ export const ClassSchedulesSection = ({ schedules, coaches, categories }: Props)
     const [isDeleting, setIsDeleting] = useState(false);
     const cancelDeleteRef = useRef<HTMLButtonElement>(null);
     const coachOptions = useMemo(() => (
-        coaches
-            .filter((coach) => coach.coach?.id)
-            .map((coach) => ({
-                id: coach.coach!.id,
-                name: getCoachOptionName(coach),
-            }))
-            .sort((a, b) => a.name.localeCompare(b.name))
+        [...coaches].sort((a, b) => a.name.localeCompare(b.name))
     ), [coaches]);
 
     const filteredSchedules = useMemo(() => {

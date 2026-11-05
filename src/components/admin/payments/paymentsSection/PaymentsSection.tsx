@@ -7,17 +7,20 @@ import { FaCheck, FaDownload, FaEnvelope, FaHistory, FaRegEdit, FaUndo } from 'r
 import { IoMdClose } from 'react-icons/io';
 import { toast } from 'react-toastify';
 import {
+    getPaymentOverview,
+    getPaymentOverviewPage,
     getStudentPaymentHistory,
     markCurrentMonthPaymentPaid,
     markCurrentMonthPaymentPending,
     savePaymentDetails,
     sendPaymentReminderEmails,
+    type AdminPaymentHistoryPage,
 } from '@/app/actions/payment.actions';
+import type { PaymentOverviewPage } from '@/app/actions/payment.actions';
 import { EmptyState } from '@/components/ui/emptyState/EmptyState';
 import { LoadingState } from '@/components/ui/loadingState/LoadingState';
 import { Pagination } from '@/components/ui/pagination/Pagination';
-import { usePagination } from '@/hooks/usePagination';
-import type { Payment, PaymentOverviewRow, PaymentOverviewStatus } from '@/types/schema/payments';
+import type { PaymentOverviewRow, PaymentOverviewStatus } from '@/types/schema/payments';
 import { getClassCategoryLabel } from '@/utils/class-category';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { getInitials } from '@/utils/strings';
@@ -25,7 +28,7 @@ import { getStudentName } from '@/utils/student';
 import './_paymentsSection.scss';
 
 type Props = {
-    rows: PaymentOverviewRow[];
+    initialPage: PaymentOverviewPage;
     selectedMonth: number;
     selectedYear: number;
 };
@@ -79,6 +82,17 @@ const getGroupCounts = (groupRows: PaymentOverviewRow[]) => {
     const pending = groupRows.filter((row) => row.status === 'PENDING').length;
 
     return { paid, pending };
+};
+
+const filterPaymentRows = (rows: PaymentOverviewRow[], query: string, coachId: string, status: string) => {
+    const search = query.trim().toLowerCase();
+    return rows.filter((row) => {
+        if (coachId !== 'all' && getCoachId(row) !== coachId) return false;
+        if (status !== 'ALL' && row.status !== status) return false;
+        if (!search) return true;
+        return [getPaymentStudentName(row), row.student.user.email, getCoachName(row), getPlanLabel(row), statusLabels[row.status], row.status]
+            .some((value) => value.toLowerCase().includes(search));
+    });
 };
 
 const monthOptions = Array.from({ length: 12 }, (_, index) => ({
@@ -160,11 +174,18 @@ const downloadCsv = (content: string, filename: string) => {
     URL.revokeObjectURL(url);
 };
 
-export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) => {
+export const PaymentsSection = ({ initialPage, selectedMonth, selectedYear }: Props) => {
     const router = useRouter();
     const [query, setQuery] = useState('');
     const [selectedCoachId, setSelectedCoachId] = useState('all');
     const [selectedStatus, setSelectedStatus] = useState('ALL');
+    const [pageData, setPageData] = useState(initialPage);
+    const [page, setPage] = useState(1);
+    const [isLoadingPage, setIsLoadingPage] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
+    const pageRequestRef = useRef(0);
+    const firstPageRender = useRef(true);
+    const rows = pageData.rows;
     const [showReminderConfirm, setShowReminderConfirm] = useState(false);
     const cancelReminderRef = useRef<HTMLButtonElement>(null);
     const [isChangingPeriod, startPeriodTransition] = useTransition();
@@ -173,15 +194,15 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
     const filtersInitialized = useRef(false);
     const [pendingStudentId, setPendingStudentId] = useState<string | null>(null);
     const [historyRow, setHistoryRow] = useState<PaymentOverviewRow | null>(null);
-    const [paymentHistory, setPaymentHistory] = useState<Payment[]>([]);
-    const historyPages = usePagination(paymentHistory, 8, historyRow?.student.id ?? '');
+    const [paymentHistory, setPaymentHistory] = useState<AdminPaymentHistoryPage>({ payments: [], total: 0, page: 1 });
+    const historyRequestRef = useRef(0);
     const [historyError, setHistoryError] = useState('');
     const [detailsRow, setDetailsRow] = useState<PaymentOverviewRow | null>(null);
     const [reference, setReference] = useState('');
     const [notes, setNotes] = useState('');
     const [detailsError, setDetailsError] = useState('');
     const [isPending, startTransition] = useTransition();
-    const [isLoadingHistory, startHistoryTransition] = useTransition();
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
     const [isSendingReminders, startReminderTransition] = useTransition();
 
     useEffect(() => {
@@ -224,9 +245,9 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
         return () => { cancelled = true; cleanup?.(); };
     }, [selectedCoachId, selectedStatus]);
 
-    const paidCount = rows.filter((row) => row.status === 'PAID').length;
-    const pendingCount = rows.filter((row) => row.status === 'PENDING').length;
-    const activeMembershipsCount = rows.filter((row) => row.activeMembership).length;
+    const paidCount = pageData.paidCount;
+    const pendingCount = pageData.pendingCount;
+    const activeMembershipsCount = pageData.activeMembershipsCount;
 
     const currentMonthLabel = new Intl.DateTimeFormat('es-AR', {
         month: 'long',
@@ -244,56 +265,40 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
         startPeriodTransition(() => router.replace(`/admin/pagos?month=${nextMonth}&year=${nextYear}`, { scroll: false }));
     };
 
-    const coachOptions = useMemo(() => {
-        const options = new Map<string, { id: string; name: string; total: number; pending: number }>();
+    const coachOptions = pageData.coachOptions;
 
-        rows.forEach((row) => {
-            const id = getCoachId(row);
-            const current = options.get(id) ?? {
-                id,
-                name: getCoachName(row),
-                total: 0,
-                pending: 0,
-            };
+    useEffect(() => {
+        if (firstPageRender.current) { firstPageRender.current = false; return; }
+        const requestId = ++pageRequestRef.current;
+        const timer = window.setTimeout(async () => {
+            setIsLoadingPage(true);
+            const result = await getPaymentOverviewPage({ month: selectedMonth, year: selectedYear,
+                query, coachId: selectedCoachId, status: selectedStatus, page });
+            if (pageRequestRef.current !== requestId) return;
+            if (result.ok) {
+                setPageData(result.data);
+                if (result.data.page !== page) setPage(result.data.page);
+            } else toast.error(result.error);
+            setIsLoadingPage(false);
+        }, query ? 250 : 0);
+        return () => { pageRequestRef.current += 1; window.clearTimeout(timer); };
+    }, [query, selectedCoachId, selectedStatus, page, selectedMonth, selectedYear]);
 
-            current.total += 1;
-            current.pending += row.status === 'PENDING' ? 1 : 0;
-            options.set(id, current);
-        });
-
-        return Array.from(options.values()).sort((a, b) => a.name.localeCompare(b.name));
-    }, [rows]);
-
-    const searchedRows = useMemo(() => {
-        const search = query.trim().toLowerCase();
-
-        if (!search) return rows;
-
-        return rows.filter((row) => {
-            const values = [
-                getPaymentStudentName(row),
-                row.student.user.email,
-                getCoachName(row),
-                getPlanLabel(row),
-                statusLabels[row.status],
-            ];
-
-            return values.some((value) => value?.toLowerCase().includes(search));
-        });
-    }, [query, rows]);
-
-    const filteredRows = useMemo(() => {
-        return searchedRows.filter((row) => (
-            (selectedCoachId === 'all' || getCoachId(row) === selectedCoachId)
-            && (selectedStatus === 'ALL' || row.status === selectedStatus)
-        ));
-    }, [searchedRows, selectedCoachId, selectedStatus]);
-    const paymentPages = usePagination(filteredRows, 15, `${query}|${selectedCoachId}|${selectedStatus}|${selectedMonth}|${selectedYear}`);
+    const refreshPage = async () => {
+        const requestId = ++pageRequestRef.current;
+        const result = await getPaymentOverviewPage({ month: selectedMonth, year: selectedYear,
+            query, coachId: selectedCoachId, status: selectedStatus, page });
+        if (pageRequestRef.current !== requestId) return;
+        if (result.ok) {
+            setPageData(result.data);
+            if (result.data.page !== page) setPage(result.data.page);
+        } else toast.error(result.error);
+    };
 
     const groupedRows = useMemo(() => {
         const groups = new Map<string, CoachGroup>();
 
-        paymentPages.pageItems.forEach((row) => {
+        rows.forEach((row) => {
             const coachId = getCoachId(row);
             const group = groups.get(coachId) ?? {
                 coachId,
@@ -306,14 +311,18 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
         });
 
         return Array.from(groups.values()).sort((a, b) => a.coachName.localeCompare(b.coachName));
-    }, [paymentPages.pageItems]);
+    }, [rows]);
 
-    const handleExportCsv = () => {
-        if (filteredRows.length === 0) {
+    const handleExportCsv = async () => {
+        if (pageData.filteredTotal === 0) {
             toast.info('No hay pagos para exportar');
             return;
         }
-
+        setIsExporting(true);
+        const result = await getPaymentOverview(selectedPeriod);
+        setIsExporting(false);
+        if (!result.ok) { toast.error(result.error); return; }
+        const filteredRows = filterPaymentRows(result.data, query, selectedCoachId, selectedStatus);
         const filename = `pagos-hekademos-${selectedYear}-${String(selectedMonth).padStart(2, '0')}.csv`;
         const csv = buildCsv(filteredRows, currentMonthLabel);
 
@@ -352,6 +361,7 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
 
             toast.success(summary || 'Recordatorios procesados');
             router.refresh();
+            void refreshPage();
         });
     };
 
@@ -364,6 +374,7 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
             if (result.ok) {
                 toast.success('Pago marcado como pagado');
                 router.refresh();
+                void refreshPage();
             } else {
                 toast.error(result.error);
             }
@@ -381,6 +392,7 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
             if (result.ok) {
                 toast.success('Pago desmarcado');
                 router.refresh();
+                void refreshPage();
             } else {
                 toast.error(result.error);
             }
@@ -396,28 +408,29 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
         setDetailsError('');
     };
 
+    const loadHistoryPage = async (studentId: string, nextPage: number) => {
+        const requestId = ++historyRequestRef.current;
+        setIsLoadingHistory(true);
+        setHistoryError('');
+        const result = await getStudentPaymentHistory(studentId, nextPage);
+        if (requestId !== historyRequestRef.current) return;
+        if (result.ok) setPaymentHistory(result.data);
+        else { setHistoryError(result.error); toast.error(result.error); }
+        setIsLoadingHistory(false);
+    };
+
     const openHistoryModal = (row: PaymentOverviewRow) => {
         setHistoryRow(row);
-        setPaymentHistory([]);
-        setHistoryError('');
-
-        startHistoryTransition(async () => {
-            const result = await getStudentPaymentHistory(row.student.id);
-
-            if (result.ok) {
-                setPaymentHistory(result.data);
-                return;
-            }
-
-            setHistoryError(result.error);
-            toast.error(result.error);
-        });
+        setPaymentHistory({ payments: [], total: 0, page: 1 });
+        void loadHistoryPage(row.student.id, 1);
     };
 
     const closeHistoryModal = () => {
+        historyRequestRef.current += 1;
         setHistoryRow(null);
-        setPaymentHistory([]);
+        setPaymentHistory({ payments: [], total: 0, page: 1 });
         setHistoryError('');
+        setIsLoadingHistory(false);
     };
 
     const closeDetailsModal = () => {
@@ -445,6 +458,7 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
             if (result.ok) {
                 toast.success('Detalles del pago guardados');
                 router.refresh();
+                void refreshPage();
                 closeDetailsModal();
             } else {
                 setDetailsError(result.error);
@@ -519,10 +533,11 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
                     <button
                         className="payments-export-button"
                         type="button"
-                        onClick={handleExportCsv}
+                        onClick={() => void handleExportCsv()}
+                        disabled={isExporting}
                     >
                         <FaDownload />
-                        Exportar CSV
+                        {isExporting ? 'Preparando CSV...' : 'Exportar CSV'}
                     </button>
 
                     <button
@@ -537,7 +552,7 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
 
                     <select
                         value={selectedCoachId}
-                        onChange={(event) => setSelectedCoachId(event.target.value)}
+                        onChange={(event) => { setSelectedCoachId(event.target.value); setPage(1); }}
                         aria-label="Filtrar por coach"
                     >
                         <option value="all">Todos los coaches</option>
@@ -548,7 +563,7 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
                         ))}
                     </select>
 
-                    <select value={selectedStatus} onChange={(event) => setSelectedStatus(event.target.value)} aria-label="Filtrar por estado de pago">
+                    <select value={selectedStatus} onChange={(event) => { setSelectedStatus(event.target.value); setPage(1); }} aria-label="Filtrar por estado de pago">
                         <option value="ALL">Todos los estados</option>
                         <option value="PENDING">Pendientes</option>
                         <option value="PAID">Pagados</option>
@@ -559,13 +574,13 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
 
                     <input
                         value={query}
-                        onChange={(event) => setQuery(event.target.value)}
+                        onChange={(event) => { setQuery(event.target.value); setPage(1); }}
                         placeholder="Buscar alumno, coach o plan..."
                         aria-label="Buscar pago"
                     />
                 </div>
 
-                <p className="payments-results" aria-live="polite">Mostrando <strong>{filteredRows.length}</strong> de {rows.length} alumnos</p>
+                <p className="payments-results" aria-live="polite">Mostrando <strong>{pageData.filteredTotal}</strong> de {pageData.total} alumnos{isLoadingPage ? ' · Cargando...' : ''}</p>
 
                 <div className="payments-groups" ref={groupsRef}>
 
@@ -693,13 +708,13 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
                     );
                 })}
                 </div>
-                <Pagination page={paymentPages.page} pageSize={paymentPages.pageSize} totalItems={filteredRows.length} onPageChange={paymentPages.setPage} label="alumnos" />
+                <Pagination page={page} pageSize={15} totalItems={pageData.filteredTotal} onPageChange={setPage} label="alumnos" />
 
-                {filteredRows.length === 0 && (
+                {pageData.filteredTotal === 0 && !isLoadingPage && (
                     <EmptyState
                         compact
-                        title={rows.length > 0 ? 'Sin resultados' : 'Sin pagos'}
-                        description={rows.length > 0
+                        title={pageData.total > 0 ? 'Sin resultados' : 'Sin pagos'}
+                        description={pageData.total > 0
                             ? 'No hay alumnos que coincidan con los filtros de pago.'
                             : 'Todavia no hay alumnos o pagos para mostrar en este periodo.'}
                     />
@@ -738,8 +753,8 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
                                     title="No se pudo cargar"
                                     description={historyError}
                                 />
-                            ) : paymentHistory.length > 0 ? (
-                                historyPages.pageItems.map((payment) => (
+                            ) : paymentHistory.payments.length > 0 ? (
+                                paymentHistory.payments.map((payment) => (
                                     <div className="payment-history-item" key={payment.id}>
                                         <div className="payment-history-item-main">
                                             <div>
@@ -766,7 +781,7 @@ export const PaymentsSection = ({ rows, selectedMonth, selectedYear }: Props) =>
                                 />
                             )}
                         </div>
-                        <Pagination page={historyPages.page} pageSize={historyPages.pageSize} totalItems={paymentHistory.length} onPageChange={historyPages.setPage} label="pagos" />
+                        <Pagination page={paymentHistory.page} pageSize={8} totalItems={paymentHistory.total} onPageChange={(nextPage) => void loadHistoryPage(historyRow.student.id, nextPage)} label="pagos" />
                     </div>
                 </div>
             )}

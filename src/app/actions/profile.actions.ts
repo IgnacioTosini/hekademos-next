@@ -4,8 +4,9 @@ import { isValidOptionalContactPhone, normalizeContactPhone } from '@/utils/phon
 
 import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { PUBLIC_SCHEDULES_CACHE_TAG } from "@/lib/public-home-cache-tags";
 import { writeAuditLog } from "@/lib/audit-log";
 import { getCurrentAuthSession, setAuthSessionCookie } from "@/lib/auth-session";
 import { isDeliverableEmail, isValidBirthDate, isValidOptionalPhone, isValidOptionalUrl } from "@/lib/form-validation";
@@ -661,6 +662,7 @@ export const createStudentScheduleChangeRequest = async (
         });
 
         revalidatePath(profilePath);
+        updateTag(PUBLIC_SCHEDULES_CACHE_TAG);
         revalidatePath(scheduleRequestsPath);
         revalidatePath(coachDashboardPath);
         revalidatePath(adminStudentsPath);
@@ -816,6 +818,7 @@ export const cancelStudentOneTimeScheduleChange = async (
         });
 
         revalidatePath(profilePath);
+        updateTag(PUBLIC_SCHEDULES_CACHE_TAG);
         revalidatePath(scheduleRequestsPath);
         revalidatePath(coachDashboardPath);
         revalidatePath(adminStudentsPath);

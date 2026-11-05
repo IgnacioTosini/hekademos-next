@@ -1,17 +1,18 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { FormEvent, useEffect, useRef, useState, useTransition } from "react";
 import { FaCheck, FaTimes } from "react-icons/fa";
 import { IoMdClose } from "react-icons/io";
 import { toast } from "react-toastify";
 import {
     approveScheduleChangeRequest,
+    getScheduleChangeRequests,
     rejectScheduleChangeRequest,
     type ScheduleChangeRequestReviewItem,
+    type ScheduleRequestsPage,
 } from "@/app/actions/scheduleChangeRequest.actions";
 import { EmptyState } from "@/components/ui/emptyState/EmptyState";
 import { Pagination } from "@/components/ui/pagination/Pagination";
-import { usePagination } from "@/hooks/usePagination";
 import type { ScheduleChangeRequestStatus, WeeklyClassScheduleWithRelations } from "@/types/schema/classes";
 import { formatDateTime } from "@/utils/format";
 import { dayOrderIndex, getScheduleLabel as getBaseScheduleLabel } from "@/utils/schedule";
@@ -20,7 +21,7 @@ import "./_scheduleRequestsSection.scss";
 
 type Props = {
     errorMessage?: string | null;
-    requests: ScheduleChangeRequestReviewItem[];
+    initialPage: ScheduleRequestsPage;
 };
 
 type ReviewModalState = {
@@ -61,12 +62,6 @@ const getCapacityLabel = (schedule: WeeklyClassScheduleWithRelations) => {
     return `${availableSpots} ${availableSpots === 1 ? "cupo libre" : "cupos libres"}`;
 };
 
-const sortRequests = (requests: ScheduleChangeRequestReviewItem[]) => (
-    [...requests].sort((first, second) => (
-        Number(new Date(second.createdAt)) - Number(new Date(first.createdAt))
-    ))
-);
-
 const sortSchedules = (schedules: WeeklyClassScheduleWithRelations[]) => (
     [...schedules].sort((first, second) => (
         dayOrderIndex[first.dayOfWeek] - dayOrderIndex[second.dayOfWeek]
@@ -74,62 +69,62 @@ const sortSchedules = (schedules: WeeklyClassScheduleWithRelations[]) => (
     ))
 );
 
-const getRequestCoachIds = (request: ScheduleChangeRequestReviewItem) => [
-    request.student?.coachId,
-    ...request.currentSchedules.map((schedule) => schedule.coachId),
-    ...request.requestedSchedules.map((schedule) => schedule.coachId),
-].filter((id): id is string => Boolean(id));
-
-export const ScheduleRequestsSection = ({ errorMessage, requests }: Props) => {
+export const ScheduleRequestsSection = ({ errorMessage, initialPage }: Props) => {
     const [modalState, setModalState] = useState<ReviewModalState | null>(null);
     const [notes, setNotes] = useState("");
     const [query, setQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState("ALL");
     const [typeFilter, setTypeFilter] = useState("ALL");
     const [coachFilter, setCoachFilter] = useState("ALL");
+    const [pageData, setPageData] = useState(initialPage);
+    const [pendingPage, setPendingPage] = useState(1);
+    const [reviewedPage, setReviewedPage] = useState(1);
+    const [isLoading, setIsLoading] = useState(false);
+    const [loadError, setLoadError] = useState<string | null>(null);
+    const firstLoad = useRef(true);
+    const requestVersion = useRef(0);
     const listsRef = useRef<HTMLDivElement>(null);
     const filtersInitialized = useRef(false);
     const [isPending, startTransition] = useTransition();
-    const normalizedQuery = query.trim().toLowerCase();
-    const coachOptions = useMemo(() => {
-        const coaches = new Map<string, string>();
-        for (const request of requests) {
-            const studentCoach = request.student?.coach;
-            if (studentCoach) coaches.set(studentCoach.id, studentCoach.user?.name || studentCoach.user?.email || "Coach sin nombre");
-            for (const schedule of [...request.currentSchedules, ...request.requestedSchedules]) {
-                if (schedule.coachId) {
-                    coaches.set(schedule.coachId, schedule.coach?.user?.name || schedule.coach?.user?.email || "Coach sin nombre");
-                }
-            }
-        }
-        return [...coaches].sort((a, b) => a[1].localeCompare(b[1], "es"));
-    }, [requests]);
-    const filteredRequests = useMemo(() => (
-        requests.filter((request) => {
-                if (statusFilter !== "ALL" && request.status !== statusFilter) return false;
-                if (typeFilter !== "ALL" && request.type !== typeFilter) return false;
-                if (coachFilter !== "ALL" && !getRequestCoachIds(request).includes(coachFilter)) return false;
-                if (!normalizedQuery) return true;
-                const studentName = getStudentName(request);
-                const values = [
-                    studentName,
-                    request.student?.user.email,
-                    request.student?.coach?.user?.name,
-                    request.reason,
-                    request.reviewNotes,
-                    requestTypeLabels[request.type],
-                    statusLabels[request.status],
-                    ...request.requestedSchedules.map(getScheduleLabel),
-                ];
+    const pendingRequests = pageData.pending;
+    const reviewedRequests = pageData.reviewed;
+    const coachOptions = pageData.coachOptions;
 
-                return values.some((value) => value?.toLowerCase().includes(normalizedQuery));
-            })
-    ), [coachFilter, normalizedQuery, requests, statusFilter, typeFilter]);
-    const pendingRequests = sortRequests(filteredRequests.filter((request) => request.status === "PENDING"));
-    const reviewedRequests = sortRequests(filteredRequests.filter((request) => request.status !== "PENDING"));
-    const filterKey = `${query}|${statusFilter}|${typeFilter}|${coachFilter}`;
-    const pendingPages = usePagination(pendingRequests, 8, filterKey);
-    const reviewedPages = usePagination(reviewedRequests, 8, filterKey);
+    useEffect(() => {
+        if (firstLoad.current) { firstLoad.current = false; return; }
+        const version = ++requestVersion.current;
+        const timer = window.setTimeout(async () => {
+            setIsLoading(true);
+            const result = await getScheduleChangeRequests({
+                query, status: statusFilter, type: typeFilter, coachId: coachFilter,
+                pendingPage, reviewedPage,
+            });
+            if (version !== requestVersion.current) return;
+            if (result.ok) {
+                setPageData(result.data);
+                setLoadError(null);
+                if (result.data.pendingPage !== pendingPage) setPendingPage(result.data.pendingPage);
+                if (result.data.reviewedPage !== reviewedPage) setReviewedPage(result.data.reviewedPage);
+            } else setLoadError(result.error);
+            setIsLoading(false);
+        }, query ? 250 : 0);
+        return () => { requestVersion.current += 1; window.clearTimeout(timer); };
+    }, [query, statusFilter, typeFilter, coachFilter, pendingPage, reviewedPage]);
+
+    const refreshPage = async () => {
+        const version = ++requestVersion.current;
+        const result = await getScheduleChangeRequests({
+            query, status: statusFilter, type: typeFilter, coachId: coachFilter,
+            pendingPage, reviewedPage,
+        });
+        if (version !== requestVersion.current) return;
+        if (result.ok) {
+            setPageData(result.data);
+            setLoadError(null);
+            if (result.data.pendingPage !== pendingPage) setPendingPage(result.data.pendingPage);
+            if (result.data.reviewedPage !== reviewedPage) setReviewedPage(result.data.reviewedPage);
+        } else setLoadError(result.error);
+    };
 
     useEffect(() => {
         if (!filtersInitialized.current) { filtersInitialized.current = true; return; }
@@ -177,6 +172,7 @@ export const ScheduleRequestsSection = ({ errorMessage, requests }: Props) => {
             if (result.ok) {
                 toast.success(modalState.intent === "approve" ? "Solicitud aprobada" : "Solicitud rechazada");
                 closeModal();
+                void refreshPage();
                 return;
             }
 
@@ -295,14 +291,14 @@ export const ScheduleRequestsSection = ({ errorMessage, requests }: Props) => {
 
                 <div className="schedule-requests-counter">
                     <FaCheck />
-                    <strong>{requests.length}</strong>
+                    <strong>{pageData.total}</strong>
                     <span>registrados</span>
                 </div>
             </div>
 
-            {errorMessage && (
+            {(errorMessage || loadError) && (
                 <div className="schedule-requests-error">
-                    {errorMessage}
+                    {loadError || errorMessage}
                 </div>
             )}
 
@@ -310,52 +306,52 @@ export const ScheduleRequestsSection = ({ errorMessage, requests }: Props) => {
                 <input
                     type="search"
                     value={query}
-                    onChange={(event) => setQuery(event.target.value)}
+                    onChange={(event) => { setQuery(event.target.value); setPendingPage(1); setReviewedPage(1); }}
                     placeholder="Buscar alumno, coach o turno..."
                     aria-label="Buscar cambios de horario"
                 />
-                <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Filtrar por estado">
+                <select value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setPendingPage(1); setReviewedPage(1); }} aria-label="Filtrar por estado">
                     <option value="ALL">Todos los estados</option>
                     <option value="PENDING">Pendientes anteriores</option>
                     <option value="APPROVED">Aprobadas</option>
                     <option value="REJECTED">Rechazadas</option>
                     <option value="CANCELLED">Canceladas</option>
                 </select>
-                <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} aria-label="Filtrar por tipo de cambio">
+                <select value={typeFilter} onChange={(event) => { setTypeFilter(event.target.value); setPendingPage(1); setReviewedPage(1); }} aria-label="Filtrar por tipo de cambio">
                     <option value="ALL">Todos los tipos</option>
                     <option value="ONE_TIME">Una clase</option>
                     <option value="PERMANENT">Permanente</option>
                 </select>
-                <select value={coachFilter} onChange={(event) => setCoachFilter(event.target.value)} aria-label="Filtrar por coach">
+                <select value={coachFilter} onChange={(event) => { setCoachFilter(event.target.value); setPendingPage(1); setReviewedPage(1); }} aria-label="Filtrar por coach">
                     <option value="ALL">Todos los coaches</option>
                     {coachOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
                 </select>
             </div>
 
-            <p className="schedule-requests-results" aria-live="polite">Mostrando <strong>{filteredRequests.length}</strong> de {requests.length} cambios</p>
+            <p className="schedule-requests-results" aria-live="polite">Mostrando <strong>{pageData.filteredTotal}</strong> de {pageData.total} cambios{isLoading ? ' · Cargando...' : ''}</p>
 
             <div className="schedule-requests-groups" ref={listsRef}>
-                {pendingRequests.length > 0 && (
+                {pageData.pendingCount > 0 && (
                     <div className="schedule-requests-group schedule-requests-group-pending">
-                        <div className="schedule-requests-group-heading"><div><span>REVISIÓN MANUAL</span><h2>Solicitudes anteriores pendientes</h2></div><strong>{pendingRequests.length}</strong></div>
+                        <div className="schedule-requests-group-heading"><div><span>REVISIÓN MANUAL</span><h2>Solicitudes anteriores pendientes</h2></div><strong>{pageData.pendingCount}</strong></div>
                         <div className="schedule-requests-list">
-                            {pendingPages.pageItems.map(renderRequestCard)}
+                            {pendingRequests.map(renderRequestCard)}
                         </div>
-                        <Pagination page={pendingPages.page} pageSize={pendingPages.pageSize} totalItems={pendingRequests.length} onPageChange={pendingPages.setPage} label="solicitudes pendientes" />
+                        <Pagination page={pendingPage} pageSize={8} totalItems={pageData.pendingCount} onPageChange={setPendingPage} label="solicitudes pendientes" />
                     </div>
                 )}
 
-                {reviewedRequests.length > 0 && (
+                {pageData.reviewedCount > 0 && (
                     <div className="schedule-requests-group">
-                        <div className="schedule-requests-group-heading"><div><span>CAMBIOS PROCESADOS</span><h2>Historial</h2></div><strong>{reviewedRequests.length}</strong></div>
+                        <div className="schedule-requests-group-heading"><div><span>CAMBIOS PROCESADOS</span><h2>Historial</h2></div><strong>{pageData.reviewedCount}</strong></div>
                         <div className="schedule-requests-list">
-                            {reviewedPages.pageItems.map(renderRequestCard)}
+                            {reviewedRequests.map(renderRequestCard)}
                         </div>
-                        <Pagination page={reviewedPages.page} pageSize={reviewedPages.pageSize} totalItems={reviewedRequests.length} onPageChange={reviewedPages.setPage} label="solicitudes revisadas" />
+                        <Pagination page={reviewedPage} pageSize={8} totalItems={pageData.reviewedCount} onPageChange={setReviewedPage} label="solicitudes revisadas" />
                     </div>
                 )}
 
-                {filteredRequests.length === 0 && <EmptyState title={requests.length ? "Sin resultados" : "Sin cambios registrados"} description={requests.length ? "No hay cambios que coincidan con los filtros." : "Los cambios de horario aparecerán acá cuando se registren."} />}
+                {pageData.filteredTotal === 0 && !isLoading && <EmptyState title={pageData.total ? "Sin resultados" : "Sin cambios registrados"} description={pageData.total ? "No hay cambios que coincidan con los filtros." : "Los cambios de horario aparecerán acá cuando se registren."} />}
             </div>
 
             {modalState && (

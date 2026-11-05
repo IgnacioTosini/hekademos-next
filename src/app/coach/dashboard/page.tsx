@@ -43,12 +43,23 @@ export default async function CoachDashboardPage() {
             { paidAt: { gte: start, lt: end } },
         ],
     };
+    const currentPaymentSelect = {
+        status: true,
+        amountCents: true,
+        currency: true,
+        periodStart: true,
+        dueDate: true,
+        paidAt: true,
+    } as const;
     const [coach, attendanceResponse, communityResponse] = await Promise.all([
         prisma.coach.findUnique({
-        where: {
-            userId: session.userId,
-        },
-        include: {
+        where: { userId: session.userId },
+        select: {
+            bio: true,
+            specialty: true,
+            instagram: true,
+            paymentAlias: true,
+            paymentAccountHolder: true,
             user: {
                 select: {
                     email: true,
@@ -58,21 +69,19 @@ export default async function CoachDashboardPage() {
                 },
             },
             students: {
-                orderBy: [
-                    {
-                        firstName: 'asc',
-                    },
-                    {
-                        lastName: 'asc',
-                    },
-                ],
-                include: {
+                orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }, { id: 'asc' }],
+                select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    routineExcelUrl: true,
+                    notes: true,
                     user: {
                         select: {
                             email: true,
                             name: true,
                             phone: true,
-                            image: true,
+                            image: { select: { url: true } },
                         },
                     },
                     memberships: {
@@ -84,34 +93,39 @@ export default async function CoachDashboardPage() {
                             createdAt: 'desc',
                         },
                         take: 1,
-                        include: {
-                            plan: true,
+                        select: {
+                            status: true,
+                            endDate: true,
+                            monthlyPriceCents: true,
+                            plan: { select: {
+                                name: true,
+                                trainingDaysPerWeek: true,
+                                priceCents: true,
+                                currency: true,
+                            } },
                             payments: {
                                 where: currentPaymentWhere,
-                                orderBy: {
-                                    createdAt: 'desc',
-                                },
+                                orderBy: { createdAt: 'desc' },
                                 take: 1,
+                                select: currentPaymentSelect,
                             },
                         },
                     },
                     payments: {
                         where: currentPaymentWhere,
-                        orderBy: {
-                            createdAt: 'desc',
-                        },
+                        orderBy: { createdAt: 'desc' },
                         take: 1,
+                        select: currentPaymentSelect,
                     },
                     schedules: {
-                        where: {
-                            isActive: true,
-                        },
-                        include: {
-                            weeklySchedule: true,
-                        },
-                        orderBy: {
-                            createdAt: 'asc',
-                        },
+                        where: { isActive: true },
+                        select: { weeklySchedule: { select: {
+                            classCategory: true,
+                            dayOfWeek: true,
+                            startTime: true,
+                            durationMinutes: true,
+                        } } },
+                        orderBy: { createdAt: 'asc' },
                     },
                 },
             },

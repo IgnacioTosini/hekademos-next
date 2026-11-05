@@ -208,12 +208,11 @@ const getOneTimeChangeStudents = async (changes: OneTimeScheduleChange[]) => {
                 in: studentIds,
             },
         },
-        include: {
-            user: {
-                include: {
-                    image: true,
-                },
-            },
+        select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            user: { select: { email: true, name: true, image: { select: { url: true } } } },
         },
     });
 };
@@ -261,22 +260,21 @@ export const getCoachTodayAttendance = async (): Promise<ActionResponse<CoachTod
                                 lt: end,
                             },
                         },
-                        include: {
-                            attendance: true,
+                        select: {
+                            id: true,
+                            attendance: { select: { studentId: true, status: true } },
                         },
                     },
                     studentAssignments: {
                         where: {
                             isActive: true,
                         },
-                        include: {
+                        select: {
+                            studentId: true,
                             student: {
-                                include: {
-                                    user: {
-                                        include: {
-                                            image: true,
-                                        },
-                                    },
+                                select: {
+                                    id: true, firstName: true, lastName: true,
+                                    user: { select: { email: true, name: true, image: { select: { url: true } } } },
                                 },
                             },
                         },
@@ -448,6 +446,7 @@ export type GetAdminMonthlyAttendanceInput = {
     month?: number | null;
     year?: number | null;
     coachId?: string | null;
+    page?: number | null;
 };
 
 export type AdminAttendanceSummary = {
@@ -490,11 +489,7 @@ export const getAdminAttendanceOverview = async (
                     },
                 ],
                 include: {
-                    coach: {
-                        include: {
-                            user: true,
-                        },
-                    },
+                    coach: { select: { user: { select: { name: true, email: true } } } },
                     sessions: {
                         where: {
                             startsAt: {
@@ -502,22 +497,21 @@ export const getAdminAttendanceOverview = async (
                                 lt: end,
                             },
                         },
-                        include: {
-                            attendance: true,
+                        select: {
+                            id: true,
+                            attendance: { select: { studentId: true, status: true } },
                         },
                     },
                     studentAssignments: {
                         where: {
                             isActive: true,
                         },
-                        include: {
+                        select: {
+                            studentId: true,
                             student: {
-                                include: {
-                                    user: {
-                                        include: {
-                                            image: true,
-                                        },
-                                    },
+                                select: {
+                                    id: true, firstName: true, lastName: true,
+                                    user: { select: { email: true, name: true, image: { select: { url: true } } } },
                                 },
                             },
                         },
@@ -592,6 +586,29 @@ export const getAdminMonthlyAttendanceSummary = async (
         const coachFilter = input.coachId && input.coachId !== "all"
             ? Prisma.sql`AND cs."coachId" = ${input.coachId}`
             : Prisma.empty;
+        const pageSize = 15;
+        const isExport = input.page === undefined || input.page === null;
+        const requestedPage = Number.isSafeInteger(input.page) && input.page! > 0 ? input.page! : 1;
+        const [counts] = await prisma.$queryRaw<Array<{
+            studentCount: bigint;
+            totalCount: bigint;
+            presentCount: bigint;
+            absentCount: bigint;
+            lateCount: bigint;
+            excusedCount: bigint;
+        }>>(Prisma.sql`
+            SELECT COUNT(DISTINCT a."studentId") AS "studentCount",
+                COUNT(*) AS "totalCount",
+                COUNT(*) FILTER (WHERE a."status" = 'PRESENT') AS "presentCount",
+                COUNT(*) FILTER (WHERE a."status" = 'ABSENT') AS "absentCount",
+                COUNT(*) FILTER (WHERE a."status" = 'LATE') AS "lateCount",
+                COUNT(*) FILTER (WHERE a."status" = 'EXCUSED') AS "excusedCount"
+            FROM "Attendance" a
+            INNER JOIN "ClassSession" cs ON cs."id" = a."sessionId"
+            WHERE cs."startsAt" >= ${start} AND cs."startsAt" < ${end} ${coachFilter}
+        `);
+        const studentCount = Number(counts.studentCount);
+        const page = Math.min(requestedPage, Math.max(1, Math.ceil(studentCount / pageSize)));
         const rows = await prisma.$queryRaw<MonthlyAttendanceSummaryRow[]>(Prisma.sql`
             WITH filtered_attendance AS (
                 SELECT
@@ -654,6 +671,8 @@ export const getAdminMonthlyAttendanceSummary = async (
                 ss."lastAttendanceAt"
             FROM student_summary ss
             LEFT JOIN latest_coach lc ON lc."studentId" = ss."studentId"
+            ORDER BY COALESCE(NULLIF(TRIM(CONCAT_WS(' ', ss."firstName", ss."lastName")), ''), ss."userName", ss."email") COLLATE "C", ss."studentId"
+            ${isExport ? Prisma.empty : Prisma.sql`LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`}
         `);
         const students = rows.map((row): AdminMonthlyAttendanceSummary["students"][number] => ({
             studentId: row.studentId,
@@ -673,27 +692,20 @@ export const getAdminMonthlyAttendanceSummary = async (
             lateCount: toNumber(row.lateCount),
             excusedCount: toNumber(row.excusedCount),
             lastAttendanceAt: row.lastAttendanceAt,
-        })).sort((a, b) => a.name.localeCompare(b.name));
-        const totals = students.reduce((summary, student) => ({
-            totalCount: summary.totalCount + student.totalCount,
-            presentCount: summary.presentCount + student.presentCount,
-            absentCount: summary.absentCount + student.absentCount,
-            lateCount: summary.lateCount + student.lateCount,
-            excusedCount: summary.excusedCount + student.excusedCount,
-        }), {
-            totalCount: 0,
-            presentCount: 0,
-            absentCount: 0,
-            lateCount: 0,
-            excusedCount: 0,
-        });
+        }));
 
         return {
             ok: true,
             data: {
                 month,
                 year,
-                ...totals,
+                page,
+                studentCount,
+                totalCount: Number(counts.totalCount),
+                presentCount: Number(counts.presentCount),
+                absentCount: Number(counts.absentCount),
+                lateCount: Number(counts.lateCount),
+                excusedCount: Number(counts.excusedCount),
                 students,
             },
         };

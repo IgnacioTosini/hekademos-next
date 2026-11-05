@@ -10,11 +10,11 @@ export const metadata: Metadata = {
 
 export default async function AuditoriaPage() {
     const logsResponse = await getAuditLogs();
-    const logs = logsResponse.ok ? logsResponse.data : [];
+    const initialPage = logsResponse.ok ? logsResponse.data : { logs: [], total: 0, filteredTotal: 0, page: 1 };
 
     return (
         <div className="auditoria-page">
-            <AuditSection logs={logs} />
+            <AuditSection initialPage={initialPage} />
         </div>
     );
 }

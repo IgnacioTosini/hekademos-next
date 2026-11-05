@@ -1,8 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { getAdminActionErrorMessage, logAdminActionError, requireAdminSession } from "@/lib/admin-session";
 import { prisma } from "@/lib/prisma";
+import { PUBLIC_PLANS_CACHE_TAG, PUBLIC_SCHEDULES_CACHE_TAG } from "@/lib/public-home-cache-tags";
 import type { ClassCategoryOption, ClassCategoryOptionInput } from "@/types/schema/common";
 import { isClassCategory, normalizeClassCategoryKey, normalizeClassCategoryName } from "@/utils/class-category";
 import {
@@ -39,6 +40,8 @@ const revalidateCategoryPaths = () => {
     revalidatePath(adminMembershipPlansPath);
     revalidatePath(adminClassSchedulesPath);
     revalidatePath(adminStudentsPath);
+    updateTag(PUBLIC_PLANS_CACHE_TAG);
+    updateTag(PUBLIC_SCHEDULES_CACHE_TAG);
     revalidatePath(publicHomePath);
 };
 

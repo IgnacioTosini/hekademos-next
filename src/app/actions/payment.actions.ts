@@ -1,5 +1,6 @@
 "use server";
 
+import { Prisma } from '@prisma/client';
 import { revalidatePath } from "next/cache";
 import { getAdminActionErrorMessage, logAdminActionError, requireAdminSession } from "@/lib/admin-session";
 import { writeAuditLog } from "@/lib/audit-log";
@@ -68,8 +69,146 @@ export type DashboardPendingPaymentsSummary = {
     rows: DashboardPendingPaymentRow[];
 };
 
+export type PaymentOverviewFilters = PaymentOverviewPeriodInput & {
+    page?: number;
+    query?: string;
+    coachId?: string;
+    status?: string;
+};
+
+export type PaymentOverviewPage = {
+    rows: PaymentOverviewRow[];
+    page: number;
+    total: number;
+    filteredTotal: number;
+    paidCount: number;
+    pendingCount: number;
+    activeMembershipsCount: number;
+    coachOptions: Array<{ id: string; name: string; total: number; pending: number }>;
+};
+
+const paymentPageSize = 15;
+
+type PaymentPageIndex = {
+    page: number;
+    total: number;
+    filteredTotal: number;
+    paidCount: number;
+    pendingCount: number;
+    activeMembershipsCount: number;
+    coachOptions: Array<{ id: string; name: string; total: number; pending: number }> | null;
+    ids: string[] | null;
+};
+
+export const getPaymentOverviewPage = async (
+    filters: PaymentOverviewFilters = {},
+): Promise<ActionResponse<PaymentOverviewPage>> => {
+    try {
+        await requireAdminSession();
+        const selectedPeriodDate = getSelectedPeriodDate(filters);
+        const { start, end, dueDate } = getPaymentMonthRange(selectedPeriodDate);
+        const page = Number.isSafeInteger(filters.page) ? Math.max(1, filters.page!) : 1;
+        const search = `%${filters.query?.trim().slice(0, 100) ?? ''}%`;
+        const coachId = filters.coachId || 'all';
+        const status = ['PAID', 'PENDING', 'REFUNDED', 'CANCELLED', 'NO_MEMBERSHIP'].includes(filters.status ?? '')
+            ? filters.status : 'ALL';
+
+        const [index] = await prisma.$queryRaw<PaymentPageIndex[]>(Prisma.sql`
+            WITH overview AS (
+                SELECT s."id", s."createdAt",
+                    COALESCE(c."id", 'unassigned') AS "coachId",
+                    COALESCE(cu."name", 'Sin coach asignado') AS "coachName",
+                    CONCAT_WS(' ', s."firstName", s."lastName") AS "studentName",
+                    COALESCE(u."name", '') AS "userName", u."email",
+                    mp."name" AS "planName", mp."classCategory" AS "planCategory",
+                    mp."trainingDaysPerWeek" AS "trainingDaysPerWeek",
+                    CASE WHEN m."id" IS NULL THEN 'NO_MEMBERSHIP'
+                        ELSE COALESCE(pm."status"::text, p."status"::text, 'PENDING') END AS "paymentStatus",
+                    (m."id" IS NOT NULL) AS "hasMembership"
+                FROM "Student" s
+                JOIN "User" u ON u."id" = s."userId"
+                LEFT JOIN "Coach" c ON c."id" = s."coachId"
+                LEFT JOIN "User" cu ON cu."id" = c."userId"
+                LEFT JOIN LATERAL (
+                    SELECT sm."id", sm."planId" FROM "StudentMembership" sm
+                    WHERE sm."studentId" = s."id" AND sm."status" = 'ACTIVE'
+                        AND (sm."endDate" IS NULL OR sm."endDate" >= ${dueDate})
+                    ORDER BY sm."createdAt" DESC LIMIT 1
+                ) m ON TRUE
+                LEFT JOIN "MembershipPlan" mp ON mp."id" = m."planId"
+                LEFT JOIN LATERAL (
+                    SELECT pay."status" FROM "Payment" pay
+                    WHERE pay."studentMembershipId" = m."id"
+                        AND ((pay."dueDate" >= ${start} AND pay."dueDate" < ${end})
+                            OR (pay."paidAt" >= ${start} AND pay."paidAt" < ${end}))
+                    ORDER BY pay."createdAt" DESC LIMIT 1
+                ) pm ON TRUE
+                LEFT JOIN LATERAL (
+                    SELECT pay."status" FROM "Payment" pay
+                    WHERE pay."studentId" = s."id"
+                        AND ((pay."dueDate" >= ${start} AND pay."dueDate" < ${end})
+                            OR (pay."paidAt" >= ${start} AND pay."paidAt" < ${end}))
+                    ORDER BY pay."createdAt" DESC LIMIT 1
+                ) p ON TRUE
+            ), filtered AS (
+                SELECT * FROM overview
+                WHERE (${coachId} = 'all' OR "coachId" = ${coachId})
+                    AND (${status} = 'ALL' OR "paymentStatus" = ${status})
+                    AND ("studentName" ILIKE ${search} OR "userName" ILIKE ${search}
+                        OR "email" ILIKE ${search} OR "coachName" ILIKE ${search}
+                        OR COALESCE("planName", 'Sin plan activo') ILIKE ${search}
+                        OR COALESCE("planCategory", '') ILIKE ${search}
+                        OR COALESCE("trainingDaysPerWeek"::text, '') ILIKE ${search}
+                        OR "paymentStatus" ILIKE ${search}
+                        OR CASE "paymentStatus"
+                            WHEN 'PAID' THEN 'Pagado' WHEN 'PENDING' THEN 'Pendiente'
+                            WHEN 'REFUNDED' THEN 'Reembolsado' WHEN 'CANCELLED' THEN 'Cancelado'
+                            ELSE 'Sin membresía' END ILIKE ${search})
+            ), totals AS (
+                SELECT COUNT(*)::int AS "total",
+                    COUNT(*) FILTER (WHERE "paymentStatus" = 'PAID')::int AS "paidCount",
+                    COUNT(*) FILTER (WHERE "paymentStatus" = 'PENDING')::int AS "pendingCount",
+                    COUNT(*) FILTER (WHERE "hasMembership")::int AS "activeMembershipsCount"
+                FROM overview
+            ), filtered_total AS (
+                SELECT COUNT(*)::int AS "filteredTotal" FROM filtered
+            ), safe_page AS (
+                SELECT LEAST(${page}, GREATEST(1, CEIL("filteredTotal" / ${paymentPageSize}::numeric)::int)) AS "page"
+                FROM filtered_total
+            )
+            SELECT totals.*, filtered_total."filteredTotal", safe_page."page",
+                (SELECT COALESCE(JSONB_AGG(JSONB_BUILD_OBJECT('id', "coachId", 'name', "coachName",
+                    'total', "total", 'pending', "pending") ORDER BY "coachName"), '[]'::jsonb)
+                    FROM (SELECT "coachId", "coachName", COUNT(*)::int AS "total",
+                        COUNT(*) FILTER (WHERE "paymentStatus" = 'PENDING')::int AS "pending"
+                        FROM overview GROUP BY "coachId", "coachName") options) AS "coachOptions",
+                (SELECT COALESCE(JSONB_AGG("id" ORDER BY "createdAt" DESC, "id" DESC), '[]'::jsonb)
+                    FROM (SELECT "id", "createdAt" FROM filtered
+                        ORDER BY "createdAt" DESC, "id" DESC
+                        LIMIT ${paymentPageSize} OFFSET (safe_page."page" - 1) * ${paymentPageSize}) page_rows) AS "ids"
+            FROM totals CROSS JOIN filtered_total CROSS JOIN safe_page
+        `);
+
+        const ids = index.ids ?? [];
+        const rowsResponse = ids.length ? await getPaymentOverview(filters, ids) : null;
+        if (rowsResponse && !rowsResponse.ok) return rowsResponse;
+        const rowsById = new Map((rowsResponse?.data ?? []).map((row) => [row.student.id, row]));
+        return { ok: true, data: {
+            rows: ids.flatMap((id) => { const row = rowsById.get(id); return row ? [row] : []; }),
+            page: Number(index.page), total: index.total, filteredTotal: index.filteredTotal,
+            paidCount: index.paidCount, pendingCount: index.pendingCount,
+            activeMembershipsCount: index.activeMembershipsCount,
+            coachOptions: index.coachOptions ?? [],
+        } };
+    } catch (error) {
+        logAdminActionError('Error al obtener la página de pagos:', error);
+        return { ok: false, data: null, error: getAdminActionErrorMessage(error, 'No se pudieron cargar los pagos') };
+    }
+};
+
 export const getPaymentOverview = async (
-    input?: PaymentOverviewPeriodInput
+    input?: PaymentOverviewPeriodInput,
+    studentIds?: string[],
 ): Promise<ActionResponse<PaymentOverviewRow[]>> => {
     try {
         await requireAdminSession();
@@ -79,6 +218,7 @@ export const getPaymentOverview = async (
         const { start, end, dueDate } = getPaymentMonthRange(selectedPeriodDate);
 
         const students = await prisma.student.findMany({
+            where: studentIds ? { id: { in: studentIds.slice(0, paymentPageSize) } } : undefined,
             orderBy: {
                 createdAt: "desc",
             },
@@ -200,22 +340,34 @@ export const getPaymentOverview = async (
     }
 };
 
-export const getStudentPaymentHistory = async (studentId: string): Promise<ActionResponse<Payment[]>> => {
+export type AdminPaymentHistoryPage = {
+    payments: Payment[];
+    total: number;
+    page: number;
+};
+
+const adminPaymentHistoryPageSize = 8;
+
+export const getStudentPaymentHistory = async (
+    studentId: string,
+    requestedPage = 1,
+): Promise<ActionResponse<AdminPaymentHistoryPage>> => {
     try {
         await requireAdminSession();
-
+        if (!studentId) return { ok: false, data: null, error: 'El alumno es requerido' };
+        const total = await prisma.payment.count({ where: { studentId } });
+        const safeRequestedPage = Number.isSafeInteger(requestedPage) ? Math.max(1, requestedPage) : 1;
+        const page = Math.min(safeRequestedPage, Math.max(1, Math.ceil(total / adminPaymentHistoryPageSize)));
         const payments = await prisma.payment.findMany({
-            where: {
-                studentId,
-            },
-            orderBy: {
-                createdAt: "desc",
-            },
+            where: { studentId },
+            orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+            skip: (page - 1) * adminPaymentHistoryPageSize,
+            take: adminPaymentHistoryPageSize,
         });
 
         return {
             ok: true,
-            data: payments,
+            data: { payments, total, page },
         };
     } catch (error) {
         logAdminActionError("Error al obtener el historial de pagos del alumno:", error);

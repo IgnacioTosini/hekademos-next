@@ -141,6 +141,8 @@ export type AdminMonthlyAttendanceStudentSummary = {
 export type AdminMonthlyAttendanceSummary = {
     month: number;
     year: number;
+    page: number;
+    studentCount: number;
     totalCount: number;
     presentCount: number;
     absentCount: number;

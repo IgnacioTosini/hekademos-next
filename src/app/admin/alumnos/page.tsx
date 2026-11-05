@@ -1,7 +1,7 @@
 import { getWeeklyClassSchedules } from '@/app/actions/class.actions';
 import { getCoaches } from '@/app/actions/coach.actions';
 import { getMembershipPlans } from '@/app/actions/membership.actions';
-import { getStudents } from '@/app/actions/student.actions';
+import { getAdminUserPage } from '@/app/actions/admin-user-page.actions';
 import { StudentsSection } from '@/components/admin/students/studentsSection/StudentsSection';
 import type { Metadata } from 'next';
 import './_alumnosPage.scss';
@@ -13,12 +13,12 @@ export const metadata: Metadata = {
 
 export default async function AlumnosPage() {
     const [studentsResponse, coachesResponse, plansResponse, schedulesResponse] = await Promise.all([
-        getStudents(),
+        getAdminUserPage('students'),
         getCoaches(),
         getMembershipPlans(),
         getWeeklyClassSchedules(),
     ]);
-    const students = studentsResponse.ok ? studentsResponse.data : [];
+    const studentsPage = studentsResponse.ok ? studentsResponse.data : { items: [], total: 0, filteredTotal: 0, page: 1 };
     const coaches = coachesResponse.ok ? coachesResponse.data : [];
     const membershipPlans = plansResponse.ok ? plansResponse.data : [];
     const weeklySchedules = schedulesResponse.ok ? schedulesResponse.data : [];
@@ -26,7 +26,7 @@ export default async function AlumnosPage() {
     return (
         <div className="alumnos-page">
             <StudentsSection
-                students={students}
+                initialPage={studentsPage}
                 coaches={coaches}
                 membershipPlans={membershipPlans}
                 weeklySchedules={weeklySchedules}

@@ -1,12 +1,14 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import type { Prisma } from '@prisma/client';
+import { revalidatePath, updateTag } from "next/cache";
 import { getAppUrl } from "@/lib/app-url";
 import { getCurrentAuthSession } from "@/lib/auth-session";
 import { writeAuditLog } from "@/lib/audit-log";
 import { buildEmailMessage, sendEmail } from "@/lib/email";
 import { isDeliverableEmail } from "@/lib/form-validation";
 import { prisma } from "@/lib/prisma";
+import { PUBLIC_SCHEDULES_CACHE_TAG } from "@/lib/public-home-cache-tags";
 import type {
     ScheduleChangeRequest,
     ScheduleChangeRequestStatus,
@@ -66,6 +68,29 @@ export type ReviewScheduleChangeRequestInput = {
     requestId: string;
     notes?: string | null;
 };
+
+export type ScheduleRequestPageFilters = {
+    query?: string;
+    status?: string;
+    type?: string;
+    coachId?: string;
+    pendingPage?: number;
+    reviewedPage?: number;
+};
+
+export type ScheduleRequestsPage = {
+    pending: ScheduleChangeRequestReviewItem[];
+    reviewed: ScheduleChangeRequestReviewItem[];
+    pendingPage: number;
+    reviewedPage: number;
+    pendingCount: number;
+    reviewedCount: number;
+    filteredTotal: number;
+    total: number;
+    coachOptions: Array<[string, string]>;
+};
+
+const scheduleRequestPageSize = 8;
 
 const requireScheduleRequestReviewer = async () => {
     const session = await getCurrentAuthSession();
@@ -375,6 +400,7 @@ const validateRequestedSchedulesForStudent = async (
 };
 
 const revalidateScheduleRequestViews = (studentId: string) => {
+    updateTag(PUBLIC_SCHEDULES_CACHE_TAG);
     revalidatePath(scheduleRequestsPath);
     revalidatePath(coachDashboardPath);
     revalidatePath(profilePath);
@@ -382,36 +408,98 @@ const revalidateScheduleRequestViews = (studentId: string) => {
     revalidatePath(`${adminStudentsPath}/${studentId}`);
 };
 
-export const getScheduleChangeRequests = async (): Promise<ActionResponse<ScheduleChangeRequestReviewItem[]>> => {
+export const getScheduleChangeRequests = async (
+    filters: ScheduleRequestPageFilters = {},
+): Promise<ActionResponse<ScheduleRequestsPage>> => {
     try {
         await requireScheduleRequestReviewer();
+        const query = filters.query?.trim().slice(0, 100) ?? '';
+        const coachId = filters.coachId && filters.coachId !== 'ALL' ? filters.coachId : null;
+        const conditions: Prisma.ScheduleChangeRequestWhereInput[] = [];
+        if (['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'].includes(filters.status ?? '')) {
+            conditions.push({ status: filters.status as ScheduleChangeRequestStatus });
+        }
+        if (filters.type === 'ONE_TIME' || filters.type === 'PERMANENT') {
+            conditions.push({ type: filters.type });
+        }
 
-        const requests = await prisma.$queryRaw<ScheduleChangeRequestRow[]>`
-            SELECT
-                "id",
-                "studentId",
-                "type"::text AS "type",
-                "status"::text AS "status",
-                "currentScheduleIds",
-                "requestedScheduleIds",
-                "requestedDate",
-                "reason",
-                "reviewNotes",
-                "reviewedByUserId",
-                "reviewedAt",
-                "createdAt",
-                "updatedAt"
-            FROM "ScheduleChangeRequest"
-            ORDER BY
-                CASE WHEN "status" = 'PENDING' THEN 0 ELSE 1 END,
-                "createdAt" DESC
-        `;
-        const data = await getScheduleRequestDetails(requests);
+        if (coachId) {
+            const schedules = await prisma.weeklyClassSchedule.findMany({ where: { coachId }, select: { id: true } });
+            const scheduleIds = schedules.map((schedule) => schedule.id);
+            conditions.push({ OR: [
+                { student: { coachId } },
+                ...(scheduleIds.length ? [
+                    { currentScheduleIds: { hasSome: scheduleIds } },
+                    { requestedScheduleIds: { hasSome: scheduleIds } },
+                ] : []),
+            ] });
+        }
 
-        return {
-            ok: true,
-            data,
-        };
+        if (query) {
+            const contains = (value: string) => ({ contains: value, mode: 'insensitive' as const });
+            const matches: Prisma.ScheduleChangeRequestWhereInput[] = [
+                { reason: contains(query) }, { reviewNotes: contains(query) },
+                { student: { firstName: contains(query) } },
+                { student: { lastName: contains(query) } },
+                { student: { user: { name: contains(query) } } },
+                { student: { user: { email: contains(query) } } },
+                { student: { coach: { user: { name: contains(query) } } } },
+            ];
+            const nameParts = query.split(/\s+/);
+            if (nameParts.length > 1) matches.push({ student: {
+                firstName: contains(nameParts[0]), lastName: contains(nameParts.slice(1).join(' ')),
+            } });
+            for (const [type, label] of Object.entries(requestTypeLabels)) {
+                if (label.toLowerCase().includes(query.toLowerCase())) matches.push({ type: type as ScheduleChangeRequest['type'] });
+            }
+            for (const [status, label] of Object.entries({
+                PENDING: 'Pendiente', APPROVED: 'Aprobada', REJECTED: 'Rechazada', CANCELLED: 'Cancelada',
+            })) {
+                if (label.toLowerCase().includes(query.toLowerCase())) matches.push({ status: status as ScheduleChangeRequestStatus });
+            }
+            const schedules = await prisma.weeklyClassSchedule.findMany({
+                select: { id: true, dayOfWeek: true, startTime: true, durationMinutes: true,
+                    classCategory: true, coach: { select: { user: { select: { name: true, email: true } } } } },
+            });
+            const matchingScheduleIds = schedules.filter((schedule) => (
+                `${getScheduleLabel(schedule)} - ${schedule.coach?.user.name || schedule.coach?.user.email || 'Sin coach'}`
+                    .toLowerCase().includes(query.toLowerCase())
+            )).map((schedule) => schedule.id);
+            if (matchingScheduleIds.length) matches.push({ requestedScheduleIds: { hasSome: matchingScheduleIds } });
+            conditions.push({ OR: matches });
+        }
+
+        const where: Prisma.ScheduleChangeRequestWhereInput = { AND: conditions };
+        const pendingWhere: Prisma.ScheduleChangeRequestWhereInput = { AND: [where, { status: 'PENDING' }] };
+        const reviewedWhere: Prisma.ScheduleChangeRequestWhereInput = { AND: [where, { status: { not: 'PENDING' } }] };
+        const [total, pendingCount, reviewedCount, coaches] = await Promise.all([
+            prisma.scheduleChangeRequest.count(),
+            prisma.scheduleChangeRequest.count({ where: pendingWhere }),
+            prisma.scheduleChangeRequest.count({ where: reviewedWhere }),
+            prisma.coach.findMany({ orderBy: { user: { name: 'asc' } }, select: {
+                id: true, user: { select: { name: true, email: true } },
+            } }),
+        ]);
+        const normalizePage = (requested: number | undefined, count: number) => Math.min(
+            Number.isSafeInteger(requested) ? Math.max(1, requested!) : 1,
+            Math.max(1, Math.ceil(count / scheduleRequestPageSize)),
+        );
+        const pendingPage = normalizePage(filters.pendingPage, pendingCount);
+        const reviewedPage = normalizePage(filters.reviewedPage, reviewedCount);
+        const orderBy = [{ createdAt: 'desc' as const }, { id: 'desc' as const }];
+        const [pendingRows, reviewedRows] = await Promise.all([
+            prisma.scheduleChangeRequest.findMany({ where: pendingWhere, orderBy,
+                skip: (pendingPage - 1) * scheduleRequestPageSize, take: scheduleRequestPageSize }),
+            prisma.scheduleChangeRequest.findMany({ where: reviewedWhere, orderBy,
+                skip: (reviewedPage - 1) * scheduleRequestPageSize, take: scheduleRequestPageSize }),
+        ]);
+        const details = await getScheduleRequestDetails([...pendingRows, ...reviewedRows]);
+        return { ok: true, data: {
+            pending: details.slice(0, pendingRows.length), reviewed: details.slice(pendingRows.length),
+            pendingPage, reviewedPage, pendingCount, reviewedCount,
+            filteredTotal: pendingCount + reviewedCount, total,
+            coachOptions: coaches.map((coach) => [coach.id, coach.user.name || coach.user.email]),
+        } };
     } catch (error) {
         console.error("Error al obtener las solicitudes de cambio de horario:", error);
 

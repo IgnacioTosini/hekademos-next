@@ -1,4 +1,4 @@
-import { getWeeklyClassSchedules } from '@/app/actions/class.actions'
+import { getCachedPublicSchedules } from '@/lib/public-home-data'
 import type { DayOfWeek, WeeklyClassScheduleSummary } from '@/types/schema/classes'
 import { getClassCategoryLabel } from '@/utils/class-category'
 import { dayLabels, dayOrder } from '@/utils/schedule'
@@ -59,8 +59,8 @@ export const getScheduleGroups = (schedules: WeeklyClassScheduleSummary[]): Sche
 type Props = { content: HomePageContent['trainingSchedule'] }
 
 export const TrainingSchedule = async ({ content }: Props) => {
-    const schedulesResponse = await getWeeklyClassSchedules();
-    const scheduleGroups = schedulesResponse.ok ? getScheduleGroups(schedulesResponse.data) : [];
+    const schedules = await getCachedPublicSchedules().catch(() => []);
+    const scheduleGroups = getScheduleGroups(schedules);
 
     return <TrainingScheduleView content={content} scheduleGroups={scheduleGroups} />
 }

@@ -1,9 +1,10 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { getAdminActionErrorMessage, logAdminActionError, requireAdminSession } from "@/lib/admin-session";
 import { getExistingClassCategoryOption } from "@/lib/class-category";
 import { prisma } from "@/lib/prisma";
+import { PUBLIC_PLANS_CACHE_TAG } from "@/lib/public-home-cache-tags";
 import type {
     CreateMembershipPlanInput,
     MembershipPlan,
@@ -151,6 +152,7 @@ export const createMembershipPlan = async (
         revalidatePath(adminMembershipPlansPath);
         revalidatePath(adminClassSchedulesPath);
         revalidatePath(adminStudentsPath);
+        updateTag(PUBLIC_PLANS_CACHE_TAG);
         revalidatePath(publicHomePath);
 
         return {
@@ -234,6 +236,7 @@ export const updateMembershipPlan = async (
         revalidatePath(adminPaymentsPath);
         revalidatePath("/perfil");
         revalidatePath("/coach/dashboard");
+        updateTag(PUBLIC_PLANS_CACHE_TAG);
         revalidatePath(publicHomePath);
 
         return {
@@ -277,6 +280,7 @@ export const deleteMembershipPlan = async (
             revalidatePath(adminMembershipPlansPath);
             revalidatePath(adminStudentsPath);
             revalidatePath(adminPaymentsPath);
+            updateTag(PUBLIC_PLANS_CACHE_TAG);
             revalidatePath(publicHomePath);
 
             return {
@@ -296,6 +300,7 @@ export const deleteMembershipPlan = async (
 
         revalidatePath(adminMembershipPlansPath);
         revalidatePath(adminStudentsPath);
+        updateTag(PUBLIC_PLANS_CACHE_TAG);
         revalidatePath(publicHomePath);
 
         return {

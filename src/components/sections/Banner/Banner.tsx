@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import Image from 'next/image'
 import { FaArrowRight } from 'react-icons/fa'
 import { handleScrollTo } from '@/utils'
 import type { HomePageContent } from '@/lib/home-page-content'
@@ -64,7 +65,18 @@ export const Banner = ({ content }: Props) => {
 
     return (
         <div className="bannerParallax" ref={bannerRef} id="inicio">
-            <div className="parallaxBg" style={{ backgroundImage: `url("${content.background.url}")`, backgroundPosition: `${content.background.positionX ?? 50}% ${content.background.positionY ?? 50}%`, transform: `scale(${(content.background.scale ?? 100) / 100})` }} role="img" aria-label={content.background.alt} />
+            <div className="parallaxBg" style={{ transform: `scale(${(content.background.scale ?? 100) / 100})` }}>
+                <Image
+                    className="parallaxBgImage"
+                    src={content.background.url}
+                    alt={content.background.alt}
+                    fill
+                    priority
+                    sizes="100vw"
+                    quality={75}
+                    style={{ objectPosition: `${content.background.positionX ?? 50}% ${content.background.positionY ?? 50}%` }}
+                />
+            </div>
             <div className="bannerContent">
                 <h1 className="bannerTitle">{content.title}</h1>
                 <p className="bannerSubtitle">{content.subtitle}</p>

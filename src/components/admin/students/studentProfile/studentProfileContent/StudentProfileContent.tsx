@@ -33,6 +33,8 @@ type Props = {
     backHref?: string;
     backLabel?: string;
     paymentsHref?: string;
+    paymentHistoryTotal?: number;
+    paymentHistoryContent?: ReactNode;
     showInternalNotes?: boolean;
     allowPaymentReport?: boolean;
     attendanceBaseHref?: string;
@@ -162,6 +164,8 @@ export const StudentProfileContent = ({
     backHref,
     backLabel = "Volver",
     paymentsHref,
+    paymentHistoryTotal,
+    paymentHistoryContent,
     showInternalNotes = true,
     allowPaymentReport = false,
     attendanceBaseHref,
@@ -189,6 +193,7 @@ export const StudentProfileContent = ({
     const activeMembership = paymentSummary.activeMembership;
     const membershipAmount = getMembershipAmountCents(activeMembership);
     const paymentHistory = student.payments ?? [];
+    const totalPayments = paymentHistoryTotal ?? paymentHistory.length;
     const attendanceHistory = [...(student.attendance ?? [])].sort((a, b) => (
         getAttendanceDate(b.session?.startsAt ?? b.createdAt) - getAttendanceDate(a.session?.startsAt ?? a.createdAt)
     ));
@@ -283,7 +288,7 @@ export const StudentProfileContent = ({
                     <div className="student-profile-card-header">
                         <div>
                             <h2>Historial de pagos</h2>
-                            <p>{paymentHistory.length} pagos registrados</p>
+                            <p>{totalPayments} pagos registrados</p>
                         </div>
                         {paymentsHref && (
                             <Link href={paymentsHref}>
@@ -293,8 +298,8 @@ export const StudentProfileContent = ({
                         )}
                     </div>
 
-                    {paymentHistory.length > 0 ? (
-                        <StudentPaymentHistory payments={paymentHistory} />
+                    {totalPayments > 0 ? (
+                        paymentHistoryContent ?? <StudentPaymentHistory payments={paymentHistory} />
                     ) : (
                         <EmptyState
                             compact

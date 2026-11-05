@@ -382,26 +382,15 @@ export const createContactAnimations = () => {
 
     // Animación de iconos con bounce
     const animateContactIcons = () => {
-        (gsap.utils.toArray('.animate-icon-bounce') as Element[]).forEach((icon: Element, index: number) => {
-            gsap.fromTo(icon,
-                {
-                    scale: 0,
-                    rotation: -180
-                },
-                {
-                    scale: 1,
-                    rotation: 0,
-                    duration: 0.6,
-                    delay: index * 0.1,
-                    ease: "back.out(1.7)",
-                    scrollTrigger: {
-                        trigger: icon,
-                        start: "top 92%",
-                        toggleActions: "play none none none"
-                    }
-                }
-            )
-        })
+        const icons = gsap.utils.toArray('.contactSection .animate-icon-bounce') as Element[]
+        if (!icons.length) return
+        gsap.fromTo(icons,
+            { scale: 0, rotation: -180 },
+            {
+                scale: 1, rotation: 0, duration: 0.6, stagger: 0.1, ease: "back.out(1.7)",
+                scrollTrigger: { trigger: '.contactSection .contactInfo', start: "top 92%", toggleActions: "play none none none" }
+            }
+        )
     }
 
     // Animación específica para elementos de contacto
@@ -427,23 +416,15 @@ export const createContactAnimations = () => {
 
     // Animación específica para cards de contacto
     const animateContactCards = () => {
-        (gsap.utils.toArray('.contactSection .stagger-card') as Element[]).forEach((element: Element, index: number) => {
-            gsap.fromTo(element,
-                { autoAlpha: 0, y: 32 },
-                {
-                    autoAlpha: 1,
-                    y: 0,
-                    duration: 0.7,
-                    delay: index * 0.1,
-                    ease: "power2.out",
-                    scrollTrigger: {
-                        trigger: element,
-                        start: "top 92%",
-                        toggleActions: "play none none none"
-                    }
-                }
-            )
-        })
+        const cards = gsap.utils.toArray('.contactSection .stagger-card') as Element[]
+        if (!cards.length) return
+        gsap.fromTo(cards,
+            { autoAlpha: 0, y: 32 },
+            {
+                autoAlpha: 1, y: 0, duration: 0.7, stagger: 0.1, ease: "power2.out",
+                scrollTrigger: { trigger: '.contactSection .contactInfo', start: "top 92%", toggleActions: "play none none none" }
+            }
+        )
     }
 
     // Animación de botones de redes sociales
@@ -477,33 +458,22 @@ export const createContactAnimations = () => {
             scrollTrigger: {
                 trigger: '.animate-clock-tick',
                 start: "top 100%",
-                toggleActions: "play none none pause"
+                toggleActions: "play pause resume pause"
             }
         })
     }
 
     // Horarios aparecen secuencialmente
     const animateScheduleItems = () => {
-        (gsap.utils.toArray('.animate-schedule-item') as Element[]).forEach((item: Element, index: number) => {
-            gsap.fromTo(item,
-                {
-                    autoAlpha: 0,
-                    x: 20
-                },
-                {
-                    autoAlpha: 1,
-                    x: 0,
-                    duration: 0.5,
-                    delay: index * 0.08,
-                    ease: "power2.out",
-                    scrollTrigger: {
-                        trigger: '.animate-schedule',
-                        start: "top 92%",
-                        toggleActions: "play none none none"
-                    }
-                }
-            )
-        })
+        const items = gsap.utils.toArray('.contactSection .animate-schedule-item') as Element[]
+        if (!items.length) return
+        gsap.fromTo(items,
+            { autoAlpha: 0, x: 20 },
+            {
+                autoAlpha: 1, x: 0, duration: 0.5, stagger: 0.08, ease: "power2.out",
+                scrollTrigger: { trigger: '.contactSection .animate-schedule', start: "top 92%", toggleActions: "play none none none" }
+            }
+        )
     }
 
     return {

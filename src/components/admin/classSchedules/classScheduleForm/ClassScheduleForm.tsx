@@ -6,14 +6,14 @@ import { toast } from 'react-toastify';
 import { createWeeklyClassSchedule, updateWeeklyClassSchedule } from '@/app/actions/class.actions';
 import type { DayOfWeek, WeeklyClassScheduleWithRelations } from '@/types/schema/classes';
 import type { ClassCategoryOption } from '@/types/schema/common';
-import type { UserWithRelations } from '@/types/schema/users';
+import type { AdminCoachOption } from '@/app/actions/coach.actions';
 import { getClassCategoryLabel } from '@/utils/class-category';
 import { dayLabels, dayOrder } from '@/utils/schedule';
 import './_classScheduleForm.scss';
 
 type Props = {
     schedule: WeeklyClassScheduleWithRelations | null;
-    coaches: UserWithRelations[];
+    coaches: AdminCoachOption[];
     categories: ClassCategoryOption[];
     onClose: () => void;
 };
@@ -45,11 +45,9 @@ const getInitialState = (
     notes: schedule?.notes ?? '',
 });
 
-const getCoachName = (coach: UserWithRelations) => coach.name || coach.email;
-
 export const ClassScheduleForm = ({ schedule, coaches, categories, onClose }: Props) => {
     const router = useRouter();
-    const coachOptions = coaches.filter((coach) => coach.coach?.id);
+    const coachOptions = coaches;
     const [form, setForm] = useState<ClassScheduleFormState>(() => getInitialState(schedule, categories));
     const [error, setError] = useState('');
     const [isPending, startTransition] = useTransition();
@@ -202,8 +200,8 @@ export const ClassScheduleForm = ({ schedule, coaches, categories, onClose }: Pr
                 >
                     <option value="">Sin asignar</option>
                     {coachOptions.map((coach) => (
-                        <option key={coach.coach!.id} value={coach.coach!.id}>
-                            {getCoachName(coach)}
+                        <option key={coach.id} value={coach.id}>
+                            {coach.name}
                         </option>
                     ))}
                 </select>

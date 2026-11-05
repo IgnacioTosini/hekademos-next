@@ -1,9 +1,10 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { getAdminActionErrorMessage, logAdminActionError, requireAdminSession } from "@/lib/admin-session";
 import { getExistingClassCategoryOption } from "@/lib/class-category";
 import { prisma } from "@/lib/prisma";
+import { PUBLIC_SCHEDULES_CACHE_TAG } from "@/lib/public-home-cache-tags";
 import { toWeeklyClassScheduleSummary } from "@/lib/weekly-class-schedule-summary";
 import type {
     CreateWeeklyClassScheduleInput,
@@ -176,40 +177,30 @@ export const getWeeklyClassSchedules = async (): Promise<ActionResponse<WeeklyCl
     }
 };
 
-export const getAdminWeeklyClassSchedules = async (): Promise<ActionResponse<WeeklyClassScheduleWithRelations[]>> => {
+export type AdminWeeklyClassSchedule = WeeklyClassScheduleWithRelations & { coachName: string };
+
+export const getAdminWeeklyClassSchedules = async (): Promise<ActionResponse<AdminWeeklyClassSchedule[]>> => {
     try {
         await requireAdminSession();
 
         const schedules = await prisma.weeklyClassSchedule.findMany({
             include: {
                 coach: {
-                    include: {
-                        user: {
-                            include: {
-                                image: true,
-                            },
-                        },
-                    },
+                    select: { user: { select: { name: true, email: true } } },
                 },
-                studentAssignments: {
-                    where: {
-                        isActive: true,
-                    },
-                    include: {
-                        student: {
-                            include: {
-                                user: true,
-                            },
-                        },
-                    },
+                _count: {
+                    select: { studentAssignments: { where: { isActive: true } } },
                 },
             },
         });
         const schedulesWithAvailability = schedules.map((schedule) => {
-            const occupiedSpots = schedule.studentAssignments.length;
+            const occupiedSpots = schedule._count.studentAssignments;
+            const { coach, _count, ...scheduleFields } = schedule;
+            void _count;
 
             return {
-                ...schedule,
+                ...scheduleFields,
+                coachName: coach?.user.name || coach?.user.email || 'Sin asignar',
                 classCategory: getClassCategoryLabel(schedule.classCategory),
                 occupiedSpots,
                 availableSpots: schedule.capacity === null
@@ -224,7 +215,7 @@ export const getAdminWeeklyClassSchedules = async (): Promise<ActionResponse<Wee
                 dayOrderIndex[a.dayOfWeek] - dayOrderIndex[b.dayOfWeek]
                 || a.startTime.localeCompare(b.startTime)
                 || a.classCategory.localeCompare(b.classCategory)
-                || (a.coach?.user?.name ?? "").localeCompare(b.coach?.user?.name ?? "")
+                || a.coachName.localeCompare(b.coachName)
             )),
         };
     } catch (error) {
@@ -265,6 +256,7 @@ export const createWeeklyClassSchedule = async (
 
         revalidatePath(adminClassSchedulesPath);
         revalidatePath(adminStudentsPath);
+        updateTag(PUBLIC_SCHEDULES_CACHE_TAG);
         revalidatePath(publicHomePath);
 
         return {
@@ -332,6 +324,7 @@ export const updateWeeklyClassSchedule = async (
 
         revalidatePath(adminClassSchedulesPath);
         revalidatePath(adminStudentsPath);
+        updateTag(PUBLIC_SCHEDULES_CACHE_TAG);
         revalidatePath(publicHomePath);
 
         return {
@@ -373,6 +366,7 @@ export const deleteWeeklyClassSchedule = async (
 
             revalidatePath(adminClassSchedulesPath);
             revalidatePath(adminStudentsPath);
+            updateTag(PUBLIC_SCHEDULES_CACHE_TAG);
             revalidatePath(publicHomePath);
 
             return {
@@ -392,6 +386,7 @@ export const deleteWeeklyClassSchedule = async (
 
         revalidatePath(adminClassSchedulesPath);
         revalidatePath(adminStudentsPath);
+        updateTag(PUBLIC_SCHEDULES_CACHE_TAG);
         revalidatePath(publicHomePath);
 
         return {

@@ -31,34 +31,42 @@ export const useScrollAnimations = () => {
                 createContactAnimations,
                 createPhilosophyAnimations,
             } = animationModule
-            const ctx = gsap.context(() => {
+            const baseContext = gsap.context(() => {
                 const { animateSections, animateElements, animateStaggeredCards } = createScrollAnimations()
-                const {
-                    animateTitleReveal,
-                    animateFadeUp,
-                    animateSplitContainer,
-                    animateQuoteReveal,
-                    animateScrollFocus,
-                } = createPhilosophyAnimations()
-                const {
-                    animateContactSplit,
-                    animateContactElements,
-                    animateContactCards,
-                    animateContactIcons,
-                    animateSocialButtons,
-                    animateClockTick,
-                    animateScheduleItems,
-                } = createContactAnimations()
-
                 animateSections()
                 createAboutAnimations()
                 animateElements()
                 animateStaggeredCards()
+            }, containerRef)
+
+            const deferredContexts: Array<{ revert: () => void }> = []
+            const refreshFrames = new Set<number>()
+            const refreshScrollTriggers = () => ScrollTrigger.refresh()
+            const queueRefresh = () => {
+                const frame = requestAnimationFrame(() => {
+                    refreshFrames.delete(frame)
+                    refreshScrollTriggers()
+                })
+                refreshFrames.add(frame)
+            }
+            queueRefresh()
+            window.addEventListener('load', refreshScrollTriggers)
+
+            const deferredSections = new Map<Element, () => void>()
+            const philosophySection = containerRef.current?.querySelector('.philosophy-section')
+            const contactSection = containerRef.current?.querySelector('.contact-section')
+
+            if (philosophySection) deferredSections.set(philosophySection, () => {
+                const { animateTitleReveal, animateFadeUp, animateSplitContainer, animateQuoteReveal, animateScrollFocus } = createPhilosophyAnimations()
                 animateTitleReveal()
                 animateFadeUp()
                 animateSplitContainer()
                 animateQuoteReveal()
                 animateScrollFocus()
+            })
+
+            if (contactSection) deferredSections.set(contactSection, () => {
+                const { animateContactSplit, animateContactElements, animateContactCards, animateContactIcons, animateSocialButtons, animateClockTick, animateScheduleItems } = createContactAnimations()
                 animateContactSplit()
                 animateContactElements()
                 animateContactCards()
@@ -66,15 +74,27 @@ export const useScrollAnimations = () => {
                 animateSocialButtons()
                 animateClockTick()
                 animateScheduleItems()
-            }, containerRef)
-            const refreshScrollTriggers = () => ScrollTrigger.refresh()
-            const refreshFrame = requestAnimationFrame(refreshScrollTriggers)
+            })
 
-            window.addEventListener('load', refreshScrollTriggers)
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (!entry.isIntersecting) return
+                    const initialize = deferredSections.get(entry.target)
+                    if (!initialize) return
+                    observer.unobserve(entry.target)
+                    deferredSections.delete(entry.target)
+                    deferredContexts.push(gsap.context(initialize, containerRef))
+                    queueRefresh()
+                })
+            }, { rootMargin: '900px 0px' })
+            deferredSections.forEach((_, element) => observer.observe(element))
+
             disposeAnimations = () => {
-                cancelAnimationFrame(refreshFrame)
+                observer.disconnect()
+                refreshFrames.forEach(cancelAnimationFrame)
                 window.removeEventListener('load', refreshScrollTriggers)
-                ctx.revert()
+                deferredContexts.forEach((context) => context.revert())
+                baseContext.revert()
             }
         }
 

@@ -1,56 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { AuditLog } from "@/app/actions/audit.actions";
+import { useEffect, useRef, useState } from "react";
+import { getAuditLogs, type AuditLog, type AuditLogPage } from "@/app/actions/audit.actions";
 import { EmptyState } from "@/components/ui/emptyState/EmptyState";
 import { Pagination } from "@/components/ui/pagination/Pagination";
-import { usePagination } from "@/hooks/usePagination";
+import { auditActionLabels, auditEntityLabels } from "@/lib/audit-labels";
 import { formatCurrency } from "@/utils/format";
 import "./_auditSection.scss";
 
 type Props = {
-    logs: AuditLog[];
+    initialPage: AuditLogPage;
 };
 
 type ActionFilter = "all" | "payments" | "attendance" | "students" | "community" | "content" | "whatsapp";
 type ActorFilter = "all" | "ADMIN" | "COACH" | "STUDENT";
-
-const actionLabels: Record<string, string> = {
-    PAYMENT_MARK_PAID: "Pago marcado",
-    PAYMENT_MARK_PENDING: "Pago desmarcado",
-    PAYMENT_DETAILS_UPDATE: "Detalle de pago",
-    PAYMENT_REMINDER_EMAILS: "Recordatorios de pago",
-    PAYMENT_REMINDERS: "Recordatorios de pago",
-    ATTENDANCE_MARK_COACH: "Asistencia",
-    ATTENDANCE_MARK_ADMIN: "Asistencia",
-    SCHEDULE_CHANGE_REQUEST_APPROVE: "Solicitud aprobada",
-    SCHEDULE_CHANGE_REQUEST_AUTO_APPROVE: "Cambio automático de horario",
-    SCHEDULE_CHANGE_REQUEST_CANCEL: "Cambio temporal cancelado",
-    SCHEDULE_CHANGE_REQUEST_CREATE: "Solicitud de horario",
-    SCHEDULE_CHANGE_REQUEST_REJECT: "Solicitud rechazada",
-    STUDENT_CREATE: "Alumno creado",
-    STUDENT_UPDATE: "Alumno editado",
-    SITE_CONTENT_UPDATE: "Contenido web actualizado",
-    COMMUNITY_POST_CREATE: "Publicación creada",
-    COMMUNITY_POST_UPDATE: "Publicación editada",
-    COMMUNITY_POST_DELETE: "Publicación eliminada",
-    COMMUNITY_COMMENT_CREATE: "Aporte creado",
-    COMMUNITY_COMMENT_UPDATE: "Aporte editado",
-    COMMUNITY_COMMENT_DELETE: "Aporte eliminado",
-    WHATSAPP_INTEGRATION_CONNECT: "WhatsApp conectado",
-    WHATSAPP_INTEGRATION_DISCONNECT: "WhatsApp desactivado",
-};
-
-const entityLabels: Record<string, string> = {
-    Attendance: "Asistencia",
-    Payment: "Pago",
-    ScheduleChangeRequest: "Cambio de horario",
-    Student: "Alumno",
-    SiteContent: "Contenido web",
-    CommunityPost: "Comunidad",
-    CommunityComment: "Aporte",
-    WhatsAppIntegration: "WhatsApp",
-};
 
 const roleLabels = {
     ADMIN: "Admin",
@@ -58,7 +21,7 @@ const roleLabels = {
     STUDENT: "Alumno",
 };
 
-const getActionLabel = (action: string) => actionLabels[action] ?? "Acción registrada";
+const getActionLabel = (action: string) => auditActionLabels[action] ?? "Acción registrada";
 
 const monthLabels = [
     "enero",
@@ -317,45 +280,25 @@ const getAuditSummary = (log: AuditLog) => {
     return "Movimiento registrado.";
 };
 
-const getEntityLabel = (entityType: string) => entityLabels[entityType] ?? "Registro";
-
-const getActionGroup = (log: AuditLog): ActionFilter => {
-    if (log.action.startsWith("PAYMENT_")) return "payments";
-    if (log.action.startsWith("ATTENDANCE_")) return "attendance";
-    if (log.action.startsWith("STUDENT_") || log.action.startsWith("SCHEDULE_")) return "students";
-    if (log.action.startsWith("COMMUNITY_")) return "community";
-    if (log.action.startsWith("SITE_CONTENT_")) return "content";
-    if (log.action.startsWith("WHATSAPP_")) return "whatsapp";
-    return "all";
-};
+const getEntityLabel = (entityType: string) => auditEntityLabels[entityType] ?? "Registro";
 
 const actionFilterLabels: Record<ActionFilter, string> = {
     all: "Todas", payments: "Pagos", attendance: "Asistencia", students: "Alumnos y horarios",
     community: "Comunidad", content: "Contenido web", whatsapp: "WhatsApp",
 };
 
-const formatInputDate = (value: Date | string) => {
-    const date = new Date(value);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-
-    return `${year}-${month}-${day}`;
-};
-
-const getSearchText = (log: AuditLog) => [
-    getActionLabel(log.action),
-    log.actorEmail,
-    log.actorRole ? roleLabels[log.actorRole] : null,
-    getEntityLabel(log.entityType),
-    getAuditSummary(log),
-].filter(Boolean).join(" ").toLowerCase();
-
-export const AuditSection = ({ logs }: Props) => {
+export const AuditSection = ({ initialPage }: Props) => {
     const [query, setQuery] = useState("");
     const [actionFilter, setActionFilter] = useState<ActionFilter>("all");
     const [actorFilter, setActorFilter] = useState<ActorFilter>("all");
     const [dateFilter, setDateFilter] = useState("");
+    const [pageData, setPageData] = useState(initialPage);
+    const [page, setPage] = useState(1);
+    const [isLoading, setIsLoading] = useState(false);
+    const [loadError, setLoadError] = useState<string | null>(null);
+    const requestVersion = useRef(0);
+    const firstLoad = useRef(true);
+    const logs = pageData.logs;
     const resultsRef = useRef<HTMLDivElement>(null);
     const filtersInitialized = useRef(false);
 
@@ -372,21 +315,24 @@ export const AuditSection = ({ logs }: Props) => {
             cleanup = () => context.revert();
         });
         return () => { cancelled = true; cleanup?.(); };
-    }, [query, actionFilter, actorFilter, dateFilter]);
+    }, [pageData]);
 
-    const filteredLogs = useMemo(() => {
-        const search = query.trim().toLowerCase();
-
-        return logs.filter((log) => {
-            const matchesAction = actionFilter === "all" || getActionGroup(log) === actionFilter;
-            const matchesActor = actorFilter === "all" || log.actorRole === actorFilter;
-            const matchesDate = !dateFilter || formatInputDate(log.createdAt) === dateFilter;
-            const matchesSearch = !search || getSearchText(log).includes(search);
-
-            return matchesAction && matchesActor && matchesDate && matchesSearch;
-        });
-    }, [actionFilter, actorFilter, dateFilter, logs, query]);
-    const logPages = usePagination(filteredLogs, 20, `${query}|${actionFilter}|${actorFilter}|${dateFilter}`);
+    useEffect(() => {
+        if (firstLoad.current) { firstLoad.current = false; return; }
+        const version = ++requestVersion.current;
+        const timer = window.setTimeout(async () => {
+            setIsLoading(true);
+            const result = await getAuditLogs({ query, actionGroup: actionFilter, actorRole: actorFilter, date: dateFilter, page });
+            if (version !== requestVersion.current) return;
+            if (result.ok) {
+                setPageData(result.data);
+                setLoadError(null);
+                if (result.data.page !== page) setPage(result.data.page);
+            } else setLoadError(result.error);
+            setIsLoading(false);
+        }, query ? 250 : 0);
+        return () => { requestVersion.current += 1; window.clearTimeout(timer); };
+    }, [query, actionFilter, actorFilter, dateFilter, page]);
 
     const hasFilters = Boolean(query.trim() || actionFilter !== "all" || actorFilter !== "all" || dateFilter);
 
@@ -395,6 +341,7 @@ export const AuditSection = ({ logs }: Props) => {
         setActionFilter("all");
         setActorFilter("all");
         setDateFilter("");
+        setPage(1);
     };
 
     return (
@@ -404,7 +351,7 @@ export const AuditSection = ({ logs }: Props) => {
                     <span className="audit-eyebrow">ACTIVIDAD ADMINISTRATIVA</span>
                     <h1>Auditoría</h1>
                     <p>
-                        {filteredLogs.length} de {logs.length} movimientos cargados{logs.length === 150 ? " · Se muestran los 150 más recientes" : ""}.
+                        {pageData.filteredTotal} de {pageData.total} movimientos{isLoading ? ' · Cargando...' : ''}.
                     </p>
                 </div>
             </div>
@@ -415,7 +362,7 @@ export const AuditSection = ({ logs }: Props) => {
                         <span>Acción</span>
                         <select
                             value={actionFilter}
-                            onChange={(event) => setActionFilter(event.target.value as ActionFilter)}
+                            onChange={(event) => { setActionFilter(event.target.value as ActionFilter); setPage(1); }}
                             aria-label="Filtrar por acción"
                         >
                             <option value="all">Todas</option>
@@ -432,7 +379,7 @@ export const AuditSection = ({ logs }: Props) => {
                         <span>Usuario</span>
                         <select
                             value={actorFilter}
-                            onChange={(event) => setActorFilter(event.target.value as ActorFilter)}
+                            onChange={(event) => { setActorFilter(event.target.value as ActorFilter); setPage(1); }}
                             aria-label="Filtrar por usuario"
                         >
                             <option value="all">Todos</option>
@@ -447,7 +394,7 @@ export const AuditSection = ({ logs }: Props) => {
                         <input
                             type="date"
                             value={dateFilter}
-                            onChange={(event) => setDateFilter(event.target.value)}
+                            onChange={(event) => { setDateFilter(event.target.value); setPage(1); }}
                             aria-label="Filtrar por fecha"
                         />
                     </label>
@@ -456,7 +403,7 @@ export const AuditSection = ({ logs }: Props) => {
                         <span>Buscar</span>
                         <input
                             value={query}
-                            onChange={(event) => setQuery(event.target.value)}
+                            onChange={(event) => { setQuery(event.target.value); setPage(1); }}
                             placeholder="Buscar usuario, registro o resumen..."
                             aria-label="Buscar auditoría"
                         />
@@ -472,7 +419,8 @@ export const AuditSection = ({ logs }: Props) => {
                     <button type="button" onClick={clearFilters}>Limpiar filtros</button>
                 </div>}
 
-                <div ref={resultsRef} className="audit-results">{filteredLogs.length > 0 ? (
+                {loadError && <p role="alert">{loadError}</p>}
+                <div ref={resultsRef} className="audit-results">{logs.length > 0 ? (
                     <table className="audit-table">
                         <thead>
                             <tr>
@@ -485,7 +433,7 @@ export const AuditSection = ({ logs }: Props) => {
                         </thead>
 
                         <tbody>
-                            {logPages.pageItems.map((log) => (
+                            {logs.map((log) => (
                                 <tr key={log.id}>
                                     <td data-label="Fecha"><time dateTime={new Date(log.createdAt).toISOString()}>{formatDate(log.createdAt)}</time></td>
                                     <td data-label="Acción">
@@ -509,13 +457,13 @@ export const AuditSection = ({ logs }: Props) => {
                     <EmptyState
                         compact
                         className="audit-empty"
-                        title={logs.length > 0 ? "Sin resultados" : "Sin movimientos"}
-                        description={logs.length > 0
+                        title={pageData.total > 0 ? "Sin resultados" : "Sin movimientos"}
+                        description={pageData.total > 0
                             ? "No hay movimientos que coincidan con los filtros."
                             : "Todavía no hay acciones registradas."}
                     />
                 )}</div>
-                <Pagination page={logPages.page} pageSize={logPages.pageSize} totalItems={filteredLogs.length} onPageChange={logPages.setPage} label="movimientos" />
+                <Pagination page={page} pageSize={20} totalItems={pageData.filteredTotal} onPageChange={setPage} label="movimientos" />
             </div>
         </section>
     );

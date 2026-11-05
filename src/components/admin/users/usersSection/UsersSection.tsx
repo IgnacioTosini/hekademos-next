@@ -3,14 +3,16 @@
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FaRegTrashAlt } from 'react-icons/fa';
 import { GoPencil } from 'react-icons/go';
 import { toast } from 'react-toastify';
 import { deleteUser } from '@/app/actions/user.actions';
 import { EmptyState } from '@/components/ui/emptyState/EmptyState';
 import { Pagination } from '@/components/ui/pagination/Pagination';
-import { usePagination } from '@/hooks/usePagination';
+import type { AdminUserPage } from '@/app/actions/admin-user-page.actions';
+import { ADMIN_USER_PAGE_SIZE } from '@/lib/admin-user-page';
+import { useAdminUserPage } from '@/hooks/useAdminUserPage';
 import type { UserWithRelations } from '@/types/schema/users';
 import { formatDate } from '@/utils/format';
 import { getInitials } from '@/utils/strings';
@@ -19,7 +21,7 @@ import './_usersSection.scss';
 const UserModal = dynamic(() => import('../userModal/UserModal').then((module) => module.UserModal));
 
 type Props = {
-    users: UserWithRelations[];
+    initialPage: AdminUserPage;
 };
 
 const roleLabels: Record<UserWithRelations['role'], string> = {
@@ -34,11 +36,15 @@ const statusLabels: Record<UserWithRelations['status'], string> = {
     SUSPENDED: 'Suspendido',
 };
 
-export const UsersSection = ({ users }: Props) => {
+export const UsersSection = ({ initialPage }: Props) => {
     const router = useRouter();
     const [query, setQuery] = useState('');
     const [roleFilter, setRoleFilter] = useState('ALL');
     const [statusFilter, setStatusFilter] = useState('ALL');
+    const { data, page, setPage, isLoading, error, refresh } = useAdminUserPage('users', initialPage, {
+        query, role: roleFilter, status: statusFilter,
+    });
+    const users = data.items;
     const tableRef = useRef<HTMLTableSectionElement>(null);
     const filtersInitialized = useRef(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -56,26 +62,6 @@ export const UsersSection = ({ users }: Props) => {
         window.addEventListener('keydown', onEscape);
         return () => window.removeEventListener('keydown', onEscape);
     }, [userToDelete, isDeleting]);
-
-    const filteredUsers = useMemo(() => {
-        const search = query.trim().toLowerCase();
-
-        return users.filter((user) => {
-            if (roleFilter !== 'ALL' && user.role !== roleFilter) return false;
-            if (statusFilter !== 'ALL' && user.status !== statusFilter) return false;
-            if (!search) return true;
-            const values = [
-                user.name,
-                user.email,
-                user.phone,
-                roleLabels[user.role],
-                statusLabels[user.status],
-            ];
-
-            return values.some((value) => value?.toLowerCase().includes(search));
-        });
-    }, [query, roleFilter, statusFilter, users]);
-    const userPages = usePagination(filteredUsers, 12, `${query}|${roleFilter}|${statusFilter}`);
 
     useEffect(() => {
         if (!filtersInitialized.current) { filtersInitialized.current = true; return; }
@@ -106,6 +92,7 @@ export const UsersSection = ({ users }: Props) => {
     const closeModal = () => {
         setSelectedUser(null);
         setIsModalOpen(false);
+        void refresh();
     };
 
     const handleDelete = async () => {
@@ -117,6 +104,7 @@ export const UsersSection = ({ users }: Props) => {
                 toast.success('Usuario eliminado');
                 setUserToDelete(null);
                 router.refresh();
+                void refresh();
             } else {
                 toast.error(result.error);
             }
@@ -133,7 +121,7 @@ export const UsersSection = ({ users }: Props) => {
                 <div className="users-header-text">
                     <h1 className="users-title">Usuarios</h1>
                     <p className="users-description">
-                        {users.length} {users.length === 1 ? 'usuario registrado' : 'usuarios registrados'}
+                        {data.total} {data.total === 1 ? 'usuario registrado' : 'usuarios registrados'}
                     </p>
                 </div>
                 <button className="users-button" type="button" onClick={openCreate}>+ Nuevo usuario</button>
@@ -161,17 +149,17 @@ export const UsersSection = ({ users }: Props) => {
                 <div className="users-table-toolbar">
                     <input
                         value={query}
-                        onChange={(event) => setQuery(event.target.value)}
+                        onChange={(event) => { setQuery(event.target.value); setPage(1); }}
                         placeholder="Buscar usuario..."
                         aria-label="Buscar usuario"
                     />
-                    <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)} aria-label="Filtrar por rol">
+                    <select value={roleFilter} onChange={(event) => { setRoleFilter(event.target.value); setPage(1); }} aria-label="Filtrar por rol">
                         <option value="ALL">Todos los roles</option>
                         <option value="ADMIN">Admin</option>
                         <option value="COACH">Coach</option>
                         <option value="STUDENT">Alumno</option>
                     </select>
-                    <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Filtrar por estado">
+                    <select value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setPage(1); }} aria-label="Filtrar por estado">
                         <option value="ALL">Todos los estados</option>
                         <option value="ACTIVE">Activo</option>
                         <option value="INACTIVE">Inactivo</option>
@@ -179,7 +167,8 @@ export const UsersSection = ({ users }: Props) => {
                     </select>
                 </div>
 
-                <p className="users-results" aria-live="polite">Mostrando <strong>{filteredUsers.length}</strong> de {users.length} usuarios</p>
+                <p className="users-results" aria-live="polite">Mostrando <strong>{data.filteredTotal}</strong> de {data.total} usuarios{isLoading ? ' · Cargando...' : ''}</p>
+                {error && <p role="alert">{error}</p>}
 
                 <table className="users-table">
                     <thead>
@@ -194,7 +183,7 @@ export const UsersSection = ({ users }: Props) => {
                     </thead>
 
                     <tbody ref={tableRef}>
-                        {userPages.pageItems.map((user) => (
+                        {users.map((user) => (
                             <tr key={user.id}>
                                 <td className="user-cell-primary" data-label="Usuario">
                                     <div className="user-info">
@@ -240,16 +229,16 @@ export const UsersSection = ({ users }: Props) => {
                     </tbody>
                 </table>
 
-                {filteredUsers.length === 0 && (
+                {data.filteredTotal === 0 && !isLoading && (
                     <EmptyState
                         compact
-                        title={users.length > 0 ? 'Sin resultados' : 'Sin usuarios'}
-                        description={users.length > 0
+                        title={data.total > 0 ? 'Sin resultados' : 'Sin usuarios'}
+                        description={data.total > 0
                             ? 'No hay usuarios que coincidan con la busqueda.'
                             : 'Todavia no hay usuarios cargados en el sistema.'}
                     />
                 )}
-                <Pagination page={userPages.page} pageSize={userPages.pageSize} totalItems={filteredUsers.length} onPageChange={userPages.setPage} label="usuarios" />
+                <Pagination page={page} pageSize={ADMIN_USER_PAGE_SIZE} totalItems={data.filteredTotal} onPageChange={setPage} label="usuarios" />
             </div>
         </section>
     );

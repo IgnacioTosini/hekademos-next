@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { getAdminAttendanceOverview, getAdminMonthlyAttendanceSummary } from '@/app/actions/attendance.actions';
-import { getCoaches } from '@/app/actions/coach.actions';
+import { getAdminCoachOptions } from '@/app/actions/coach.actions';
 import { AttendanceSection } from '@/components/admin/attendance/attendanceSection/AttendanceSection';
 import { toDateInputValue } from '@/utils/date';
 import './_asistenciaPage.scss';
@@ -16,6 +16,7 @@ type Props = {
         coachId?: string;
         month?: string;
         year?: string;
+        page?: string;
     }>;
 };
 
@@ -32,16 +33,19 @@ export default async function AsistenciaPage({ searchParams }: Props) {
     const selectedYear = Number.isInteger(parsedYear) && parsedYear >= 2000 && parsedYear <= 2100
         ? parsedYear
         : today.getFullYear();
+    const parsedPage = Number(params?.page);
+    const selectedPage = Number.isSafeInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
     const [attendanceResponse, coachesResponse, monthlySummaryResponse] = await Promise.all([
         getAdminAttendanceOverview({
             date: selectedDate,
             coachId: selectedCoachId,
         }),
-        getCoaches(),
+        getAdminCoachOptions(),
         getAdminMonthlyAttendanceSummary({
             month: selectedMonth,
             year: selectedYear,
             coachId: selectedCoachId,
+            page: selectedPage,
         }),
     ]);
     const schedules = attendanceResponse.ok ? attendanceResponse.data : [];

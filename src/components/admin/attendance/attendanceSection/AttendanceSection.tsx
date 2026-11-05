@@ -5,19 +5,18 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { FaDownload } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-import { markAdminStudentAttendance } from '@/app/actions/attendance.actions';
+import { getAdminMonthlyAttendanceSummary, markAdminStudentAttendance } from '@/app/actions/attendance.actions';
+import type { AdminCoachOption } from '@/app/actions/coach.actions';
 import { EmptyState } from '@/components/ui/emptyState/EmptyState';
 import { Pagination } from '@/components/ui/pagination/Pagination';
-import { usePagination } from '@/hooks/usePagination';
 import type { AdminAttendanceSchedule, AdminMonthlyAttendanceSummary, AttendanceStatus } from '@/types/schema/classes';
-import type { UserWithRelations } from '@/types/schema/users';
 import { formatDate } from '@/utils/format';
 import { getInitials } from '@/utils/strings';
 import './_attendanceSection.scss';
 
 type Props = {
     schedules: AdminAttendanceSchedule[];
-    coaches: UserWithRelations[];
+    coaches: AdminCoachOption[];
     selectedDate: string;
     selectedCoachId: string;
     selectedMonth: number;
@@ -33,8 +32,6 @@ const attendanceStatusLabels: Record<AttendanceStatus, string> = {
 };
 
 const attendanceOptions: AttendanceStatus[] = ['PRESENT', 'ABSENT', 'LATE', 'EXCUSED'];
-
-const getCoachName = (coach: UserWithRelations) => coach.name || coach.email;
 
 const getDateLabel = (date: string) => {
     const [year, month, day] = date.split('-').map(Number);
@@ -99,12 +96,11 @@ export const AttendanceSection = ({
     const router = useRouter();
     const [pendingAttendanceKey, setPendingAttendanceKey] = useState<string | null>(null);
     const [pendingAttendanceStatus, setPendingAttendanceStatus] = useState<AttendanceStatus | null>(null);
+    const [isExporting, setIsExporting] = useState(false);
     const [isPending, startTransition] = useTransition();
     const [isFiltering, startFilterTransition] = useTransition();
     const filterIndicatorRef = useRef<HTMLSpanElement>(null);
     const schedulesRef = useRef<HTMLDivElement>(null);
-    const monthlyStudents = useMemo(() => monthlySummary?.students ?? [], [monthlySummary]);
-    const monthlyPages = usePagination(monthlyStudents, 15, `${selectedMonth}|${selectedYear}|${selectedCoachId}`);
 
     useEffect(() => {
         if (!isFiltering || !filterIndicatorRef.current || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -135,13 +131,7 @@ export const AttendanceSection = ({
         return () => { cancelled = true; cleanup?.(); };
     }, [selectedDate, selectedCoachId]);
     const coachOptions = useMemo(() => (
-        coaches
-            .filter((coach) => coach.coach?.id)
-            .map((coach) => ({
-                id: coach.coach!.id,
-                name: getCoachName(coach),
-            }))
-            .sort((a, b) => a.name.localeCompare(b.name))
+        [...coaches].sort((a, b) => a.name.localeCompare(b.name))
     ), [coaches]);
     const totalStudents = schedules.reduce((total, schedule) => total + schedule.students.length, 0);
     const markedStudents = schedules.reduce((total, schedule) => (
@@ -153,41 +143,58 @@ export const AttendanceSection = ({
         year: 'numeric',
     }).format(new Date(selectedYear, selectedMonth - 1, 1));
 
-    const updateFilters = (date: string, coachId: string, month = selectedMonth, year = selectedYear) => {
+    const updateFilters = (date: string, coachId: string, month = selectedMonth, year = selectedYear, page = 1) => {
         const params = new URLSearchParams();
 
         if (date) params.set('date', date);
         if (coachId && coachId !== 'all') params.set('coachId', coachId);
         params.set('month', String(month));
         params.set('year', String(year));
+        if (page > 1) params.set('page', String(page));
 
         startFilterTransition(() => router.push(`/admin/asistencia?${params.toString()}`, { scroll: false }));
     };
 
-    const handleExportMonthlySummary = () => {
-        if (!monthlySummary || monthlySummary.students.length === 0) {
+    const handleExportMonthlySummary = async () => {
+        if (!monthlySummary || monthlySummary.studentCount === 0) {
             toast.info('No hay asistencias para exportar');
             return;
         }
+        setIsExporting(true);
+        try {
+            const result = await getAdminMonthlyAttendanceSummary({ month: selectedMonth, year: selectedYear, coachId: selectedCoachId });
+            if (!result.ok) {
+                toast.error(result.error);
+                return;
+            }
+            if (!result.data) {
+                toast.error('No se pudo exportar la asistencia');
+                return;
+            }
 
-        const headers = ['Mes', 'Alumno', 'Email', 'Coach', 'Total', 'Presentes', 'Ausentes', 'Tarde', 'Justificadas', 'Ultima asistencia'];
-        const lines = monthlySummary.students.map((student) => ([
-            monthLabel,
-            student.name,
-            student.email,
-            student.coachName,
-            student.totalCount,
-            student.presentCount,
-            student.absentCount,
-            student.lateCount,
-            student.excusedCount,
-            formatDate(student.lastAttendanceAt),
-        ].map(escapeCsvValue).join(';')));
-        const csv = [headers.map(escapeCsvValue).join(';'), ...lines].join('\n');
-        const filename = `asistencia-hekademos-${selectedYear}-${String(selectedMonth).padStart(2, '0')}.csv`;
+            const headers = ['Mes', 'Alumno', 'Email', 'Coach', 'Total', 'Presentes', 'Ausentes', 'Tarde', 'Justificadas', 'Ultima asistencia'];
+            const lines = result.data.students.map((student) => ([
+                monthLabel,
+                student.name,
+                student.email,
+                student.coachName,
+                student.totalCount,
+                student.presentCount,
+                student.absentCount,
+                student.lateCount,
+                student.excusedCount,
+                formatDate(student.lastAttendanceAt),
+            ].map(escapeCsvValue).join(';')));
+            const csv = [headers.map(escapeCsvValue).join(';'), ...lines].join('\n');
+            const filename = `asistencia-hekademos-${selectedYear}-${String(selectedMonth).padStart(2, '0')}.csv`;
 
-        downloadCsv(csv, filename);
-        toast.success('Archivo CSV generado');
+            downloadCsv(csv, filename);
+            toast.success('Archivo CSV generado');
+        } catch {
+            toast.error('No se pudo exportar la asistencia');
+        } finally {
+            setIsExporting(false);
+        }
     };
 
     const handleAttendance = (
@@ -283,9 +290,9 @@ export const AttendanceSection = ({
                         <p>{monthLabel} · {monthlySummary?.totalCount ?? 0} asistencias registradas</p>
                     </div>
 
-                    <button type="button" onClick={handleExportMonthlySummary}>
+                    <button type="button" onClick={handleExportMonthlySummary} disabled={isExporting}>
                         <FaDownload />
-                        Exportar CSV
+                        {isExporting ? 'Preparando CSV...' : 'Exportar CSV'}
                     </button>
                 </div>
 
@@ -308,7 +315,7 @@ export const AttendanceSection = ({
                     </div>
                 </div>
 
-                {monthlySummary && monthlySummary.students.length > 0 ? (
+                {monthlySummary && monthlySummary.studentCount > 0 ? (
                     <>
                     <div className="attendance-monthly-table-wrapper">
                         <table className="attendance-monthly-table">
@@ -325,7 +332,7 @@ export const AttendanceSection = ({
                                 </tr>
                             </thead>
                             <tbody>
-                                {monthlyPages.pageItems.map((student) => (
+                                {monthlySummary.students.map((student) => (
                                     <tr key={student.studentId}>
                                         <td data-label="Alumno">
                                             <strong>{student.name}</strong>
@@ -343,7 +350,7 @@ export const AttendanceSection = ({
                             </tbody>
                         </table>
                     </div>
-                    <Pagination page={monthlyPages.page} pageSize={monthlyPages.pageSize} totalItems={monthlyStudents.length} onPageChange={monthlyPages.setPage} label="alumnos" />
+                    <Pagination page={monthlySummary.page} pageSize={15} totalItems={monthlySummary.studentCount} onPageChange={(page) => updateFilters(selectedDate, selectedCoachId, selectedMonth, selectedYear, page)} label="alumnos" />
                     </>
                 ) : (
                     <EmptyState

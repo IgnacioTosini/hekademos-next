@@ -3,14 +3,14 @@
 import { IoMdClose } from 'react-icons/io';
 import type { ClassCategoryOption } from '@/types/schema/common';
 import type { WeeklyClassScheduleWithRelations } from '@/types/schema/classes';
-import type { UserWithRelations } from '@/types/schema/users';
+import type { AdminCoachOption } from '@/app/actions/coach.actions';
 import { ClassScheduleForm } from '../classScheduleForm/ClassScheduleForm';
 import './_classScheduleModal.scss';
 
 type Props = {
     isOpen: boolean;
     schedule: WeeklyClassScheduleWithRelations | null;
-    coaches: UserWithRelations[];
+    coaches: AdminCoachOption[];
     categories: ClassCategoryOption[];
     onClose: () => void;
 };

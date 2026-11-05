@@ -1,6 +1,6 @@
 import { getAdminWeeklyClassSchedules } from '@/app/actions/class.actions';
 import { getClassCategories } from '@/app/actions/classCategory.actions';
-import { getCoaches } from '@/app/actions/coach.actions';
+import { getAdminCoachOptions } from '@/app/actions/coach.actions';
 import { ClassSchedulesSection } from '@/components/admin/classSchedules/classSchedulesSection/ClassSchedulesSection';
 import type { Metadata } from 'next';
 import './_turnosPage.scss';
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export default async function TurnosPage() {
     const [schedulesResponse, coachesResponse, categoriesResponse] = await Promise.all([
         getAdminWeeklyClassSchedules(),
-        getCoaches(),
+        getAdminCoachOptions(),
         getClassCategories(),
     ]);
     const schedules = schedulesResponse.ok ? schedulesResponse.data : [];

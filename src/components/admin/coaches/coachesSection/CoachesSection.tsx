@@ -3,14 +3,17 @@
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FaRegTrashAlt } from 'react-icons/fa';
 import { GoPencil } from 'react-icons/go';
 import { toast } from 'react-toastify';
 import { deleteUser } from '@/app/actions/user.actions';
+import { getAdminCoachWithStudents } from '@/app/actions/admin-user-page.actions';
 import { EmptyState } from '@/components/ui/emptyState/EmptyState';
 import { Pagination } from '@/components/ui/pagination/Pagination';
-import { usePagination } from '@/hooks/usePagination';
+import type { AdminUserPage } from '@/app/actions/admin-user-page.actions';
+import { ADMIN_USER_PAGE_SIZE } from '@/lib/admin-user-page';
+import { useAdminUserPage } from '@/hooks/useAdminUserPage';
 import type { UserWithRelations } from '@/types/schema/users';
 import '../../users/usersSection/_usersSection.scss';
 import './_coachesSection.scss';
@@ -19,49 +22,30 @@ const CoachModal = dynamic(() => import('../coachModal/CoachModal').then((module
 const CoachStudentsModal = dynamic(() => import('../coachStudentsModal/CoachStudentsModal').then((module) => module.CoachStudentsModal));
 
 type Props = {
-    coaches: UserWithRelations[];
+    initialPage: AdminUserPage;
+    specialties: string[];
 };
 
 const getCoachName = (coach: UserWithRelations) => coach.name || coach.email;
 
-export const CoachesSection = ({ coaches }: Props) => {
+export const CoachesSection = ({ initialPage, specialties }: Props) => {
     const router = useRouter();
     const [query, setQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [specialtyFilter, setSpecialtyFilter] = useState('ALL');
+    const { data, page, setPage, isLoading, error, refresh } = useAdminUserPage('coaches', initialPage, {
+        query, specialty: specialtyFilter, status: statusFilter,
+    });
+    const coaches = data.items;
     const tableRef = useRef<HTMLTableSectionElement>(null);
     const filtersInitialized = useRef(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isStudentsModalOpen, setIsStudentsModalOpen] = useState(false);
+    const [loadingCoachId, setLoadingCoachId] = useState<string | null>(null);
     const [selectedCoach, setSelectedCoach] = useState<UserWithRelations | null>(null);
     const [coachToDelete, setCoachToDelete] = useState<UserWithRelations | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const cancelDeleteRef = useRef<HTMLButtonElement>(null);
-    const specialties = useMemo(() => [...new Set(coaches.map((coach) => coach.coach?.specialty?.trim()).filter((value): value is string => Boolean(value)))].sort((a, b) => a.localeCompare(b, 'es')), [coaches]);
-
-    const filteredCoaches = useMemo(() => {
-        const search = query.trim().toLowerCase();
-
-        return coaches.filter((coach) => {
-            if (statusFilter !== 'ALL' && (coach.coach?.isActive ? 'ACTIVE' : 'INACTIVE') !== statusFilter) return false;
-            if (specialtyFilter !== 'ALL' && coach.coach?.specialty?.trim() !== specialtyFilter) return false;
-            if (!search) return true;
-            const values = [
-                coach.name,
-                coach.email,
-                coach.phone,
-                coach.coach?.specialty,
-                coach.coach?.instagram,
-                coach.coach?.bio,
-                coach.coach?.paymentAlias,
-                coach.coach?.paymentAccountHolder,
-            ];
-
-            return values.some((value) => value?.toLowerCase().includes(search));
-        });
-    }, [coaches, query, specialtyFilter, statusFilter]);
-    const coachPages = usePagination(filteredCoaches, 12, `${query}|${specialtyFilter}|${statusFilter}`);
-
     useEffect(() => {
         if (!filtersInitialized.current) { filtersInitialized.current = true; return; }
         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -98,14 +82,20 @@ export const CoachesSection = ({ coaches }: Props) => {
         setIsModalOpen(true);
     };
 
-    const openStudents = (coach: UserWithRelations) => {
-        setSelectedCoach(coach);
+    const openStudents = async (coach: UserWithRelations) => {
+        setLoadingCoachId(coach.id);
+        const response = await getAdminCoachWithStudents(coach.id);
+        setLoadingCoachId(null);
+        if (!response.ok) { toast.error(response.error); return; }
+        if (!response.data) { toast.error('El coach ya no está disponible'); return; }
+        setSelectedCoach(response.data);
         setIsStudentsModalOpen(true);
     };
 
     const closeModal = () => {
         setSelectedCoach(null);
         setIsModalOpen(false);
+        void refresh();
     };
 
     const closeStudentsModal = () => {
@@ -122,6 +112,7 @@ export const CoachesSection = ({ coaches }: Props) => {
                 toast.success('Coach eliminado');
                 setCoachToDelete(null);
                 router.refresh();
+                void refresh();
             } else {
                 toast.error(result.error);
             }
@@ -138,7 +129,7 @@ export const CoachesSection = ({ coaches }: Props) => {
                 <div className="users-header-text">
                     <h1 className="users-title">Coaches</h1>
                     <p className="users-description">
-                        {coaches.length} {coaches.length === 1 ? 'coach registrado' : 'coaches registrados'}
+                        {data.total} {data.total === 1 ? 'coach registrado' : 'coaches registrados'}
                     </p>
                 </div>
                 <button className="users-button" type="button" onClick={openCreate}>+ Nuevo coach</button>
@@ -167,22 +158,23 @@ export const CoachesSection = ({ coaches }: Props) => {
                 <div className="users-table-toolbar">
                     <input
                         value={query}
-                        onChange={(event) => setQuery(event.target.value)}
+                        onChange={(event) => { setQuery(event.target.value); setPage(1); }}
                         placeholder="Buscar coach..."
                         aria-label="Buscar coach"
                     />
-                    <select value={specialtyFilter} onChange={(event) => setSpecialtyFilter(event.target.value)} aria-label="Filtrar por especialidad">
+                    <select value={specialtyFilter} onChange={(event) => { setSpecialtyFilter(event.target.value); setPage(1); }} aria-label="Filtrar por especialidad">
                         <option value="ALL">Todas las especialidades</option>
                         {specialties.map((specialty) => <option key={specialty} value={specialty}>{specialty}</option>)}
                     </select>
-                    <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Filtrar por estado">
+                    <select value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setPage(1); }} aria-label="Filtrar por estado">
                         <option value="ALL">Todos los estados</option>
                         <option value="ACTIVE">Activos</option>
                         <option value="INACTIVE">Inactivos</option>
                     </select>
                 </div>
 
-                <p className="users-results" aria-live="polite">Mostrando <strong>{filteredCoaches.length}</strong> de {coaches.length} coaches</p>
+                <p className="users-results" aria-live="polite">Mostrando <strong>{data.filteredTotal}</strong> de {data.total} coaches{isLoading ? ' · Cargando...' : ''}</p>
+                {error && <p role="alert">{error}</p>}
 
                 <table className="users-table">
                     <thead>
@@ -197,8 +189,8 @@ export const CoachesSection = ({ coaches }: Props) => {
                     </thead>
 
                     <tbody ref={tableRef}>
-                        {coachPages.pageItems.map((coach) => {
-                            const studentsCount = coach.coach?.students?.length ?? 0;
+                        {coaches.map((coach) => {
+                            const studentsCount = coach.coach?.id ? data.coachStudentCounts?.[coach.coach.id] ?? 0 : 0;
 
                             return (
                                 <tr key={coach.id}>
@@ -225,9 +217,10 @@ export const CoachesSection = ({ coaches }: Props) => {
                                         <button
                                             className="students-count-button"
                                             type="button"
-                                            onClick={() => openStudents(coach)}
+                                            onClick={() => void openStudents(coach)}
+                                            disabled={loadingCoachId === coach.id}
                                         >
-                                            <strong>{studentsCount}</strong><span>{studentsCount === 1 ? 'alumno' : 'alumnos'} · Ver lista</span>
+                                            <strong>{studentsCount}</strong><span>{loadingCoachId === coach.id ? 'Cargando...' : `${studentsCount === 1 ? 'alumno' : 'alumnos'} · Ver lista`}</span>
                                         </button>
                                     </td>
                                     <td className="user-cell-status" data-label="Estado">
@@ -251,16 +244,16 @@ export const CoachesSection = ({ coaches }: Props) => {
                     </tbody>
                 </table>
 
-                {filteredCoaches.length === 0 && (
+                {data.filteredTotal === 0 && !isLoading && (
                     <EmptyState
                         compact
-                        title={coaches.length > 0 ? 'Sin resultados' : 'Sin coaches'}
-                        description={coaches.length > 0
+                        title={data.total > 0 ? 'Sin resultados' : 'Sin coaches'}
+                        description={data.total > 0
                             ? 'No hay coaches que coincidan con la busqueda.'
                             : 'Todavia no hay coaches cargados.'}
                     />
                 )}
-                <Pagination page={coachPages.page} pageSize={coachPages.pageSize} totalItems={filteredCoaches.length} onPageChange={coachPages.setPage} label="coaches" />
+                <Pagination page={page} pageSize={ADMIN_USER_PAGE_SIZE} totalItems={data.filteredTotal} onPageChange={setPage} label="coaches" />
             </div>
         </section>
     );

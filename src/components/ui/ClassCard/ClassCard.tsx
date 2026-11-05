@@ -1,8 +1,8 @@
 import Image from 'next/image'
-import './_classCard.scss'
 import { YoutubeVideoButton } from '../YoutubeVideoButton'
 import type { SiteContentImage } from '@/lib/home-page-content'
 import { siteImageStyle } from '@/lib/site-image-style'
+import './_classCard.scss'
 
 type ClassCardProps = {
     title: string
@@ -13,6 +13,10 @@ type ClassCardProps = {
 }
 
 export const ClassCard = ({ title, description, list, image, videoUrl }: ClassCardProps) => {
+    const imageSizes = (image?.scale ?? 100) > 110
+        ? '(max-width: 768px) 100vw, 50vw'
+        : '(max-width: 430px) calc(100vw - 2rem), (max-width: 768px) 400px, (max-width: 1184px) 38vw, 450px'
+
     return (
         <div className='classCard'>
             <picture className='imgContainer'>
@@ -23,9 +27,9 @@ export const ClassCard = ({ title, description, list, image, videoUrl }: ClassCa
                         alt={title}
                         width={900}
                         height={600}
-                        sizes="(max-width: 768px) 100vw, 50vw"
+                        sizes={imageSizes}
                         className='classCardImage'
-                        quality={80}
+                        quality={75}
                         placeholder="blur"
                         blurDataURL="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect fill='%23e5e5e5'/%3E%3C/svg%3E"
                     />

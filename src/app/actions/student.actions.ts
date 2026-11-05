@@ -2,11 +2,12 @@
 
 import { isValidOptionalContactPhone, normalizeContactPhone } from '@/utils/phone';
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { getAppUrl } from "@/lib/app-url";
 import { getAdminActionErrorMessage, logAdminActionError, requireAdminSession } from "@/lib/admin-session";
 import { buildEmailMessage, sendEmail } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
+import { PUBLIC_SCHEDULES_CACHE_TAG } from "@/lib/public-home-cache-tags";
 import { hashPassword } from "@/lib/password";
 import { writeAuditLog } from "@/lib/audit-log";
 import { isDeliverableEmail, isValidBirthDate, isValidOptionalPhone } from "@/lib/form-validation";
@@ -607,6 +608,7 @@ export const createStudentUser = async (
         revalidatePath(adminUsersPath);
         revalidatePath(adminStudentsPath);
         revalidatePath(adminPaymentsPath);
+        updateTag(PUBLIC_SCHEDULES_CACHE_TAG);
         if (user.student) {
             revalidatePath(`${adminStudentsPath}/${user.student.id}`);
             await writeAuditLog({
@@ -731,6 +733,7 @@ export const updateStudentUser = async (
         revalidatePath(adminUsersPath);
         revalidatePath(adminStudentsPath);
         revalidatePath(adminPaymentsPath);
+        updateTag(PUBLIC_SCHEDULES_CACHE_TAG);
         if (updatedUser?.student) {
             revalidatePath(`${adminStudentsPath}/${updatedUser.student.id}`);
             await writeAuditLog({

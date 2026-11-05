@@ -1,4 +1,4 @@
-import { getPaymentOverview } from '@/app/actions/payment.actions';
+import { getPaymentOverviewPage } from '@/app/actions/payment.actions';
 import { PaymentsSection } from '@/components/admin/payments/paymentsSection/PaymentsSection';
 import type { Metadata } from 'next';
 import './_pagosPage.scss';
@@ -32,16 +32,20 @@ const getSelectedPeriod = (month?: string, year?: string) => {
 export default async function PagosPage({ searchParams }: Props) {
     const params = await searchParams;
     const { selectedMonth, selectedYear } = getSelectedPeriod(params?.month, params?.year);
-    const paymentsResponse = await getPaymentOverview({
+    const paymentsResponse = await getPaymentOverviewPage({
         month: selectedMonth,
         year: selectedYear,
     });
-    const rows = paymentsResponse.ok ? paymentsResponse.data : [];
+    const pageData = paymentsResponse.ok ? paymentsResponse.data : {
+        rows: [], page: 1, total: 0, filteredTotal: 0, paidCount: 0,
+        pendingCount: 0, activeMembershipsCount: 0, coachOptions: [],
+    };
 
     return (
         <div className="pagos-page">
             <PaymentsSection
-                rows={rows}
+                key={`${selectedMonth}-${selectedYear}`}
+                initialPage={pageData}
                 selectedMonth={selectedMonth}
                 selectedYear={selectedYear}
             />

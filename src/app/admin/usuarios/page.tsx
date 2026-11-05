@@ -1,4 +1,4 @@
-import { getUsers } from '@/app/actions/user.actions';
+import { getAdminUserPage } from '@/app/actions/admin-user-page.actions';
 import { UsersSection } from '@/components/admin/users/usersSection/UsersSection';
 import type { Metadata } from 'next';
 import './_usuariosPage.scss';
@@ -9,12 +9,12 @@ export const metadata: Metadata = {
 };
 
 export default async function UsuariosPage() {
-    const usersResponse = await getUsers();
-    const users = usersResponse.ok ? usersResponse.data : [];
+    const usersResponse = await getAdminUserPage('users');
+    const usersPage = usersResponse.ok ? usersResponse.data : { items: [], total: 0, filteredTotal: 0, page: 1 };
 
     return (
         <div className="usuarios-page">
-            <UsersSection users={users} />
+            <UsersSection initialPage={usersPage} />
         </div>
     );
 }

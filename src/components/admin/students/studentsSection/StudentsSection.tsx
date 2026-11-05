@@ -4,14 +4,16 @@ import Image from 'next/image';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FaRegTrashAlt } from 'react-icons/fa';
 import { GoPencil } from 'react-icons/go';
 import { toast } from 'react-toastify';
 import { deleteUser } from '@/app/actions/user.actions';
 import { EmptyState } from '@/components/ui/emptyState/EmptyState';
 import { Pagination } from '@/components/ui/pagination/Pagination';
-import { usePagination } from '@/hooks/usePagination';
+import type { AdminUserPage } from '@/app/actions/admin-user-page.actions';
+import { ADMIN_USER_PAGE_SIZE } from '@/lib/admin-user-page';
+import { useAdminUserPage } from '@/hooks/useAdminUserPage';
 import type { WeeklyClassScheduleSummary } from '@/types/schema/classes';
 import type { MembershipPlan } from '@/types/schema/memberships';
 import type { UserWithRelations } from '@/types/schema/users';
@@ -21,7 +23,7 @@ import './_studentsSection.scss';
 const StudentModal = dynamic(() => import('../studentModal/StudentModal').then((module) => module.StudentModal));
 
 type Props = {
-    students: UserWithRelations[];
+    initialPage: AdminUserPage;
     coaches: UserWithRelations[];
     membershipPlans: MembershipPlan[];
     weeklySchedules: WeeklyClassScheduleSummary[];
@@ -37,11 +39,15 @@ const getCoachName = (student: UserWithRelations, coaches: UserWithRelations[]) 
     return coachUser?.name || coachUser?.email || 'Sin asignar';
 };
 
-export const StudentsSection = ({ students, coaches, membershipPlans, weeklySchedules }: Props) => {
+export const StudentsSection = ({ initialPage, coaches, membershipPlans, weeklySchedules }: Props) => {
     const router = useRouter();
     const [query, setQuery] = useState('');
     const [coachFilter, setCoachFilter] = useState('ALL');
     const [statusFilter, setStatusFilter] = useState('ALL');
+    const { data, page, setPage, isLoading, error, refresh } = useAdminUserPage('students', initialPage, {
+        query, coachId: coachFilter, status: statusFilter,
+    });
+    const students = data.items;
     const tableRef = useRef<HTMLTableSectionElement>(null);
     const filtersInitialized = useRef(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -49,27 +55,6 @@ export const StudentsSection = ({ students, coaches, membershipPlans, weeklySche
     const [studentToDelete, setStudentToDelete] = useState<UserWithRelations | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const cancelDeleteRef = useRef<HTMLButtonElement>(null);
-
-    const filteredStudents = useMemo(() => {
-        const search = query.trim().toLowerCase();
-
-        return students.filter((student) => {
-            if (coachFilter !== 'ALL' && (student.student?.coachId || 'UNASSIGNED') !== coachFilter) return false;
-            if (statusFilter !== 'ALL' && student.status !== statusFilter) return false;
-            if (!search) return true;
-            const values = [
-                getFullName(student),
-                student.email,
-                student.phone,
-                getCoachName(student, coaches),
-                student.student?.routineExcelUrl,
-                student.student?.notes,
-            ];
-
-            return values.some((value) => value?.toLowerCase().includes(search));
-        });
-    }, [coachFilter, coaches, query, statusFilter, students]);
-    const studentPages = usePagination(filteredStudents, 12, `${query}|${coachFilter}|${statusFilter}`);
 
     useEffect(() => {
         if (!filtersInitialized.current) { filtersInitialized.current = true; return; }
@@ -110,6 +95,7 @@ export const StudentsSection = ({ students, coaches, membershipPlans, weeklySche
     const closeModal = () => {
         setSelectedStudent(null);
         setIsModalOpen(false);
+        void refresh();
     };
 
     const handleDelete = async () => {
@@ -121,6 +107,7 @@ export const StudentsSection = ({ students, coaches, membershipPlans, weeklySche
                 toast.success('Alumno eliminado');
                 setStudentToDelete(null);
                 router.refresh();
+                void refresh();
             } else {
                 toast.error(result.error);
             }
@@ -137,7 +124,7 @@ export const StudentsSection = ({ students, coaches, membershipPlans, weeklySche
                 <div className="users-header-text">
                     <h1 className="users-title">Alumnos</h1>
                     <p className="users-description">
-                        {students.length} {students.length === 1 ? 'alumno registrado' : 'alumnos registrados'}
+                        {data.total} {data.total === 1 ? 'alumno registrado' : 'alumnos registrados'}
                     </p>
                 </div>
                 <button className="users-button" type="button" onClick={openCreate}>+ Nuevo alumno</button>
@@ -172,18 +159,18 @@ export const StudentsSection = ({ students, coaches, membershipPlans, weeklySche
                 <div className="users-table-toolbar">
                     <input
                         value={query}
-                        onChange={(event) => setQuery(event.target.value)}
+                        onChange={(event) => { setQuery(event.target.value); setPage(1); }}
                         placeholder="Buscar alumno..."
                         aria-label="Buscar alumno"
                     />
-                    <select value={coachFilter} onChange={(event) => setCoachFilter(event.target.value)} aria-label="Filtrar por coach">
+                    <select value={coachFilter} onChange={(event) => { setCoachFilter(event.target.value); setPage(1); }} aria-label="Filtrar por coach">
                         <option value="ALL">Todos los coaches</option>
                         <option value="UNASSIGNED">Sin asignar</option>
                         {coaches.filter((coach) => coach.coach?.id).map((coach) => (
                             <option key={coach.id} value={coach.coach!.id}>{coach.name || coach.email}</option>
                         ))}
                     </select>
-                    <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Filtrar por estado">
+                    <select value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setPage(1); }} aria-label="Filtrar por estado">
                         <option value="ALL">Todos los estados</option>
                         <option value="ACTIVE">Activo</option>
                         <option value="INACTIVE">Inactivo</option>
@@ -191,7 +178,8 @@ export const StudentsSection = ({ students, coaches, membershipPlans, weeklySche
                     </select>
                 </div>
 
-                <p className="users-results" aria-live="polite">Mostrando <strong>{filteredStudents.length}</strong> de {students.length} alumnos</p>
+                <p className="users-results" aria-live="polite">Mostrando <strong>{data.filteredTotal}</strong> de {data.total} alumnos{isLoading ? ' · Cargando...' : ''}</p>
+                {error && <p role="alert">{error}</p>}
 
                 <table className="users-table">
                     <thead>
@@ -206,7 +194,7 @@ export const StudentsSection = ({ students, coaches, membershipPlans, weeklySche
                     </thead>
 
                     <tbody ref={tableRef}>
-                        {studentPages.pageItems.map((student) => {
+                        {students.map((student) => {
                             const studentName = getFullName(student);
                             const profileHref = student.student ? `/admin/alumnos/${student.student.id}` : null;
                             const identity = (
@@ -271,16 +259,16 @@ export const StudentsSection = ({ students, coaches, membershipPlans, weeklySche
                     </tbody>
                 </table>
 
-                {filteredStudents.length === 0 && (
+                {data.filteredTotal === 0 && !isLoading && (
                     <EmptyState
                         compact
-                        title={students.length > 0 ? 'Sin resultados' : 'Sin alumnos'}
-                        description={students.length > 0
+                        title={data.total > 0 ? 'Sin resultados' : 'Sin alumnos'}
+                        description={data.total > 0
                             ? 'No hay alumnos que coincidan con la busqueda.'
                             : 'Todavia no hay alumnos cargados.'}
                     />
                 )}
-                <Pagination page={studentPages.page} pageSize={studentPages.pageSize} totalItems={filteredStudents.length} onPageChange={studentPages.setPage} label="alumnos" />
+                <Pagination page={page} pageSize={ADMIN_USER_PAGE_SIZE} totalItems={data.filteredTotal} onPageChange={setPage} label="alumnos" />
             </div>
         </section>
     );

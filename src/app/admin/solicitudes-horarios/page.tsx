@@ -10,13 +10,16 @@ export const metadata: Metadata = {
 
 export default async function SolicitudesHorariosPage() {
     const requestsResponse = await getScheduleChangeRequests();
-    const requests = requestsResponse.ok ? requestsResponse.data : [];
+    const initialPage = requestsResponse.ok ? requestsResponse.data : {
+        pending: [], reviewed: [], pendingPage: 1, reviewedPage: 1,
+        pendingCount: 0, reviewedCount: 0, filteredTotal: 0, total: 0, coachOptions: [],
+    };
 
     return (
         <div className="solicitudes-horarios-page">
             <ScheduleRequestsSection
                 errorMessage={requestsResponse.ok ? null : requestsResponse.error}
-                requests={requests}
+                initialPage={initialPage}
             />
         </div>
     );

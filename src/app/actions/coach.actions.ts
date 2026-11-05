@@ -76,6 +76,22 @@ const getCoachStudentForSession = async (studentId: string) => {
     });
 };
 
+export type AdminCoachOption = { id: string; name: string };
+
+export const getAdminCoachOptions = async (): Promise<ActionResponse<AdminCoachOption[]>> => {
+    try {
+        await requireAdminSession();
+        const coaches = await prisma.coach.findMany({
+            select: { id: true, user: { select: { name: true, email: true } } },
+            orderBy: { user: { name: 'asc' } },
+        });
+        return { ok: true, data: coaches.map((coach) => ({ id: coach.id, name: coach.user.name || coach.user.email })) };
+    } catch (error) {
+        logAdminActionError('Error al obtener las opciones de coaches:', error);
+        return { ok: false, data: null, error: getAdminActionErrorMessage(error, 'No se pudieron cargar los coaches') };
+    }
+};
+
 export const getCoaches = async (): Promise<ActionResponse<UserWithRelations[]>> => {
     try {
         await requireAdminSession();
