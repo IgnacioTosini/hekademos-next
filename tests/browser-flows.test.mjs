@@ -599,12 +599,14 @@ test("los aportes del coach aparecen y desaparecen en tiempo real para el alumno
     await coachPost.getByText(liveText, { exact: true }).waitFor();
 
     const studentPost = studentPage.locator(".community-feed-post").filter({ hasText: `${tag} Publicación base` });
-    await studentPost.getByText(liveText, { exact: true }).waitFor({ timeout: 10_000 });
+    await studentPage.bringToFront();
+    await studentPost.getByText(liveText, { exact: true }).waitFor({ timeout: 40_000 });
     assert.equal(await studentPage.evaluate(() => window.__hekademosQaMarker), "live-feed");
 
     coachPage.once("dialog", (dialog) => dialog.accept());
     await coachPost.getByRole("button", { name: "Eliminar mi aporte" }).click();
-    await studentPost.getByText(liveText, { exact: true }).waitFor({ state: "detached", timeout: 10_000 });
+    await studentPage.bringToFront();
+    await studentPost.getByText(liveText, { exact: true }).waitFor({ state: "detached", timeout: 40_000 });
     assert.equal(await studentPage.evaluate(() => window.__hekademosQaMarker), "live-feed");
     assertNoBrowserProblems();
 });
@@ -629,8 +631,8 @@ test("el administrador ejecuta ABM de usuarios, coaches y alumnos con membresía
         "El usuario administrativo no se actualizó"
     );
     userRow = adminPage.locator(".users-table tbody tr").filter({ hasText: userEmail });
-    adminPage.once("dialog", (dialog) => dialog.accept());
-    await userRow.getByRole("button", { name: "Eliminar usuario" }).click();
+    await userRow.getByRole("button", { name: `Eliminar a ${tag} Usuario` }).click();
+    await adminPage.getByRole("alertdialog", { name: "Eliminar usuario" }).getByRole("button", { name: "Eliminar usuario" }).click();
     await userRow.waitFor({ state: "detached" });
 
     const coachEmail = `qa-e2e-${suffix}-coach-abm@example.com`;
@@ -654,8 +656,8 @@ test("el administrador ejecuta ABM de usuarios, coaches y alumnos con membresía
         "El coach administrativo no se actualizó"
     );
     coachRow = adminPage.locator(".users-table tbody tr").filter({ hasText: coachEmail });
-    adminPage.once("dialog", (dialog) => dialog.accept());
-    await coachRow.getByRole("button", { name: "Eliminar coach" }).click();
+    await coachRow.getByRole("button", { name: `Eliminar a ${tag} Coach ABM` }).click();
+    await adminPage.getByRole("alertdialog", { name: "Eliminar coach" }).getByRole("button", { name: "Eliminar coach" }).click();
     await coachRow.waitFor({ state: "detached" });
 
     const studentEmail = `qa-e2e-${suffix}-alumno-abm@example.com`;
@@ -692,8 +694,8 @@ test("el administrador ejecuta ABM de usuarios, coaches y alumnos con membresía
         "El alumno administrativo no se actualizó"
     );
     studentRow = adminPage.locator(".users-table tbody tr").filter({ hasText: studentEmail });
-    adminPage.once("dialog", (dialog) => dialog.accept());
-    await studentRow.getByRole("button", { name: "Eliminar alumno" }).click();
+    await studentRow.getByRole("button", { name: `Eliminar a ${tag} Nuevo Alumno` }).click();
+    await adminPage.getByRole("alertdialog", { name: "Eliminar alumno" }).getByRole("button", { name: "Eliminar alumno" }).click();
     await studentRow.waitFor({ state: "detached" });
     assert.equal(await prisma.user.findUnique({ where: { id: createdStudent.id } }), null);
     assertNoBrowserProblems();
@@ -742,8 +744,8 @@ test("el administrador recorre todas sus páginas y ejecuta ABM de categorías, 
     await adminPage.getByRole("button", { name: "Guardar cambios" }).click();
     planRow = adminPage.locator(".membership-plans-table tbody tr").filter({ hasText: editedPlanName });
     await planRow.waitFor();
-    adminPage.once("dialog", (dialog) => dialog.accept());
-    await planRow.getByRole("button", { name: "Eliminar plan" }).click();
+    await planRow.getByRole("button", { name: `Quitar ${editedPlanName}` }).click();
+    await adminPage.getByRole("alertdialog", { name: "Quitar plan" }).getByRole("button", { name: "Continuar" }).click();
     await planRow.waitFor({ state: "detached" });
 
     await openPage(adminPage, "/admin/turnos");
@@ -758,15 +760,17 @@ test("el administrador recorre todas sus páginas y ejecuta ABM de categorías, 
     await adminPage.locator("#schedule-coach").selectOption(data.coachId);
     await adminPage.locator("#schedule-notes").fill(scheduleNotes);
     await adminPage.getByRole("button", { name: "Crear turno" }).click();
+    await adminPage.getByRole("textbox", { name: "Buscar turno" }).fill(scheduleNotes);
     let scheduleRow = adminPage.locator(".class-schedules-table tbody tr").filter({ hasText: scheduleNotes });
     await scheduleRow.waitFor();
     await scheduleRow.getByRole("button", { name: "Editar turno" }).click();
     await adminPage.locator("#schedule-notes").fill(editedScheduleNotes);
     await adminPage.getByRole("button", { name: "Guardar cambios" }).click();
+    await adminPage.getByRole("textbox", { name: "Buscar turno" }).fill(editedScheduleNotes);
     scheduleRow = adminPage.locator(".class-schedules-table tbody tr").filter({ hasText: editedScheduleNotes });
     await scheduleRow.waitFor();
-    adminPage.once("dialog", (dialog) => dialog.accept());
-    await scheduleRow.getByRole("button", { name: "Eliminar turno" }).click();
+    await scheduleRow.getByRole("button", { name: "Eliminar o desactivar turno" }).click();
+    await adminPage.getByRole("alertdialog", { name: "Eliminar o desactivar turno" }).getByRole("button", { name: "Continuar" }).click();
     await scheduleRow.waitFor({ state: "detached" });
 
     await openPage(adminPage, "/admin/comunidad");
@@ -779,7 +783,7 @@ test("el administrador recorre todas sus páginas y ejecuta ABM de categorías, 
     await dialog.getByLabel("Título").fill(postTitle);
     await dialog.locator('textarea[placeholder^="Escribí la pregunta"]').fill(`${tag} contenido administrativo`);
     await dialog.getByLabel("Video de YouTube (opcional)").fill("https://youtu.be/dQw4w9WgXcQ");
-    await dialog.getByRole("button", { name: "Crear publicación" }).click();
+    await dialog.getByRole("button", { name: "Publicar", exact: true }).click();
     let postCard = adminPage.locator(".admin-community-card").filter({ hasText: postTitle });
     await postCard.waitFor();
     await postCard.getByRole("button", { name: `Editar ${postTitle}` }).click();

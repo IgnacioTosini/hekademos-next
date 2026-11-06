@@ -12,9 +12,10 @@ import type { MembershipPlan } from '@/types/schema/memberships';
 import type { UserStatus, UserWithRelations } from '@/types/schema/users';
 import { getClassCategoryLabel } from '@/utils/class-category';
 import { centsToPesosInput, parsePesosToCents } from '@/utils/format';
-import { dayOrder, getScheduleTimeLabel, uppercaseDayLabels } from '@/utils/schedule';
+import { dayOrder } from '@/utils/schedule';
 import { saveWithResolvedUserImage, UserImageField, type UserImageValue } from '../../users/userImageField/UserImageField';
 import '../../users/userForm/_userForm.scss';
+import { StudentSchedulePicker } from './StudentSchedulePicker';
 import './_studentForm.scss';
 
 type Props = {
@@ -67,22 +68,6 @@ const getInitialState = (student: UserWithRelations | null, membershipPlans: Mem
         routineExcelUrl: student?.student?.routineExcelUrl ?? '',
         notes: student?.student?.notes ?? '',
     };
-};
-
-const getScheduleLabel = (schedule: WeeklyClassScheduleSummary) => {
-    const coachName = schedule.coachName;
-
-    return `${getClassCategoryLabel(schedule.classCategory)} · ${getScheduleTimeLabel(schedule)}${coachName ? ` - ${coachName}` : ''}`;
-};
-
-const getScheduleCapacityLabel = (schedule: WeeklyClassScheduleSummary, isSelected: boolean) => {
-    if (schedule.capacity === null) return 'Sin cupo definido';
-
-    const availableSpots = schedule.availableSpots ?? Math.max(schedule.capacity - (schedule.occupiedSpots ?? 0), 0);
-
-    if (availableSpots <= 0 && !isSelected) return 'Completo';
-
-    return `${availableSpots} ${availableSpots === 1 ? 'cupo libre' : 'cupos libres'}`;
 };
 
 const hasRepeatedDay = (
@@ -466,70 +451,15 @@ export const StudentForm = ({ student, coaches, membershipPlans, weeklySchedules
                 </div>
             </div>
 
-            <div className="form-group schedule-picker">
-                <div className="schedule-picker-header">
-                    <label>Turnos elegidos</label>
-                    <span>{form.scheduleIds.length}/{maxSelectedSchedules || 0}</span>
-                </div>
-
-                <div className="schedule-options">
-                    {schedulesByDay.map((group) => (
-                        <div className="schedule-day" key={group.dayOfWeek}>
-                            <strong>{uppercaseDayLabels[group.dayOfWeek]}:</strong>
-
-                            <div className="schedule-day-options">
-                                {group.schedules.map((schedule) => {
-                                    const isSelected = form.scheduleIds.includes(schedule.id);
-                                    const availableSpots = schedule.availableSpots ?? (
-                                        schedule.capacity === null
-                                            ? null
-                                            : Math.max(schedule.capacity - (schedule.occupiedSpots ?? 0), 0)
-                                    );
-                                    const isFull = availableSpots !== null && availableSpots <= 0;
-                                    const hasAnotherScheduleSameDay = !isSelected && form.scheduleIds.some((selectedScheduleId) => (
-                                        availableWeeklySchedules.find((selectedSchedule) => selectedSchedule.id === selectedScheduleId)?.dayOfWeek === schedule.dayOfWeek
-                                    ));
-                                    const isDisabled = !selectedPlan
-                                        || (!isSelected && isFull)
-                                        || hasAnotherScheduleSameDay
-                                        || (!isSelected && form.scheduleIds.length >= maxSelectedSchedules);
-
-                                    return (
-                                        <button
-                                            key={schedule.id}
-                                            type="button"
-                                            className={`schedule-option${isSelected ? ' schedule-option-selected' : ''}${isFull ? ' schedule-option-full' : ''}`}
-                                            onClick={() => toggleSchedule(schedule.id)}
-                                            disabled={isDisabled}
-                                        >
-                                            <span>{getScheduleLabel(schedule)}</span>
-                                            <small>
-                                                {hasAnotherScheduleSameDay
-                                                    ? 'Dia ya elegido'
-                                                    : getScheduleCapacityLabel(schedule, isSelected)}
-                                            </small>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                {!form.planId && (
-                    <p className="schedule-helper">Elegir una membresia para asignar turnos.</p>
-                )}
-
-                {selectedPlan && (
-                    <p className="schedule-helper">
-                        Mostrando solamente clases de {getClassCategoryLabel(selectedPlan.classCategory).toLowerCase()}.
-                    </p>
-                )}
-
-                {form.planId && availableWeeklySchedules.length === 0 && (
-                    <p className="schedule-helper">No hay turnos activos para el coach seleccionado.</p>
-                )}
-            </div>
+            <StudentSchedulePicker
+                scheduleIds={form.scheduleIds}
+                planId={form.planId}
+                selectedPlan={selectedPlan}
+                maxSelectedSchedules={maxSelectedSchedules}
+                availableWeeklySchedules={availableWeeklySchedules}
+                schedulesByDay={schedulesByDay}
+                onToggleSchedule={toggleSchedule}
+            />
 
             <div className="form-group">
                 <label htmlFor="student-notes">Notas</label>

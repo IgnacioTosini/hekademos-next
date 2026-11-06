@@ -1,84 +1,18 @@
 ﻿"use client";
 
-import Image from "next/image";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { FaRegTrashAlt, FaUpload } from "react-icons/fa";
+import { FaRegTrashAlt } from "react-icons/fa";
 import { IoAdd } from "react-icons/io5";
 import { toast } from "react-toastify";
 import { updateHomePageContent } from "@/app/actions/siteContent.actions";
 import { ImageCropModal } from "@/components/admin/users/imageCropModal/ImageCropModal";
 import { deleteImage, uploadImage } from "@/lib/client-cloudinary";
 import type { HomePageContent, SiteContentImage } from "@/lib/home-page-content";
-import type { SiteImageSection } from "@/lib/site-image-sections";
+import { SiteContentImageField } from "./SiteContentImageField";
+import { clone, collectPublicIds, isImage, isRecord, labels, pathKey, sectionFolderByContentKey, sectionLabels, setValueAtPath, type PathPart, type PendingImage } from "./siteContentEditorUtils";
 import "./_siteContentEditor.scss";
 
 type Props = { initialContent: HomePageContent };
-type PathPart = string | number;
-type PendingImage = { file: File; previewUrl: string };
-
-const sectionLabels: Record<keyof HomePageContent, string> = {
-    navigation: "Navegación",
-    header: "Cabecera",
-    banner: "Portada",
-    about: "Sobre nosotros y pilares",
-    teachers: "Instructores",
-    classes: "Clases",
-    trainingSchedule: "Horarios",
-    membershipPlans: "Planes",
-    community: "Comunidad",
-    philosophy: "Filosofía",
-    faq: "Preguntas frecuentes",
-    contact: "Contacto",
-    footer: "Pie de página",
-};
-
-const labels: Record<string, string> = {
-    title: "Título", subtitle: "Bajada", storyTitle: "Título de la historia", paragraphs: "Párrafos", quote: "Frase destacada",
-    image: "Imagen", background: "Imagen de fondo", logo: "Logo", alt: "Texto alternativo", url: "URL de la imagen",
-    pillarsTitle: "Título de pilares", pillarsSubtitle: "Bajada de pilares", pillars: "Pilares", items: "Elementos",
-    name: "Nombre", description: "Descripción", instagramUrl: "URL de Instagram", youtubeUrl: "URL de YouTube",
-    features: "Características", primaryAction: "Botón principal", secondaryAction: "Botón secundario", label: "Texto del botón", href: "Destino del botón",
-    ctaLabel: "Texto del botón", ctaHref: "Destino del botón", emptyMessage: "Mensaje cuando no hay datos",
-    recommendedLabel: "Etiqueta de recomendado", actionLabel: "Texto del botón", whatsappMessage: "Mensaje de WhatsApp",
-    icon: "Ícono", question: "Pregunta", answer: "Respuesta", form: "Formulario", infoTitle: "Título de información",
-    email: "Email", phone: "Teléfono", address: "Dirección", whatsappLabel: "Texto del botón de WhatsApp",
-    instagramLabel: "Texto del botón de Instagram", scheduleTitle: "Título de horarios", schedule: "Horarios de atención",
-    day: "Día", hours: "Horario", namePlaceholder: "Ayuda del campo nombre", emailPlaceholder: "Ayuda del campo email",
-    messagePlaceholder: "Ayuda del campo mensaje", submitLabel: "Texto para enviar", submittingLabel: "Texto mientras se envía",
-    successMessage: "Mensaje de confirmación", tagline: "Descripción", linksTitle: "Título de enlaces", socialTitle: "Título de redes",
-    primaryLinks: "Enlaces de escritorio", menuLinks: "Enlaces del menú completo",
-    copyright: "Derechos reservados", closingText: "Frase final",
-    videoUrl: "Video de YouTube (URL opcional)",
-};
-
-const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
-const isImage = (value: unknown): value is SiteContentImage => isRecord(value) && typeof value.url === "string" && typeof value.publicId === "string" && typeof value.alt === "string";
-const pathKey = (path: PathPart[]) => path.join(".");
-const sectionFolderByContentKey: Partial<Record<keyof HomePageContent, SiteImageSection>> = {
-    header: "cabecera",
-    banner: "inicio",
-    about: "sobre-nosotros",
-    teachers: "profesores",
-    classes: "clases",
-    community: "comunidad",
-    philosophy: "filosofia",
-    footer: "pie-de-pagina",
-};
-const clone = <T,>(value: T): T => structuredClone(value);
-
-const setValueAtPath = (target: unknown, path: PathPart[], value: unknown) => {
-    let cursor = target as Record<string | number, unknown>;
-    path.slice(0, -1).forEach((part) => { cursor = cursor[part] as Record<string | number, unknown>; });
-    cursor[path[path.length - 1]] = value;
-};
-
-const collectPublicIds = (value: unknown, result = new Set<string>()) => {
-    if (isImage(value) && value.publicId) result.add(value.publicId);
-    if (Array.isArray(value)) value.forEach((item) => collectPublicIds(item, result));
-    else if (isRecord(value)) Object.values(value).forEach((item) => collectPublicIds(item, result));
-    return result;
-};
-
 export const SiteContentEditor = ({ initialContent }: Props) => {
     const [content, setContent] = useState(() => clone(initialContent));
     const [persistedContent, setPersistedContent] = useState(() => clone(initialContent));
@@ -172,47 +106,13 @@ export const SiteContentEditor = ({ initialContent }: Props) => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isPreviewOpen]);
 
-    const renderImageField = (image: SiteContentImage, path: PathPart[], label: string) => {
-        const key = pathKey(path);
-        const pending = pendingImages[key];
-        const preview = pending?.previewUrl || image.url;
-
-        return (
-            <div className="site-content-image-field" key={key}>
-                <span className="site-content-field-label">{label}</span>
-                <div className="site-content-image-row">
-                    <div className="site-content-image-preview">
-                        {preview ? <Image src={preview} alt={image.alt || label} width={360} height={220} unoptimized style={{ objectPosition: `${image.positionX ?? 50}% ${image.positionY ?? 50}%`, transform: `scale(${(image.scale ?? 100) / 100})` }} /> : <span>Sin imagen</span>}
-                    </div>
-                    <div className="site-content-image-controls">
-                        <label className="site-content-upload-button">
-                            <FaUpload /> {pending ? "Cambiar archivo" : "Subir imagen"}
-                            <input type="file" accept="image/*" onChange={(event) => chooseImage(path, event.target.files?.[0])} />
-                        </label>
-                        {pending && <button type="button" className="site-content-secondary-button" onClick={() => clearPendingImage(key)}>Cancelar selección</button>}
-                        {preview && <button type="button" className="site-content-secondary-button" onClick={() => void adjustCurrentImage(path, image)}>Ajustar encuadre</button>}
-                    </div>
-                </div>
-                <label className="site-content-field">
-                    <span>URL de la imagen</span>
-                    <input value={pending ? `Pendiente de subir: ${pending.file.name}` : image.url} readOnly={Boolean(pending)} onChange={(event) => { clearPendingImage(key); updateValue(path, { ...image, url: event.target.value, publicId: "" }); }} />
-                    {pending && <small className="site-content-field-hint">La URL de Cloudinary aparecerá aquí al guardar los cambios.</small>}
-                </label>
-                <label className="site-content-field">
-                    <span>Texto alternativo</span>
-                    <input value={image.alt} onChange={(event) => updateValue(path, { ...image, alt: event.target.value })} />
-                </label>
-            </div>
-        );
-    };
-
     const renderField = (value: unknown, path: PathPart[], label: string): React.ReactNode => {
         const key = pathKey(path);
         const last = String(path[path.length - 1] ?? "");
 
         if (path[0] === "footer" && last === "credit") return null;
 
-        if (isImage(value)) return renderImageField(value, path, label);
+        if (isImage(value)) return <SiteContentImageField key={key} image={value} path={path} label={label} pending={pendingImages[key]} onChooseImage={chooseImage} onClearPendingImage={clearPendingImage} onAdjustCurrentImage={adjustCurrentImage} onUpdateValue={updateValue} />;
 
         if (Array.isArray(value)) {
             const isTextList = value.every((item) => typeof item === "string");

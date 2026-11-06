@@ -1,17 +1,15 @@
 'use client';
 
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
-import { FaDownload } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { getAdminMonthlyAttendanceSummary, markAdminStudentAttendance } from '@/app/actions/attendance.actions';
 import type { AdminCoachOption } from '@/app/actions/coach.actions';
 import { EmptyState } from '@/components/ui/emptyState/EmptyState';
-import { Pagination } from '@/components/ui/pagination/Pagination';
 import type { AdminAttendanceSchedule, AdminMonthlyAttendanceSummary, AttendanceStatus } from '@/types/schema/classes';
-import { formatDate } from '@/utils/format';
-import { getInitials } from '@/utils/strings';
+import { AttendanceMonthlySummary } from './AttendanceMonthlySummary';
+import { buildAttendanceCsv, downloadCsv } from './attendanceExport';
+import { AttendanceScheduleList } from './AttendanceScheduleList';
 import './_attendanceSection.scss';
 
 type Props = {
@@ -23,15 +21,6 @@ type Props = {
     selectedYear: number;
     monthlySummary: AdminMonthlyAttendanceSummary | null;
 };
-
-const attendanceStatusLabels: Record<AttendanceStatus, string> = {
-    PRESENT: 'Presente',
-    ABSENT: 'Ausente',
-    LATE: 'Tarde',
-    EXCUSED: 'Justificado',
-};
-
-const attendanceOptions: AttendanceStatus[] = ['PRESENT', 'ABSENT', 'LATE', 'EXCUSED'];
 
 const getDateLabel = (date: string) => {
     const [year, month, day] = date.split('-').map(Number);
@@ -63,25 +52,6 @@ const getYearOptions = (selectedYear: number) => {
     years.add(selectedYear);
 
     return Array.from(years).sort((a, b) => b - a);
-};
-
-const escapeCsvValue = (value: string | number | null | undefined) => {
-    const normalizedValue = value === null || value === undefined ? '' : String(value);
-
-    return `"${normalizedValue.replace(/"/g, '""')}"`;
-};
-
-const downloadCsv = (content: string, filename: string) => {
-    const blob = new Blob([`\uFEFF${content}`], {
-        type: 'text/csv;charset=utf-8;',
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-
-    link.href = url;
-    link.download = filename;
-    link.click();
-    URL.revokeObjectURL(url);
 };
 
 export const AttendanceSection = ({
@@ -172,20 +142,7 @@ export const AttendanceSection = ({
                 return;
             }
 
-            const headers = ['Mes', 'Alumno', 'Email', 'Coach', 'Total', 'Presentes', 'Ausentes', 'Tarde', 'Justificadas', 'Ultima asistencia'];
-            const lines = result.data.students.map((student) => ([
-                monthLabel,
-                student.name,
-                student.email,
-                student.coachName,
-                student.totalCount,
-                student.presentCount,
-                student.absentCount,
-                student.lateCount,
-                student.excusedCount,
-                formatDate(student.lastAttendanceAt),
-            ].map(escapeCsvValue).join(';')));
-            const csv = [headers.map(escapeCsvValue).join(';'), ...lines].join('\n');
+            const csv = buildAttendanceCsv(result.data, monthLabel);
             const filename = `asistencia-hekademos-${selectedYear}-${String(selectedMonth).padStart(2, '0')}.csv`;
 
             downloadCsv(csv, filename);
@@ -283,146 +240,23 @@ export const AttendanceSection = ({
             </div>
             {isFiltering && <div className="attendance-filter-status" role="status"><span ref={filterIndicatorRef} aria-hidden="true" />Actualizando asistencia...</div>}
 
-            <article className="attendance-monthly-summary">
-                <div className="attendance-monthly-header">
-                    <div>
-                        <h2>Resumen mensual</h2>
-                        <p>{monthLabel} · {monthlySummary?.totalCount ?? 0} asistencias registradas</p>
-                    </div>
-
-                    <button type="button" onClick={handleExportMonthlySummary} disabled={isExporting}>
-                        <FaDownload />
-                        {isExporting ? 'Preparando CSV...' : 'Exportar CSV'}
-                    </button>
-                </div>
-
-                <div className="attendance-monthly-kpis">
-                    <div>
-                        <span>Presentes</span>
-                        <strong>{monthlySummary?.presentCount ?? 0}</strong>
-                    </div>
-                    <div>
-                        <span>Ausentes</span>
-                        <strong>{monthlySummary?.absentCount ?? 0}</strong>
-                    </div>
-                    <div>
-                        <span>Tarde</span>
-                        <strong>{monthlySummary?.lateCount ?? 0}</strong>
-                    </div>
-                    <div>
-                        <span>Justificadas</span>
-                        <strong>{monthlySummary?.excusedCount ?? 0}</strong>
-                    </div>
-                </div>
-
-                {monthlySummary && monthlySummary.studentCount > 0 ? (
-                    <>
-                    <div className="attendance-monthly-table-wrapper">
-                        <table className="attendance-monthly-table">
-                            <thead>
-                                <tr>
-                                    <th>Alumno</th>
-                                    <th>Coach</th>
-                                    <th>Total</th>
-                                    <th>Presentes</th>
-                                    <th>Ausentes</th>
-                                    <th>Tarde</th>
-                                    <th>Justificadas</th>
-                                    <th>Ultima</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {monthlySummary.students.map((student) => (
-                                    <tr key={student.studentId}>
-                                        <td data-label="Alumno">
-                                            <strong>{student.name}</strong>
-                                            <span>{student.email}</span>
-                                        </td>
-                                        <td data-label="Coach">{student.coachName}</td>
-                                        <td data-label="Total">{student.totalCount}</td>
-                                        <td data-label="Presentes">{student.presentCount}</td>
-                                        <td data-label="Ausentes">{student.absentCount}</td>
-                                        <td data-label="Tarde">{student.lateCount}</td>
-                                        <td data-label="Justificadas">{student.excusedCount}</td>
-                                        <td data-label="Ultima">{formatDate(student.lastAttendanceAt)}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                    <Pagination page={monthlySummary.page} pageSize={15} totalItems={monthlySummary.studentCount} onPageChange={(page) => updateFilters(selectedDate, selectedCoachId, selectedMonth, selectedYear, page)} label="alumnos" />
-                    </>
-                ) : (
-                    <EmptyState
-                        compact
-                        className="attendance-empty"
-                        title="Sin asistencias registradas"
-                        description="No hay registros para el mes y coach seleccionados."
-                    />
-                )}
-            </article>
+            <AttendanceMonthlySummary
+                monthlySummary={monthlySummary}
+                monthLabel={monthLabel}
+                isExporting={isExporting}
+                onExport={handleExportMonthlySummary}
+                onPageChange={(page) => updateFilters(selectedDate, selectedCoachId, selectedMonth, selectedYear, page)}
+            />
 
             {schedules.length > 0 ? (
                 <div className="attendance-schedules" ref={schedulesRef}>
-                    {schedules.map((schedule) => (
-                        <article className="attendance-schedule" key={schedule.scheduleId}>
-                            <div className="attendance-schedule-header">
-                                <div>
-                                    <h2>{schedule.label}</h2>
-                                    <p>{schedule.coachName}</p>
-                                </div>
-                                <span>{schedule.students.length} {schedule.students.length === 1 ? 'alumno' : 'alumnos'}</span>
-                            </div>
-
-                            {schedule.students.length > 0 ? (
-                                <div className="attendance-students">
-                                    {schedule.students.map((student) => {
-                                        const attendanceKey = `${schedule.scheduleId}-${student.studentId}`;
-                                        const isSavingAttendance = isPending && pendingAttendanceKey === attendanceKey;
-
-                                        return (
-                                            <div className={`attendance-student${!student.status ? ' attendance-student-unmarked' : ''}${isSavingAttendance ? ' attendance-student-saving' : ''}`} key={student.studentId} aria-busy={isSavingAttendance}>
-                                                <div className="attendance-student-main">
-                                                    <div className="attendance-avatar">
-                                                        {student.imageUrl ? (
-                                                            <Image src={student.imageUrl} alt={student.name} width={44} height={44} />
-                                                        ) : (
-                                                            <span>{getInitials(student.name)}</span>
-                                                        )}
-                                                    </div>
-                                                    <div>
-                                                        <strong>{student.name}</strong>
-                                                        <span>{isSavingAttendance ? 'Guardando asistencia...' : student.status ? attendanceStatusLabels[student.status] : 'Sin marcar'}</span>
-                                                    </div>
-                                                </div>
-
-                                                <div className="attendance-actions">
-                                                    {attendanceOptions.map((status) => (
-                                                        <button
-                                                            key={status}
-                                                            type="button"
-                                                            className={`attendance-action-${status.toLowerCase()}${(isSavingAttendance ? pendingAttendanceStatus === status : student.status === status) ? ' attendance-action-active' : ''}`}
-                                                            onClick={() => handleAttendance(schedule.scheduleId, student.studentId, status)}
-                                                            disabled={isPending}
-                                                        >
-                                                            {(isSavingAttendance ? pendingAttendanceStatus === status : student.status === status) ? '✓ ' : ''}{attendanceStatusLabels[status]}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            ) : (
-                                <EmptyState
-                                    compact
-                                    className="attendance-empty"
-                                    title="Sin alumnos en este turno"
-                                    description="Todavia no hay alumnos asignados a este horario."
-                                />
-                            )}
-                        </article>
-                    ))}
+                    <AttendanceScheduleList
+                        schedules={schedules}
+                        isPending={isPending}
+                        pendingAttendanceKey={pendingAttendanceKey}
+                        pendingAttendanceStatus={pendingAttendanceStatus}
+                        onAttendance={handleAttendance}
+                    />
                 </div>
             ) : (
                 <EmptyState

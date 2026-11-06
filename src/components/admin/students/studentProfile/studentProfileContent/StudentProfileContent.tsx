@@ -3,9 +3,6 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { FaArrowLeft, FaExternalLinkAlt } from "react-icons/fa";
 import { EmptyState } from "@/components/ui/emptyState/EmptyState";
-import { RefreshAt } from "@/components/ui/RefreshAt";
-import type { AttendanceStatus, WeeklyClassSchedule } from "@/types/schema/classes";
-import type { PrismaDate } from "@/types/schema/common";
 import type { StudentMembershipWithRelations } from "@/types/schema/memberships";
 import type { Payment, PaymentStatus } from "@/types/schema/payments";
 import type { AdminStudentProfile } from "@/types/schema/users";
@@ -19,12 +16,11 @@ import {
     getPaymentWindowLabel,
     shouldApplyLateSurcharge,
 } from "@/utils/payment";
-import { dayOrderIndex, getScheduleLabel } from "@/utils/schedule";
 import { getInitials } from "@/utils/strings";
 import { getStudentName } from "@/utils/student";
 import { CoachPaymentCard } from "./CoachPaymentCard";
-import { AttendanceFilterForm } from "./AttendanceFilterForm";
-import { StudentPaymentHistory } from "./StudentPaymentHistory";
+import { StudentProfileHistoryCards } from "./StudentProfileHistoryCards";
+import { StudentProfileScheduleCard, type TemporaryScheduleChange } from "./StudentProfileScheduleCard";
 import "./_studentProfileContent.scss";
 
 type Props = {
@@ -41,21 +37,10 @@ type Props = {
     selectedAttendanceMonth?: number;
     selectedAttendanceYear?: number;
     scheduleActions?: ReactNode;
-    temporaryScheduleChange?: {
-        id: string;
-        sourceScheduleId: string;
-        requestedDate: PrismaDate;
-        expiresAt: PrismaDate;
-        weeklySchedule: ScheduleDisplay;
-    } | null;
+    temporaryScheduleChange?: TemporaryScheduleChange | null;
     routineActions?: ReactNode;
     selfProfile?: boolean;
 };
-
-type ScheduleDisplay = Pick<
-    WeeklyClassSchedule,
-    "id" | "dayOfWeek" | "classCategory" | "startTime" | "durationMinutes" | "capacity"
->;
 
 export type StudentProfilePaymentStatus = PaymentStatus | "NO_MEMBERSHIP";
 
@@ -80,56 +65,6 @@ const paymentStatusLabels: Record<StudentProfilePaymentStatus, string> = {
     REFUNDED: "Reembolsado",
     CANCELLED: "Cancelado",
     NO_MEMBERSHIP: "Sin membresia",
-};
-
-const attendanceStatusLabels: Record<AttendanceStatus, string> = {
-    PRESENT: "Presente",
-    ABSENT: "Ausente",
-    LATE: "Tarde",
-    EXCUSED: "Justificado",
-};
-
-const attendanceStatusOrder: AttendanceStatus[] = ["PRESENT", "ABSENT", "LATE", "EXCUSED"];
-
-const monthOptions = Array.from({ length: 12 }, (_, index) => ({
-    value: index + 1,
-    label: new Intl.DateTimeFormat("es-AR", {
-        month: "long",
-    }).format(new Date(2026, index, 1)),
-}));
-
-const getYearOptions = (selectedYear: number) => {
-    const currentYear = new Date().getFullYear();
-    const years = new Set<number>();
-
-    for (let year = currentYear - 3; year <= currentYear + 1; year += 1) {
-        years.add(year);
-    }
-
-    years.add(selectedYear);
-
-    return Array.from(years).sort((a, b) => b - a);
-};
-
-const getAttendanceDate = (value: Date | string | null | undefined) => {
-    if (!value) return 0;
-
-    return new Date(value).getTime();
-};
-
-const getAttendanceScheduleLabel = (attendance: NonNullable<AdminStudentProfile["attendance"]>[number]) => {
-    const session = attendance.session;
-    const schedule = session?.schedule;
-
-    if (schedule) return getScheduleLabel(schedule);
-    if (session?.startsAt) {
-        return new Intl.DateTimeFormat("es-AR", {
-            hour: "2-digit",
-            minute: "2-digit",
-        }).format(new Date(session.startsAt));
-    }
-
-    return "Clase";
 };
 
 export const getStudentProfilePaymentSummary = (
@@ -177,13 +112,6 @@ export const StudentProfileContent = ({
     selfProfile = false,
 }: Props) => {
     const today = new Date();
-    const attendanceMonth = selectedAttendanceMonth ?? today.getMonth() + 1;
-    const attendanceYear = selectedAttendanceYear ?? today.getFullYear();
-    const attendanceMonthLabel = new Intl.DateTimeFormat("es-AR", {
-        month: "long",
-        year: "numeric",
-    }).format(new Date(attendanceYear, attendanceMonth - 1, 1));
-    const attendanceYearOptions = getYearOptions(attendanceYear);
     const studentName = getStudentName(student);
     const paymentSummary = getStudentProfilePaymentSummary(student, today);
     const paymentPeriodLabel = new Intl.DateTimeFormat("es-AR", {
@@ -192,79 +120,13 @@ export const StudentProfileContent = ({
     }).format(today);
     const activeMembership = paymentSummary.activeMembership;
     const membershipAmount = getMembershipAmountCents(activeMembership);
-    const paymentHistory = student.payments ?? [];
-    const totalPayments = paymentHistoryTotal ?? paymentHistory.length;
-    const attendanceHistory = [...(student.attendance ?? [])].sort((a, b) => (
-        getAttendanceDate(b.session?.startsAt ?? b.createdAt) - getAttendanceDate(a.session?.startsAt ?? a.createdAt)
-    ));
-    const latestAttendance = attendanceHistory.slice(0, 6);
-    const attendanceCounts = attendanceStatusOrder.reduce((counts, status) => ({
-        ...counts,
-        [status]: attendanceHistory.filter((attendance) => attendance.status === status).length,
-    }), {} as Record<AttendanceStatus, number>);
     const coachName = student.coach?.user?.name || student.coach?.user?.email || "Sin coach asignado";
-    const activeSchedules = (student.schedules ?? [])
-        .flatMap<{
-            id: string;
-            isTemporary: boolean;
-            requestedDate: PrismaDate | null;
-            weeklySchedule: ScheduleDisplay;
-        }>((scheduleAssignment) => {
-            if (!scheduleAssignment.isActive || !scheduleAssignment.weeklySchedule) return [];
-            if (scheduleAssignment.weeklyScheduleId === temporaryScheduleChange?.sourceScheduleId) return [];
-
-            return [{
-                id: scheduleAssignment.id,
-                isTemporary: false,
-                requestedDate: null,
-                weeklySchedule: scheduleAssignment.weeklySchedule,
-            }];
-        })
-        .concat(temporaryScheduleChange ? [{
-            id: `temporary-${temporaryScheduleChange.id}`,
-            isTemporary: true,
-            requestedDate: temporaryScheduleChange.requestedDate,
-            weeklySchedule: temporaryScheduleChange.weeklySchedule,
-        }] : [])
-        .sort((first, second) => (
-            dayOrderIndex[first.weeklySchedule.dayOfWeek] - dayOrderIndex[second.weeklySchedule.dayOfWeek]
-            || first.weeklySchedule.startTime.localeCompare(second.weeklySchedule.startTime)
-            || getClassCategoryLabel(first.weeklySchedule.classCategory).localeCompare(
-                getClassCategoryLabel(second.weeklySchedule.classCategory)
-            )
-        ));
-
     const scheduleCard = (
-        <article className="student-profile-card student-profile-schedule-card">
-            {temporaryScheduleChange && <RefreshAt value={temporaryScheduleChange.expiresAt} />}
-            <div className="student-profile-card-header student-profile-card-header-compact">
-                <h2>Turnos elegidos</h2>
-                {scheduleActions}
-            </div>
-            {activeSchedules.length > 0 ? (
-                <div className="student-profile-schedules">
-                    {activeSchedules.map((scheduleAssignment) => (
-                        <div key={scheduleAssignment.id} className="student-profile-schedule">
-                            <div>
-                                <strong>{getScheduleLabel(scheduleAssignment.weeklySchedule)}</strong>
-                                {scheduleAssignment.isTemporary && (
-                                    <small className="student-profile-schedule-temporary">
-                                        Solo por esta clase · {formatDate(scheduleAssignment.requestedDate)}
-                                    </small>
-                                )}
-                            </div>
-                            <span>{scheduleAssignment.isTemporary
-                                ? "Después vuelve tu turno habitual"
-                                : scheduleAssignment.weeklySchedule.capacity
-                                    ? `Cupo ${scheduleAssignment.weeklySchedule.capacity}`
-                                    : "Sin cupo definido"}</span>
-                        </div>
-                    ))}
-                </div>
-            ) : (
-                <EmptyState compact className="student-profile-empty" title="Sin turnos asignados" description="Todavia no hay horarios elegidos para este alumno." />
-            )}
-        </article>
+        <StudentProfileScheduleCard
+            student={student}
+            scheduleActions={scheduleActions}
+            temporaryScheduleChange={temporaryScheduleChange}
+        />
     );
 
     const paymentCard = (
@@ -283,94 +145,15 @@ export const StudentProfileContent = ({
     );
 
     const historyCards = (
-        <>
-                <article className="student-profile-card student-profile-card-wide">
-                    <div className="student-profile-card-header">
-                        <div>
-                            <h2>Historial de pagos</h2>
-                            <p>{totalPayments} pagos registrados</p>
-                        </div>
-                        {paymentsHref && (
-                            <Link href={paymentsHref}>
-                                Ver detalle
-                                <FaExternalLinkAlt />
-                            </Link>
-                        )}
-                    </div>
-
-                    {totalPayments > 0 ? (
-                        paymentHistoryContent ?? <StudentPaymentHistory payments={paymentHistory} />
-                    ) : (
-                        <EmptyState
-                            compact
-                            className="student-profile-empty"
-                            title="Sin pagos registrados"
-                            description="Todavia no hay movimientos de pago para este alumno."
-                        />
-                    )}
-                </article>
-
-                <article className="student-profile-card student-profile-card-wide">
-                    <div className="student-profile-card-header">
-                        <div>
-                            <h2>Asistencia</h2>
-                            <p>{attendanceMonthLabel} · {attendanceHistory.length} clases registradas</p>
-                        </div>
-
-                        {attendanceBaseHref && (
-                            <AttendanceFilterForm baseHref={attendanceBaseHref}>
-                                <select name="month" defaultValue={attendanceMonth} aria-label="Filtrar asistencia por mes">
-                                    {monthOptions.map((month) => (
-                                        <option key={month.value} value={month.value}>{month.label}</option>
-                                    ))}
-                                </select>
-
-                                <select name="year" defaultValue={attendanceYear} aria-label="Filtrar asistencia por año">
-                                    {attendanceYearOptions.map((year) => (
-                                        <option key={year} value={year}>{year}</option>
-                                    ))}
-                                </select>
-
-                            </AttendanceFilterForm>
-                        )}
-                    </div>
-
-                    {attendanceHistory.length > 0 ? (
-                        <>
-                            <div className="student-profile-attendance-summary">
-                                {attendanceStatusOrder.map((status) => (
-                                    <div key={status}>
-                                        <span>{attendanceStatusLabels[status]}</span>
-                                        <strong>{attendanceCounts[status]}</strong>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <div className="student-profile-attendance-list" role="region" aria-label="Clases registradas" tabIndex={0}>
-                                {latestAttendance.map((attendance) => (
-                                    <div className="student-profile-attendance-item" key={attendance.id}>
-                                        <div>
-                                            <strong>{getAttendanceScheduleLabel(attendance)}</strong>
-                                            <span>{formatDate(attendance.session?.startsAt ?? attendance.createdAt)}</span>
-                                        </div>
-                                        <span className={`student-profile-attendance-status student-profile-attendance-status-${attendance.status.toLowerCase()}`}>
-                                            {attendanceStatusLabels[attendance.status]}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        </>
-                    ) : (
-                        <EmptyState
-                            compact
-                            className="student-profile-empty"
-                            title="Sin asistencias registradas"
-                            description="Todavia no hay clases registradas para el filtro seleccionado."
-                        />
-                    )}
-                </article>
-
-        </>
+        <StudentProfileHistoryCards
+            student={student}
+            paymentsHref={paymentsHref}
+            paymentHistoryTotal={paymentHistoryTotal}
+            paymentHistoryContent={paymentHistoryContent}
+            attendanceBaseHref={attendanceBaseHref}
+            selectedAttendanceMonth={selectedAttendanceMonth}
+            selectedAttendanceYear={selectedAttendanceYear}
+        />
     );
 
     return (
