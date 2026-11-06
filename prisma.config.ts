@@ -23,7 +23,6 @@ export default defineConfig({
     path: "prisma/migrations",
     seed: "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types prisma/seed.ts",
   },
-  engine: "classic",
   datasource: {
     url: migrationUrl,
   },

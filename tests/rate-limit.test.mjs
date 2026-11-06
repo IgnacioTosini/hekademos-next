@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, test } from "node:test";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "../src/generated/prisma/client.ts";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 import { consumeRateLimit, getClientIp } from "../src/lib/rate-limit.ts";
 
@@ -10,7 +11,7 @@ let prisma;
 
 before(() => {
     assert.ok(process.env.DATABASE_URL, "DATABASE_URL debe estar configurada para probar rate limiting");
-    prisma = new PrismaClient();
+    prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 });
 
 after(async () => {

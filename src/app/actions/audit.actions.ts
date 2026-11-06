@@ -1,6 +1,6 @@
 "use server";
 
-import { Prisma } from '@prisma/client';
+import { Prisma } from '@/generated/prisma/client';
 import { getAdminActionErrorMessage, logAdminActionError, requireAdminSession } from "@/lib/admin-session";
 import { auditActionLabels, auditEntityLabels } from '@/lib/audit-labels';
 import { prisma } from "@/lib/prisma";

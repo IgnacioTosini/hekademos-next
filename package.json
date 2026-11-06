@@ -2,6 +2,13 @@
   "name": "hekademos-next",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
+  "allowScripts": {
+    "@parcel/watcher@2.5.6": true,
+    "@prisma/client@7.10.1": true,
+    "prisma@7.10.1": true,
+    "unrs-resolver@1.11.1": true
+  },
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build && npm run verify:prisma-engine",
@@ -26,12 +33,14 @@
     "prisma:seed:admin": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types prisma/seed-admin.ts"
   },
   "dependencies": {
-    "@prisma/client": "6.19.3",
+    "@prisma/adapter-pg": "^7.10.1",
+    "@prisma/client": "^7.10.1",
     "@vercel/analytics": "^2.0.1",
     "gsap": "^3.14.2",
     "libphonenumber-js": "1.13.12",
     "next": "^16.3.4",
     "nodemailer": "^9.0.3",
+    "pg": "^8.23.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-icons": "^5.5.0",
@@ -41,12 +50,13 @@
   "devDependencies": {
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.1",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "^16.3.4",
     "playwright-core": "^1.62.1",
-    "prisma": "6.19.3",
+    "prisma": "^7.10.1",
     "typescript": "^5"
   }
 }

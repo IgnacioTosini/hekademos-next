@@ -1,4 +1,6 @@
 {
+  "installCommand": "node scripts/vercel-npm.mjs install",
+  "buildCommand": "node scripts/vercel-npm.mjs build",
   "crons": [
     { "path": "/api/cron/payment-reminders", "schedule": "0 12 1 * *" }
   ]

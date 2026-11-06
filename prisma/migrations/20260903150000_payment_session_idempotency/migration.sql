@@ -1,5 +1,8 @@
 -- Add a canonical billing period to every payment. The value is always the
 -- first day of the month at 00:00 UTC, independently of the payment date.
+-- Keep temporary duplicate maps alive until the whole migration completes.
+BEGIN;
+
 ALTER TABLE "Payment" ADD COLUMN "periodStart" TIMESTAMP(3);
 
 UPDATE "Payment"
@@ -82,3 +85,5 @@ WHERE mapping."rowNumber" > 1
 
 CREATE UNIQUE INDEX "ClassSession_scheduleId_startsAt_key"
 ON "ClassSession"("scheduleId", "startsAt");
+
+COMMIT;

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "../src/generated/prisma/client.ts";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 import { normalizeClassCategoryKey } from "../src/utils/class-category.ts";
 
@@ -8,7 +9,7 @@ let prisma;
 
 before(() => {
     assert.ok(process.env.DATABASE_URL, "DATABASE_URL debe estar configurada para probar la base");
-    prisma = new PrismaClient();
+    prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 });
 
 after(async () => {

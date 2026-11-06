@@ -1,11 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Preserve Node.js module paths instead of bundling a custom TS client.
+  // The generated Prisma 7 client lives in src and is bundled by Next.
   serverExternalPackages: ['@prisma/client'],
-  outputFileTracingIncludes: {
-    '/*': ['node_modules/.prisma/client/**/*'],
-  },
   images: {
     remotePatterns: [
       {

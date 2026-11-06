@@ -1,8 +1,9 @@
 import 'dotenv/config';
 import { createHash } from 'node:crypto';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../src/generated/prisma/client.ts';
+import { PrismaPg } from '@prisma/adapter-pg';
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 const root = (process.env.CLOUDINARY_UPLOAD_FOLDER ?? 'Hekademos').replace(/^\/+|\/+$/g, '');
 const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
 const apiKey = process.env.CLOUDINARY_API_KEY;

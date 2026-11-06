@@ -3,7 +3,7 @@
 import { isValidOptionalContactPhone, normalizeContactPhone } from '@/utils/phone';
 
 import { randomUUID } from "node:crypto";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/generated/prisma/client";
 import { revalidatePath, updateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { PUBLIC_SCHEDULES_CACHE_TAG } from "@/lib/public-home-cache-tags";

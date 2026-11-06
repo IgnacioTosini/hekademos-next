@@ -1,6 +1,6 @@
 "use server";
 
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@/generated/prisma/client';
 import { prisma } from '@/lib/prisma';
 import { ADMIN_USER_PAGE_SIZE } from '@/lib/admin-user-page';
 import { getAdminActionErrorMessage, logAdminActionError, requireAdminSession } from '@/lib/admin-session';

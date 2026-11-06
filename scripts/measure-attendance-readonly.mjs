@@ -1,8 +1,9 @@
 // Read-only query plans for the month with the latest recorded attendance.
 // Run with: node -r dotenv/config scripts/measure-attendance-readonly.mjs
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../src/generated/prisma/client.ts';
+import { PrismaPg } from '@prisma/adapter-pg';
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 
 try {
     const [{ month }] = await prisma.$queryRaw`

@@ -1,6 +1,6 @@
 "use server";
 
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@/generated/prisma/client';
 import { revalidatePath, updateTag } from "next/cache";
 import { getAppUrl } from "@/lib/app-url";
 import { getCurrentAuthSession } from "@/lib/auth-session";

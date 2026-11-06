@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { createHash, createHmac } from "node:crypto";
 import { existsSync } from "node:fs";
 import { after, before, test } from "node:test";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "../src/generated/prisma/client.ts";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { chromium } from "playwright-core";
 import { hashPassword } from "../src/lib/password.ts";
 
@@ -151,7 +152,7 @@ const cleanup = async () => {
 before(async () => {
     assert.ok(process.env.DATABASE_URL, "DATABASE_URL debe estar configurada");
     assert.equal(existsSync(chromePath), true, `No se encontró Chrome en ${chromePath}`);
-    prisma = new PrismaClient();
+    prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
     originalSiteContent = await prisma.siteContent.findUnique({ where: { key: "home-page" } });
 
     const categoryName = `${tag} Base`;

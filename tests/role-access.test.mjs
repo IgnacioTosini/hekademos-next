@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import { after, before, test } from "node:test";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "../src/generated/prisma/client.ts";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 const baseUrl = process.env.QA_BASE_URL ?? "http://localhost:3000";
 const cookieName = "hekademos-session";
@@ -54,7 +55,7 @@ const expectRedirect = async (path, expectedPath, cookie) => {
 
 before(async () => {
     assert.ok(process.env.DATABASE_URL, "DATABASE_URL debe estar configurada para probar los roles");
-    prisma = new PrismaClient();
+    prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 
     const [admin, coach, student] = await Promise.all([
         prisma.user.findFirst({ where: { role: "ADMIN", status: "ACTIVE" } }),

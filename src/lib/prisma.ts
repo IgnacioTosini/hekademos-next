@@ -1,4 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@/generated/prisma/client';
+import { createPrismaClient } from '@/lib/create-prisma-client';
 
 const globalForPrisma = globalThis as unknown as {
     prisma: PrismaClient | undefined;
@@ -15,9 +16,7 @@ export const prisma = cachedPrisma
     && 'communityPost' in cachedPrisma
     && 'whatsAppIntegration' in cachedPrisma
     ? cachedPrisma
-    : new PrismaClient({
-        log: ['error', 'warn'],
-    });
+    : createPrismaClient();
 
 if (process.env.NODE_ENV !== 'production') {
     globalForPrisma.prisma = prisma;
