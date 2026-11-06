@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { FaArrowRight } from 'react-icons/fa'
-import { handleScrollTo } from '@/utils'
+import { navigateToSectionWithFade } from '@/utils/sectionNavigation'
 import type { HomePageContent } from '@/lib/home-page-content'
 import './_banner.scss'
 
@@ -58,7 +58,7 @@ export const Banner = ({ content }: Props) => {
 
     const handleAction = (href: string) => {
         const sectionId = href.startsWith('/#') || href.startsWith('#') ? href.split('#')[1] : ''
-        if (sectionId) return handleScrollTo(sectionId)
+        if (sectionId) return void navigateToSectionWithFade(sectionId, `/#${sectionId}`)
         if (/^https?:\/\//i.test(href)) return window.open(href, '_blank', 'noopener,noreferrer')
         window.location.href = href
     }
