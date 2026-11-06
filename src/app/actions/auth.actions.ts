@@ -346,7 +346,7 @@ export const resetPassword = async (
 ): Promise<ActionResponse<{ ok: true } | null>> => {
     try {
         const token = input.token.trim();
-        const password = input.password.trim();
+        const password = input.password;
 
         if (!token) {
             return {

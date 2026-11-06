@@ -1,6 +1,6 @@
 import { pathToFileURL } from "node:url";
 import { PrismaClient } from "@prisma/client";
-import { hashPassword, verifyPassword } from "../src/lib/password.ts";
+import { hashPassword } from "../src/lib/password.ts";
 
 const getAdminCredentials = () => {
   const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
@@ -21,28 +21,22 @@ export const seedAdmin = async (prisma: PrismaClient) => {
   const { email, password } = getAdminCredentials();
   const existingAdmin = await prisma.user.findUnique({
     where: { email },
-    select: { passwordHash: true },
+    select: { role: true },
   });
-  const passwordHash = existingAdmin?.passwordHash
-    && await verifyPassword(password, existingAdmin.passwordHash)
-      ? existingAdmin.passwordHash
-      : await hashPassword(password);
 
-  await prisma.user.upsert({
-    where: { email },
-    update: {
-      name: "Admin Hekademos",
-      passwordHash,
-      sessionVersion: existingAdmin?.passwordHash !== passwordHash
-        ? { increment: 1 }
-        : undefined,
-      role: "ADMIN",
-      status: "ACTIVE",
-    },
-    create: {
+  if (existingAdmin) {
+    if (existingAdmin.role !== "ADMIN") {
+      throw new Error("ADMIN_EMAIL corresponde a una cuenta que no es administradora");
+    }
+    console.log(`Administrador ${email} ya existe; se conserva su contraseña`);
+    return;
+  }
+
+  await prisma.user.create({
+    data: {
       email,
       name: "Admin Hekademos",
-      passwordHash,
+      passwordHash: await hashPassword(password),
       role: "ADMIN",
       status: "ACTIVE",
     },

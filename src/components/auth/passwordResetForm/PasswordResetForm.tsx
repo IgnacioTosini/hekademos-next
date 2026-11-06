@@ -55,7 +55,7 @@ export const PasswordResetForm = () => {
             setConfirmPassword("");
 
             setTimeout(() => {
-                router.replace("/auth/login");
+                router.replace("/auth/login?passwordChanged=1");
             }, 1200);
         });
     };

@@ -34,9 +34,9 @@ export const changeCurrentUserPassword = async (
 
         if (!session) throw new Error("Necesitas iniciar sesion");
 
-        const currentPassword = input.currentPassword.trim();
-        const newPassword = input.newPassword.trim();
-        const confirmPassword = input.confirmPassword.trim();
+        const currentPassword = input.currentPassword;
+        const newPassword = input.newPassword;
+        const confirmPassword = input.confirmPassword;
 
         if (!currentPassword) throw new Error("La contraseña actual es obligatoria");
         if (!newPassword) throw new Error("La nueva contraseña es obligatoria");

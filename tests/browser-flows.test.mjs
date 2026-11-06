@@ -894,8 +894,8 @@ test("el alumno cambia y recupera su contraseña con un token de un solo uso", a
     attachDiagnostics(recoveryPage, "recuperación-contraseña");
     await openPage(recoveryPage, "/auth/recuperar");
     await recoveryPage.locator("#password-reset-email").fill(`inexistente-${suffix}@example.com`);
-    await recoveryPage.getByRole("button", { name: "Enviar link" }).click();
-    await recoveryPage.getByText("Si el email existe y la cuenta esta activa, vas a recibir un link para restablecer la contraseña.", { exact: true }).waitFor();
+    await recoveryPage.getByRole("button", { name: "Enviar enlace de recuperación" }).click();
+    await recoveryPage.getByText(/Si el correo corresponde a una cuenta activa/).waitFor();
 
     const resetToken = `qa-reset-${suffix}`;
     await prisma.passwordResetToken.create({
@@ -909,7 +909,7 @@ test("el alumno cambia y recupera su contraseña con un token de un solo uso", a
     await openPage(recoveryPage, `/auth/restablecer?token=${encodeURIComponent(resetToken)}`);
     await recoveryPage.locator("#reset-password").fill(recoveredPassword);
     await recoveryPage.locator("#reset-confirm-password").fill(recoveredPassword);
-    await recoveryPage.getByRole("button", { name: "Guardar contraseña" }).click();
+    await recoveryPage.getByRole("button", { name: "Guardar nueva contraseña" }).click();
     await recoveryPage.getByText("Contraseña actualizada. Ya podés ingresar con tu nueva contraseña.", { exact: true }).waitFor();
     assert.equal((await prisma.user.findUniqueOrThrow({ where: { id: data.studentUserId } })).sessionVersion, 2);
 
@@ -921,7 +921,7 @@ test("el alumno cambia y recupera su contraseña con un token de un solo uso", a
     await openPage(reusedTokenPage, `/auth/restablecer?token=${encodeURIComponent(resetToken)}`);
     await reusedTokenPage.locator("#reset-password").fill(`${recoveredPassword}-otra`);
     await reusedTokenPage.locator("#reset-confirm-password").fill(`${recoveredPassword}-otra`);
-    await reusedTokenPage.getByRole("button", { name: "Guardar contraseña" }).click();
+    await reusedTokenPage.getByRole("button", { name: "Guardar nueva contraseña" }).click();
     await reusedTokenPage.getByText("El link de recuperacion expiro o ya fue usado", { exact: true }).waitFor();
 
     const finalLoginContext = await browser.newContext({ locale: "es-AR", timezoneId: "America/Argentina/Buenos_Aires", extraHTTPHeaders: { "x-forwarded-for": qaForwardedIp } });
